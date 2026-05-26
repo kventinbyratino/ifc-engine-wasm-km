@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IFC WASM Viewer</title>
+  </head>
+  <body>
+    <main id="app">
+      <section class="viewer-shell">
+        <div id="viewport" class="viewport"></div>
+        <div class="topbar">
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <div>
+              <strong>IFC WASM Viewer</strong>
+              <span id="statusText">Готов к загрузке IFC или FRAG</span>
+            </div>
+          </div>
+          <div class="actions">
+            <input id="ifcInput" type="file" accept=".ifc,.ifczip" hidden />
+            <input id="fragInput" type="file" accept=".frag" hidden />
+            <bim-button id="loadIfcBtn" icon="solar:upload-minimalistic-bold" label="IFC"></bim-button>
+            <bim-button id="loadFragBtn" icon="solar:folder-open-bold" label="FRAG"></bim-button>
+            <bim-button id="fitBtn" icon="solar:target-bold"></bim-button>
+            <bim-button id="clearBtn" icon="solar:trash-bin-minimalistic-bold"></bim-button>
+          </div>
+        </div>
+        <bim-view-cube
+          id="viewCube"
+          size="64"
+          right-text="+X"
+          left-text="-X"
+          top-text="+Y"
+          bottom-text="-Y"
+          front-text="+Z"
+          back-text="-Z"
+        ></bim-view-cube>
+        <div id="progress" class="progress" hidden>
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+      </section>
+
+      <aside class="side-panel">
+        <section class="panel-block">
+          <h2>Модель</h2>
+          <div class="model-meta">
+            <span>Файл</span>
+            <strong id="fileName">-</strong>
+            <span>Моделей</span>
+            <strong id="modelCount">0</strong>
+            <span>Выбрано</span>
+            <strong id="selectionCount">0</strong>
+          </div>
+        </section>
+
+        <section class="panel-block">
+          <h2>Действия</h2>
+          <div class="command-grid">
+            <bim-button id="downloadFragBtn" label="Скачать FRAG"></bim-button>
+            <bim-button id="hideSelectedBtn" label="Скрыть выбранное"></bim-button>
+            <bim-button id="isolateSelectedBtn" label="Изолировать"></bim-button>
+            <bim-button id="showAllBtn" label="Показать все"></bim-button>
+          </div>
+        </section>
+
+        <section class="panel-block tree-block">
+          <h2>Структура</h2>
+          <div id="treeOutput" class="tree-output">
+            <span class="empty-state">Загрузите модель.</span>
+          </div>
+        </section>
+
+        <section class="panel-block search-block">
+          <h2>Поиск</h2>
+          <div class="search-row">
+            <input id="searchInput" class="search-input" type="search" placeholder="Name, GUID, Tag, тип" />
+            <bim-button id="searchBtn" icon="solar:magnifer-bold"></bim-button>
+            <bim-button id="clearSearchBtn" icon="solar:close-circle-bold"></bim-button>
+          </div>
+          <div id="searchOutput" class="search-output">
+            <span class="empty-state">Введите текст поиска.</span>
+          </div>
+        </section>
+
+        <section class="panel-block grow">
+          <h2>Свойства</h2>
+          <div id="propertiesOutput" class="properties-output">
+            <span class="empty-state">Выберите элемент модели.</span>
+          </div>
+        </section>
+      </aside>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

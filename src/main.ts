@@ -202,6 +202,8 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+window.addEventListener("pageshow", () => selectProfile("pending"));
+
 refreshModelState();
 
 function selectProfile(profile: "pending" | "km" | "bim") {

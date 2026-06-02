@@ -6,29 +6,70 @@
     <title>IFC WASM Viewer</title>
   </head>
   <body>
-    <main id="app">
-      <section class="viewer-shell">
-        <div id="viewport" class="viewport"></div>
-        <div class="topbar">
-          <div class="brand">
-            <span class="brand-mark"></span>
-            <div>
-              <strong>IFC WASM Viewer</strong>
-              <span id="statusText">Готов к загрузке IFC или FRAG</span>
-            </div>
-          </div>
-          <div class="actions">
-            <input id="ifcInput" type="file" accept=".ifc,.ifczip" hidden />
-            <input id="fragInput" type="file" accept=".frag" hidden />
-            <bim-button id="loadIfcBtn" icon="solar:upload-minimalistic-bold" label="IFC"></bim-button>
-            <bim-button id="loadFragBtn" icon="solar:folder-open-bold" label="FRAG"></bim-button>
-            <bim-button id="fitBtn" icon="solar:target-bold"></bim-button>
-            <bim-button id="clearBtn" icon="solar:trash-bin-minimalistic-bold"></bim-button>
+    <main id="app" class="profile-pending">
+      <section id="profileScreen" class="profile-screen" aria-label="Выбор профиля">
+        <div class="profile-card">
+          <p class="profile-kicker">Выбор профиля</p>
+          <div class="profile-actions">
+            <button id="profileKmBtn" class="profile-option" type="button">
+              <strong>КМ</strong>
+              <span>Текущий IFC Viewer</span>
+            </button>
+            <button id="profileBimBtn" class="profile-option" type="button">
+              <strong>BIM</strong>
+              <span>В разработке</span>
+            </button>
           </div>
         </div>
+      </section>
+
+      <section id="bimStub" class="bim-stub" hidden>
+        <div class="profile-card">
+          <p class="profile-kicker">Профиль BIM</p>
+          <h1>BIM в разработке</h1>
+          <p>Функционал профиля будет добавлен позже.</p>
+          <button id="backToProfilesBtn" class="secondary-action" type="button">Выбрать другой профиль</button>
+        </div>
+      </section>
+
+      <section class="viewer-shell">
+        <div id="viewport" class="viewport"></div>
+
+        <div class="status-pill">
+          <strong>IFC Viewer</strong>
+          <span id="statusText">Загрузите IFC</span>
+        </div>
+
+        <input id="ifcInput" type="file" accept=".ifc,.ifczip" hidden />
+        <input id="fragInput" type="file" accept=".frag" hidden />
+
+        <button id="loadIfcBtn" class="floating-add" type="button" aria-label="Добавить IFC">
+          <span>+</span>
+        </button>
+
+        <button id="searchToggleBtn" class="floating-search" type="button" aria-label="Поиск" hidden>
+          🔎
+        </button>
+
+        <section id="searchPanel" class="search-panel" hidden>
+          <div class="search-row">
+            <input
+              id="searchInput"
+              class="search-input"
+              type="search"
+              placeholder="Поиск по всем атрибутам"
+            />
+            <button id="searchBtn" class="icon-button" type="button" aria-label="Найти">→</button>
+            <button id="clearSearchBtn" class="icon-button" type="button" aria-label="Очистить">×</button>
+          </div>
+          <div id="searchOutput" class="search-output">
+            <span class="empty-state">Введите текст поиска.</span>
+          </div>
+        </section>
+
         <bim-view-cube
           id="viewCube"
-          size="64"
+          size="56"
           right-text="+X"
           left-text="-X"
           top-text="+Y"
@@ -36,59 +77,25 @@
           front-text="+Z"
           back-text="-Z"
         ></bim-view-cube>
+
         <div id="progress" class="progress" hidden>
           <div id="progressBar" class="progress-bar"></div>
         </div>
       </section>
 
-      <aside class="side-panel">
-        <section class="panel-block">
-          <h2>Модель</h2>
-          <div class="model-meta">
-            <span>Файл</span>
-            <strong id="fileName">-</strong>
-            <span>Моделей</span>
-            <strong id="modelCount">0</strong>
-            <span>Выбрано</span>
-            <strong id="selectionCount">0</strong>
-          </div>
-        </section>
-
-        <section class="panel-block">
-          <h2>Действия</h2>
-          <div class="command-grid">
-            <bim-button id="downloadFragBtn" label="Скачать FRAG"></bim-button>
-            <bim-button id="hideSelectedBtn" label="Скрыть выбранное"></bim-button>
-            <bim-button id="isolateSelectedBtn" label="Изолировать"></bim-button>
-            <bim-button id="showAllBtn" label="Показать все"></bim-button>
-          </div>
-        </section>
-
-        <section class="panel-block tree-block">
-          <h2>Структура</h2>
-          <div id="treeOutput" class="tree-output">
-            <span class="empty-state">Загрузите модель.</span>
-          </div>
-        </section>
-
-        <section class="panel-block search-block">
-          <h2>Поиск</h2>
-          <div class="search-row">
-            <input id="searchInput" class="search-input" type="search" placeholder="Name, GUID, Tag, тип" />
-            <bim-button id="searchBtn" icon="solar:magnifer-bold"></bim-button>
-            <bim-button id="clearSearchBtn" icon="solar:close-circle-bold"></bim-button>
-          </div>
-          <div id="searchOutput" class="search-output">
-            <span class="empty-state">Введите текст поиска.</span>
-          </div>
-        </section>
-
-        <section class="panel-block grow">
-          <h2>Свойства</h2>
-          <div id="propertiesOutput" class="properties-output">
-            <span class="empty-state">Выберите элемент модели.</span>
-          </div>
-        </section>
+      <aside class="side-panel" hidden>
+        <strong id="fileName">-</strong>
+        <strong id="modelCount">0</strong>
+        <strong id="selectionCount">0</strong>
+        <div id="treeOutput" class="tree-output"></div>
+        <div id="propertiesOutput" class="properties-output"></div>
+        <button id="loadFragBtn" type="button"></button>
+        <button id="fitBtn" type="button"></button>
+        <button id="clearBtn" type="button"></button>
+        <button id="downloadFragBtn" type="button"></button>
+        <button id="hideSelectedBtn" type="button"></button>
+        <button id="isolateSelectedBtn" type="button"></button>
+        <button id="showAllBtn" type="button"></button>
       </aside>
     </main>
     <script type="module" src="/src/main.ts"></script>

@@ -8,6 +8,7 @@ import workerUrl from "@thatopen/fragments/worker?url";
 import "./styles.css";
 
 type ModelIdMap = OBC.ModelIdMap;
+type LoadingElement = HTMLElement & { loading?: boolean; disabled?: boolean };
 
 const statusText = document.getElementById("statusText") as HTMLSpanElement;
 const fileName = document.getElementById("fileName") as HTMLElement;
@@ -17,6 +18,7 @@ const propertiesOutput = document.getElementById("propertiesOutput") as HTMLDivE
 const treeOutput = document.getElementById("treeOutput") as HTMLDivElement;
 const searchInput = document.getElementById("searchInput") as HTMLInputElement;
 const searchOutput = document.getElementById("searchOutput") as HTMLDivElement;
+const searchPanel = document.getElementById("searchPanel") as HTMLElement;
 const progress = document.getElementById("progress") as HTMLDivElement;
 const progressBar = document.getElementById("progressBar") as HTMLDivElement;
 const viewport = document.getElementById("viewport") as HTMLDivElement;
@@ -24,16 +26,17 @@ const viewCube = document.getElementById("viewCube") as CUI.ViewCube;
 
 const ifcInput = document.getElementById("ifcInput") as HTMLInputElement;
 const fragInput = document.getElementById("fragInput") as HTMLInputElement;
-const loadIfcBtn = document.getElementById("loadIfcBtn") as BUI.Button;
-const loadFragBtn = document.getElementById("loadFragBtn") as BUI.Button;
-const fitBtn = document.getElementById("fitBtn") as BUI.Button;
-const clearBtn = document.getElementById("clearBtn") as BUI.Button;
-const downloadFragBtn = document.getElementById("downloadFragBtn") as BUI.Button;
-const hideSelectedBtn = document.getElementById("hideSelectedBtn") as BUI.Button;
-const isolateSelectedBtn = document.getElementById("isolateSelectedBtn") as BUI.Button;
-const showAllBtn = document.getElementById("showAllBtn") as BUI.Button;
-const searchBtn = document.getElementById("searchBtn") as BUI.Button;
-const clearSearchBtn = document.getElementById("clearSearchBtn") as BUI.Button;
+const loadIfcBtn = document.getElementById("loadIfcBtn") as LoadingElement;
+const loadFragBtn = document.getElementById("loadFragBtn") as LoadingElement;
+const fitBtn = document.getElementById("fitBtn") as LoadingElement;
+const clearBtn = document.getElementById("clearBtn") as LoadingElement;
+const downloadFragBtn = document.getElementById("downloadFragBtn") as LoadingElement;
+const hideSelectedBtn = document.getElementById("hideSelectedBtn") as LoadingElement;
+const isolateSelectedBtn = document.getElementById("isolateSelectedBtn") as LoadingElement;
+const showAllBtn = document.getElementById("showAllBtn") as LoadingElement;
+const searchToggleBtn = document.getElementById("searchToggleBtn") as HTMLButtonElement;
+const searchBtn = document.getElementById("searchBtn") as LoadingElement;
+const clearSearchBtn = document.getElementById("clearSearchBtn") as LoadingElement;
 
 BUI.Manager.init();
 CUI.Manager.init();
@@ -79,12 +82,19 @@ highlighter.setup({
     renderedFaces: 0,
   },
 });
-highlighter.styles.set("search", {
-  color: new THREE.Color("#ffb84d"),
-  opacity: 0.9,
+const searchHighlightStyle = {
+  color: new THREE.Color("#18b86f"),
+  opacity: 1,
   transparent: false,
   renderedFaces: 0,
-});
+};
+
+const dimHighlightStyle = {
+  color: new THREE.Color("#9aa6af"),
+  opacity: 0.2,
+  transparent: true,
+  renderedFaces: 0,
+};
 
 const [spatialTree] = CUI.tables.spatialTree({
   components,
@@ -95,7 +105,6 @@ spatialTree.classList.add("spatial-tree");
 treeOutput.replaceChildren(spatialTree);
 
 const hider = components.get(OBC.Hider);
-const itemsFinder = components.get(OBC.ItemsFinder);
 let activeSelection: ModelIdMap = {};
 
 world.camera.controls.addEventListener("update", () => {
@@ -158,6 +167,7 @@ downloadFragBtn.onclick = () => void downloadFragments();
 hideSelectedBtn.onclick = () => void hideSelected();
 isolateSelectedBtn.onclick = () => void isolateSelected();
 showAllBtn.onclick = () => void hider.set(true);
+searchToggleBtn.onclick = () => toggleSearchPanel();
 searchBtn.onclick = () => void searchItems();
 clearSearchBtn.onclick = () => void clearSearch();
 
@@ -295,8 +305,10 @@ async function clearModels() {
   }
   await highlighter.clear("select");
   await clearSearch();
+  searchPanel.hidden = true;
   fileName.textContent = "-";
-  statusText.textContent = "Сцена очищена";
+  statusText.textContent = "Загрузите IFC";
+  refreshModelState();
 }
 
 async function searchItems() {
@@ -315,38 +327,17 @@ async function searchItems() {
   searchOutput.replaceChildren(createMessage("Поиск..."));
 
   try {
-    const pattern = new RegExp(escapeRegExp(term), "i");
-    const queries: FRAGS.GetItemsByAttributeParams[] = [
-      { name: /^(Name|LongName|Tag|ObjectType|PredefinedType|_guid|_category)$/i, value: pattern },
-    ];
-    const numericTerm = Number(term);
-    if (Number.isFinite(numericTerm)) {
-      queries.push({ name: /^_localId$/i, value: numericTerm });
-    }
-
     const geometryItems = await getGeometryItemsMap();
-    const result = await itemsFinder.getItems(
-      [
-        {
-          attributes: {
-            aggregation: "inclusive",
-            queries,
-          },
-        },
-      ],
-      {
-        aggregation: "inclusive",
-        items: geometryItems,
-      },
-    );
+    const result = await findItemsByAllAttributes(term, geometryItems);
 
-    await highlighter.clear("search");
     if (isEmptySelection(result)) {
+      await clearSceneHighlight();
       searchOutput.replaceChildren(createMessage("Ничего не найдено."));
       return;
     }
 
-    await highlighter.highlightByID("search", result, true);
+    await applySearchHighlight(result, geometryItems);
+    await fitToItems(result);
     await renderSearchResults(result);
   } catch (error) {
     console.error(error);
@@ -358,10 +349,21 @@ async function searchItems() {
   }
 }
 
+function toggleSearchPanel() {
+  searchPanel.hidden = !searchPanel.hidden;
+  if (!searchPanel.hidden) searchInput.focus();
+}
+
 async function clearSearch() {
   searchInput.value = "";
   searchOutput.replaceChildren(createMessage("Введите текст поиска."));
+  await clearSceneHighlight();
+}
+
+async function clearSceneHighlight() {
   await highlighter.clear("search");
+  await highlighter.clear("select");
+  await fragments.resetHighlight();
 }
 
 async function getGeometryItemsMap() {
@@ -371,6 +373,106 @@ async function getGeometryItemsMap() {
     result[modelId] = new Set(ids);
   }
   return result;
+}
+
+async function findItemsByAllAttributes(term: string, geometryItems: ModelIdMap) {
+  const result: ModelIdMap = {};
+  const needle = term.toLocaleLowerCase();
+  const chunkSize = 500;
+
+  for (const [modelId, localIds] of Object.entries(geometryItems)) {
+    const model = fragments.list.get(modelId);
+    if (!model) continue;
+
+    const ids = [...localIds];
+    for (let index = 0; index < ids.length; index += chunkSize) {
+      const chunk = ids.slice(index, index + chunkSize);
+      const items = await model.getItemsData(chunk, {
+        attributesDefault: true,
+        relationsDefault: { attributes: true, relations: false },
+      });
+
+      for (let itemIndex = 0; itemIndex < chunk.length; itemIndex++) {
+        const localId = chunk[itemIndex];
+        const item = items[itemIndex];
+        const haystack = stringifySearchableItem(localId, item);
+        if (!haystack.toLocaleLowerCase().includes(needle)) continue;
+
+        result[modelId] ??= new Set<number>();
+        result[modelId].add(localId);
+      }
+    }
+  }
+
+  return result;
+}
+
+function stringifySearchableItem(localId: number, item: unknown) {
+  const chunks: string[] = [String(localId)];
+  const seen = new WeakSet<object>();
+
+  const visit = (value: unknown) => {
+    if (value === null || value === undefined) return;
+
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      chunks.push(String(value));
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      for (const entry of value) visit(entry);
+      return;
+    }
+
+    if (typeof value !== "object" || seen.has(value)) return;
+    seen.add(value);
+
+    for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+      chunks.push(key);
+      if (key === "value" || key === "name" || key === "type" || key.startsWith("_")) {
+        visit(nestedValue);
+      } else {
+        visit(nestedValue);
+      }
+    }
+  };
+
+  visit(item);
+  return chunks.join(" ");
+}
+
+function subtractModelIdMap(source: ModelIdMap, remove: ModelIdMap) {
+  const result: ModelIdMap = {};
+  for (const [modelId, localIds] of Object.entries(source)) {
+    const removeIds = remove[modelId] ?? new Set<number>();
+    const visible = [...localIds].filter((localId) => !removeIds.has(localId));
+    if (visible.length > 0) result[modelId] = new Set(visible);
+  }
+  return result;
+}
+
+async function applySearchHighlight(found: ModelIdMap, geometryItems?: ModelIdMap) {
+  const allItems = geometryItems ?? (await getGeometryItemsMap());
+  const dimmed = subtractModelIdMap(allItems, found);
+
+  await clearSceneHighlight();
+  if (!isEmptySelection(dimmed)) await fragments.highlight(dimHighlightStyle, dimmed);
+  await fragments.highlight(searchHighlightStyle, found);
+}
+
+async function fitToItems(modelIdMap: ModelIdMap) {
+  const boxes = await fragments.getBBoxes(modelIdMap);
+  const box = new THREE.Box3();
+  for (const itemBox of boxes) box.union(itemBox);
+
+  if (!box.isEmpty()) {
+    await world.camera.controls.fitToBox(box, true, {
+      paddingLeft: 1.2,
+      paddingRight: 1.2,
+      paddingTop: 1.2,
+      paddingBottom: 1.2,
+    });
+  }
 }
 
 async function renderSearchResults(modelIdMap: ModelIdMap) {
@@ -405,6 +507,7 @@ async function renderSearchResults(modelIdMap: ModelIdMap) {
       const name = getAttrText(item, "Name") || getAttrText(item, "_category") || `#${localId}`;
       const category = getAttrText(item, "_category");
       const guid = getAttrText(item, "_guid");
+      const singleItem = { [modelId]: new Set([localId]) };
 
       const button = document.createElement("button");
       button.className = "search-result";
@@ -415,7 +518,7 @@ async function renderSearchResults(modelIdMap: ModelIdMap) {
         ${guid ? `<small>${escapeHtml(guid)}</small>` : ""}
       `;
       button.onclick = () => {
-        void highlighter.highlightByID("select", { [modelId]: new Set([localId]) }, true);
+        void applySearchHighlight(singleItem).then(() => fitToItems(singleItem));
       };
       list.append(button);
       rendered++;
@@ -471,7 +574,10 @@ function setCamera(x: number, y: number, z: number) {
 }
 
 function refreshModelState() {
+  const hasModels = fragments.list.size > 0;
   modelCount.textContent = String(fragments.list.size);
+  loadIfcBtn.hidden = hasModels;
+  searchToggleBtn.hidden = !hasModels;
 }
 
 function clearSelectionInfo() {
@@ -550,10 +656,6 @@ function getAttrText(item: Record<string, { value?: unknown }> | undefined, key:
   const value = item?.[key]?.value;
   if (value === undefined || value === null) return "";
   return String(value);
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function escapeHtml(value: string) {

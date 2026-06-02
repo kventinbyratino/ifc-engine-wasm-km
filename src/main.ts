@@ -175,9 +175,9 @@ showAllBtn.onclick = () => void hider.set(true);
 searchToggleBtn.onclick = () => toggleSearchPanel();
 searchBtn.onclick = () => void searchItems();
 clearSearchBtn.onclick = () => void clearSearch();
-profileKmBtn.onclick = () => selectProfile("km");
-profileBimBtn.onclick = () => selectProfile("bim");
-backToProfilesBtn.onclick = () => selectProfile("pending");
+profileKmBtn.onclick = () => navigateToProfile("km");
+profileBimBtn.onclick = () => navigateToProfile("bim");
+backToProfilesBtn.onclick = () => navigateToProfile("pending");
 
 ifcInput.onchange = () => {
   const [file] = ifcInput.files ?? [];
@@ -202,9 +202,34 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
-window.addEventListener("pageshow", () => selectProfile("pending"));
-
+syncProfileWithLocation();
 refreshModelState();
+
+function profilePath(profile: "pending" | "km" | "bim") {
+  if (profile === "km") return "/ifc-engine-wasm/viewer/";
+  if (profile === "bim") return "/ifc-engine-wasm/bim/";
+  return "/ifc-engine-wasm/";
+}
+
+function navigateToProfile(profile: "pending" | "km" | "bim") {
+  window.location.assign(profilePath(profile));
+}
+
+function syncProfileWithLocation() {
+  const path = window.location.pathname.replace(/\/+$/, "");
+
+  if (path === "/ifc-engine-wasm/viewer") {
+    selectProfile("km");
+    return;
+  }
+
+  if (path === "/ifc-engine-wasm/bim") {
+    selectProfile("bim");
+    return;
+  }
+
+  selectProfile("pending");
+}
 
 function selectProfile(profile: "pending" | "km" | "bim") {
   app.classList.remove("profile-pending", "profile-km", "profile-bim");

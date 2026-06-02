@@ -6,7 +6,33 @@
     <title>IFC WASM Viewer</title>
   </head>
   <body>
-    <main id="app">
+    <main id="app" class="profile-pending">
+      <section id="profileScreen" class="profile-screen" aria-label="Выбор профиля">
+        <div class="profile-card">
+          <p class="profile-kicker">Выбор профиля</p>
+          <h1>Запустить сервис как</h1>
+          <div class="profile-actions">
+            <button id="profileKmBtn" class="profile-option" type="button">
+              <strong>КМ</strong>
+              <span>Текущий IFC Viewer</span>
+            </button>
+            <button id="profileBimBtn" class="profile-option" type="button">
+              <strong>BIM</strong>
+              <span>Заглушка</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="bimStub" class="bim-stub" hidden>
+        <div class="profile-card">
+          <p class="profile-kicker">Профиль BIM</p>
+          <h1>BIM в разработке</h1>
+          <p>Функционал профиля будет добавлен позже.</p>
+          <button id="backToProfilesBtn" class="secondary-action" type="button">Выбрать другой профиль</button>
+        </div>
+      </section>
+
       <section class="viewer-shell">
         <div id="viewport" class="viewport"></div>
 

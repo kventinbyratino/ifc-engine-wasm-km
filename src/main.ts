@@ -10,6 +10,11 @@ import "./styles.css";
 type ModelIdMap = OBC.ModelIdMap;
 type LoadingElement = HTMLElement & { loading?: boolean; disabled?: boolean };
 
+const app = document.getElementById("app") as HTMLElement;
+const profileKmBtn = document.getElementById("profileKmBtn") as HTMLButtonElement;
+const profileBimBtn = document.getElementById("profileBimBtn") as HTMLButtonElement;
+const backToProfilesBtn = document.getElementById("backToProfilesBtn") as HTMLButtonElement;
+const bimStub = document.getElementById("bimStub") as HTMLElement;
 const statusText = document.getElementById("statusText") as HTMLSpanElement;
 const fileName = document.getElementById("fileName") as HTMLElement;
 const modelCount = document.getElementById("modelCount") as HTMLElement;
@@ -170,6 +175,9 @@ showAllBtn.onclick = () => void hider.set(true);
 searchToggleBtn.onclick = () => toggleSearchPanel();
 searchBtn.onclick = () => void searchItems();
 clearSearchBtn.onclick = () => void clearSearch();
+profileKmBtn.onclick = () => selectProfile("km");
+profileBimBtn.onclick = () => selectProfile("bim");
+backToProfilesBtn.onclick = () => selectProfile("pending");
 
 ifcInput.onchange = () => {
   const [file] = ifcInput.files ?? [];
@@ -195,6 +203,18 @@ window.addEventListener("keydown", (event) => {
 });
 
 refreshModelState();
+
+function selectProfile(profile: "pending" | "km" | "bim") {
+  app.classList.remove("profile-pending", "profile-km", "profile-bim");
+  bimStub.hidden = profile !== "bim";
+
+  if (profile === "pending") {
+    app.classList.add("profile-pending");
+    return;
+  }
+
+  app.classList.add(profile === "km" ? "profile-km" : "profile-bim");
+}
 
 async function loadIfc(file: File) {
   setBusy(true, "Конвертация IFC в браузере");

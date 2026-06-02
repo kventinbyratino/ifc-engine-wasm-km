@@ -208,9 +208,142 @@ body {
 }
 
 .floating-add:disabled,
-.icon-button:disabled {
+.icon-button:disabled,
+.save-fragment:disabled {
   opacity: 0.55;
   pointer-events: none;
+}
+
+.library-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  align-items: end;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+.library-sheet {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  max-height: min(78vh, 620px);
+  overflow: auto;
+  padding: 16px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -18px 60px rgba(15, 23, 42, 0.24);
+}
+
+.library-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.library-header strong {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.plain-button {
+  border: 0;
+  color: #172026;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 22px;
+}
+
+.back-button {
+  justify-self: start;
+  padding: 0;
+  font-size: 15px;
+}
+
+.library-actions,
+.library-list-panel,
+.fragment-cards {
+  display: grid;
+  gap: 10px;
+}
+
+.library-action,
+.fragment-card {
+  display: grid;
+  gap: 7px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid rgba(23, 32, 38, 0.1);
+  border-radius: 20px;
+  color: #172026;
+  background: #f8fafc;
+  text-align: left;
+}
+
+.library-action {
+  cursor: pointer;
+  font: inherit;
+}
+
+.library-action strong,
+.fragment-card strong {
+  font-size: 16px;
+}
+
+.library-action span,
+.fragment-card span {
+  color: #687782;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.fragment-card {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.fragment-card strong,
+.fragment-card span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fragment-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.fragment-actions button,
+.save-fragment {
+  min-height: 42px;
+  border: 0;
+  border-radius: 14px;
+  color: #ffffff;
+  background: #141a20;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+}
+
+.fragment-actions .danger-button {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.save-fragment {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 8;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.26);
 }
 
 .floating-search {

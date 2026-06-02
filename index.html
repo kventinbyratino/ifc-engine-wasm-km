@@ -47,6 +47,35 @@
           <span>+</span>
         </button>
 
+        <section id="libraryModal" class="library-modal" aria-label="Библиотека фрагментов" hidden>
+          <div class="library-sheet">
+            <div class="library-header">
+              <strong>Фрагменты</strong>
+              <button id="closeLibraryBtn" class="plain-button" type="button" aria-label="Закрыть">×</button>
+            </div>
+
+            <div id="libraryStart" class="library-actions">
+              <button id="chooseFragmentBtn" class="library-action" type="button">
+                <strong>Выбрать</strong>
+                <span>Загрузить сохранённый fragment на сцену</span>
+              </button>
+              <button id="addIfcBtn" class="library-action" type="button">
+                <strong>Добавить</strong>
+                <span>Выбрать новый IFC до 200 МБ</span>
+              </button>
+            </div>
+
+            <div id="libraryListPanel" class="library-list-panel" hidden>
+              <button id="libraryBackBtn" class="plain-button back-button" type="button">← Назад</button>
+              <div id="fragmentList" class="fragment-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <button id="saveFragmentBtn" class="save-fragment" type="button" hidden>
+          Сохранить fragment
+        </button>
+
         <button id="searchToggleBtn" class="floating-search" type="button" aria-label="Поиск" hidden>
           🔎
         </button>

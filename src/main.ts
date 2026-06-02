@@ -9,6 +9,17 @@ import "./styles.css";
 
 type ModelIdMap = OBC.ModelIdMap;
 type LoadingElement = HTMLElement & { loading?: boolean; disabled?: boolean };
+type FragmentRecord = {
+  id: string;
+  name: string;
+  filename: string;
+  size_bytes: number;
+  created_at: string;
+};
+
+const MAX_IFC_BYTES = 200 * 1024 * 1024;
+const MAX_FRAGMENT_BYTES = 100 * 1024 * 1024;
+const API_BASE = "/ifc-engine-wasm/api";
 
 const app = document.getElementById("app") as HTMLElement;
 const profileKmBtn = document.getElementById("profileKmBtn") as HTMLButtonElement;
@@ -28,6 +39,15 @@ const progress = document.getElementById("progress") as HTMLDivElement;
 const progressBar = document.getElementById("progressBar") as HTMLDivElement;
 const viewport = document.getElementById("viewport") as HTMLDivElement;
 const viewCube = document.getElementById("viewCube") as CUI.ViewCube;
+const libraryModal = document.getElementById("libraryModal") as HTMLElement;
+const libraryStart = document.getElementById("libraryStart") as HTMLElement;
+const libraryListPanel = document.getElementById("libraryListPanel") as HTMLElement;
+const fragmentList = document.getElementById("fragmentList") as HTMLDivElement;
+const closeLibraryBtn = document.getElementById("closeLibraryBtn") as HTMLButtonElement;
+const chooseFragmentBtn = document.getElementById("chooseFragmentBtn") as HTMLButtonElement;
+const addIfcBtn = document.getElementById("addIfcBtn") as HTMLButtonElement;
+const libraryBackBtn = document.getElementById("libraryBackBtn") as HTMLButtonElement;
+const saveFragmentBtn = document.getElementById("saveFragmentBtn") as LoadingElement;
 
 const ifcInput = document.getElementById("ifcInput") as HTMLInputElement;
 const fragInput = document.getElementById("fragInput") as HTMLInputElement;
@@ -111,6 +131,8 @@ treeOutput.replaceChildren(spatialTree);
 
 const hider = components.get(OBC.Hider);
 let activeSelection: ModelIdMap = {};
+let lastConvertedModelId = "";
+let lastSourceIfcName = "";
 
 world.camera.controls.addEventListener("update", () => {
   fragments.core.update();
@@ -164,7 +186,7 @@ viewCube.addEventListener("bottomclick", () => setCamera(0, -32, 0));
 viewCube.addEventListener("frontclick", () => setCamera(0, 10, 30));
 viewCube.addEventListener("backclick", () => setCamera(0, 10, -30));
 
-loadIfcBtn.onclick = () => ifcInput.click();
+loadIfcBtn.onclick = () => openLibraryModal();
 loadFragBtn.onclick = () => fragInput.click();
 fitBtn.onclick = () => void fitToModels();
 clearBtn.onclick = () => void clearModels();
@@ -178,6 +200,11 @@ clearSearchBtn.onclick = () => void clearSearch();
 profileKmBtn.onclick = () => navigateToProfile("km");
 profileBimBtn.onclick = () => navigateToProfile("bim");
 backToProfilesBtn.onclick = () => navigateToProfile("pending");
+closeLibraryBtn.onclick = () => closeLibraryModal();
+chooseFragmentBtn.onclick = () => void showFragmentLibrary();
+addIfcBtn.onclick = () => ifcInput.click();
+libraryBackBtn.onclick = () => showLibraryStart();
+saveFragmentBtn.onclick = () => void saveCurrentFragment();
 
 ifcInput.onchange = () => {
   const [file] = ifcInput.files ?? [];
@@ -244,6 +271,11 @@ function selectProfile(profile: "pending" | "km" | "bim") {
 }
 
 async function loadIfc(file: File) {
+  if (file.size > MAX_IFC_BYTES) {
+    statusText.textContent = "IFC больше 200 МБ";
+    return;
+  }
+
   setBusy(true, "Конвертация IFC в браузере");
   fileName.textContent = file.name;
   propertiesOutput.textContent = "IFC читается через web-ifc WASM. Серверная обработка не используется.";
@@ -266,7 +298,11 @@ async function loadIfc(file: File) {
       },
     });
 
-    statusText.textContent = "IFC загружен и преобразован в Fragments";
+    lastConvertedModelId = modelId;
+    lastSourceIfcName = file.name;
+    saveFragmentBtn.hidden = false;
+    closeLibraryModal();
+    statusText.textContent = "IFC загружен и преобразован. Можно сохранить fragment";
     setProgress(1);
   } catch (error) {
     showError(error);
@@ -280,18 +316,153 @@ async function loadFrag(file: File) {
   fileName.textContent = file.name;
 
   try {
-    const buffer = await file.arrayBuffer();
-    const modelId = createModelId(file.name);
-    await fragments.core.load(buffer, {
-      modelId,
-      userData: { sourceName: file.name, sourceType: "frag" },
-    });
+    await loadFragBuffer(await file.arrayBuffer(), file.name);
     statusText.textContent = "FRAG загружен";
     setProgress(1);
   } catch (error) {
     showError(error);
   } finally {
     setBusy(false);
+  }
+}
+
+async function loadFragBuffer(buffer: ArrayBuffer, name: string) {
+  const modelId = createModelId(name);
+  await fragments.core.load(buffer, {
+    modelId,
+    userData: { sourceName: name, sourceType: "frag" },
+  });
+}
+
+function openLibraryModal() {
+  libraryModal.hidden = false;
+  showLibraryStart();
+}
+
+function closeLibraryModal() {
+  libraryModal.hidden = true;
+}
+
+function showLibraryStart() {
+  libraryStart.hidden = false;
+  libraryListPanel.hidden = true;
+  fragmentList.replaceChildren();
+}
+
+async function showFragmentLibrary() {
+  libraryStart.hidden = true;
+  libraryListPanel.hidden = false;
+  fragmentList.replaceChildren(createMessage("Загрузка списка..."));
+
+  try {
+    const records = await fetchFragments();
+    if (records.length === 0) {
+      fragmentList.replaceChildren(createMessage("Сохранённых fragments пока нет."));
+      return;
+    }
+
+    const list = document.createElement("div");
+    list.className = "fragment-cards";
+    for (const record of records) list.append(createFragmentCard(record));
+    fragmentList.replaceChildren(list);
+  } catch (error) {
+    fragmentList.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
+  }
+}
+
+function createFragmentCard(record: FragmentRecord) {
+  const card = document.createElement("article");
+  card.className = "fragment-card";
+  const date = new Date(record.created_at);
+  card.innerHTML = `
+    <div>
+      <strong>${escapeHtml(record.name)}</strong>
+      <span>${Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString("ru-RU")} · ${formatBytes(record.size_bytes)}</span>
+    </div>
+  `;
+
+  const actions = document.createElement("div");
+  actions.className = "fragment-actions";
+
+  const openButton = document.createElement("button");
+  openButton.type = "button";
+  openButton.textContent = "Открыть";
+  openButton.onclick = () => void openSavedFragment(record);
+
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "danger-button";
+  deleteButton.textContent = "Удалить";
+  deleteButton.onclick = () => void deleteSavedFragment(record);
+
+  actions.append(openButton, deleteButton);
+  card.append(actions);
+  return card;
+}
+
+async function fetchFragments() {
+  const response = await fetch(apiUrl("/fragments"));
+  if (!response.ok) throw new Error("Не удалось получить список fragments");
+  return (await response.json()) as FragmentRecord[];
+}
+
+async function openSavedFragment(record: FragmentRecord) {
+  setBusy(true, "Загрузка fragment");
+  try {
+    const response = await fetch(apiUrl(`/fragments/${record.id}/download`));
+    if (!response.ok) throw new Error("Не удалось загрузить fragment");
+    await loadFragBuffer(await response.arrayBuffer(), record.name);
+    fileName.textContent = record.name;
+    statusText.textContent = "FRAG загружен из библиотеки";
+    closeLibraryModal();
+  } catch (error) {
+    showError(error);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function deleteSavedFragment(record: FragmentRecord) {
+  if (!confirm(`Удалить ${record.name}?`)) return;
+  const response = await fetch(apiUrl(`/fragments/${record.id}`), { method: "DELETE" });
+  if (!response.ok) {
+    fragmentList.replaceChildren(createMessage("Не удалось удалить fragment."));
+    return;
+  }
+  await showFragmentLibrary();
+}
+
+async function saveCurrentFragment() {
+  if (!lastConvertedModelId || !lastSourceIfcName) return;
+
+  const model = fragments.list.get(lastConvertedModelId);
+  if (!model) {
+    statusText.textContent = "Нет модели для сохранения";
+    return;
+  }
+
+  saveFragmentBtn.loading = true;
+  statusText.textContent = "Сохранение fragment";
+  try {
+    const fragsBuffer = await model.getBuffer(false);
+    if (fragsBuffer.byteLength > MAX_FRAGMENT_BYTES) {
+      statusText.textContent = "Fragment больше 100 МБ";
+      return;
+    }
+
+    const form = new FormData();
+    form.set("name", lastSourceIfcName);
+    form.set("file", new File([fragsBuffer], `${lastSourceIfcName}.frag`, { type: "application/octet-stream" }));
+
+    const response = await fetch(apiUrl("/fragments"), { method: "POST", body: form });
+    if (!response.ok) throw new Error(await response.text());
+
+    saveFragmentBtn.hidden = true;
+    statusText.textContent = "Fragment сохранён";
+  } catch (error) {
+    showError(error);
+  } finally {
+    saveFragmentBtn.loading = false;
   }
 }
 
@@ -623,7 +794,7 @@ function setCamera(x: number, y: number, z: number) {
 function refreshModelState() {
   const hasModels = fragments.list.size > 0;
   modelCount.textContent = String(fragments.list.size);
-  loadIfcBtn.hidden = hasModels;
+  loadIfcBtn.hidden = false;
   searchToggleBtn.hidden = !hasModels;
 }
 
@@ -676,6 +847,22 @@ function formatProcess(process: string) {
     conversion: "Конвертация",
   };
   return labels[process] ?? process;
+}
+
+function apiUrl(path: string) {
+  return `${API_BASE}${path}`;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} Б`;
+  const units = ["КБ", "МБ", "ГБ"];
+  let value = bytes / 1024;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex++;
+  }
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
 function limitSelection(modelIdMap: ModelIdMap, maxItems: number) {

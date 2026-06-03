@@ -412,7 +412,7 @@ body {
   position: absolute;
   bottom: max(18px, env(safe-area-inset-bottom));
   right: max(16px, env(safe-area-inset-right));
-  z-index: 8;
+  z-index: 12;
   display: grid;
   gap: 10px;
 }
@@ -585,7 +585,39 @@ body {
 
 bim-view-cube {
   right: 14px;
-  bottom: 86px;
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 142px);
+  z-index: 6;
+}
+
+@media (max-width: 520px) {
+  .status-pill {
+    top: max(10px, env(safe-area-inset-top));
+    left: 10px;
+    right: 10px;
+  }
+
+  .action-rail {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+
+  .action-button {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+  }
+
+  .search-panel {
+    right: 10px;
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 120px);
+    width: calc(100vw - 20px);
+  }
+
+  bim-view-cube {
+    right: 12px;
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 128px);
+  }
 }
 
 @media (min-width: 760px) {

@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  base: "/ifc-engine-wasm/",
   build: {
     target: "es2022",
   },

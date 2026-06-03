@@ -12,6 +12,10 @@ pnpm-debug.log*
 
 .env
 .env.*
+server/data/
+*.sqlite3
+__pycache__/
+*.py[cod]
 
 .DS_Store
 Thumbs.db

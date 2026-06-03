@@ -9,6 +9,28 @@ import "./styles.css";
 
 type ModelIdMap = OBC.ModelIdMap;
 type LoadingElement = HTMLElement & { loading?: boolean; disabled?: boolean };
+type FragmentRecord = {
+  id: string;
+  name: string;
+  filename: string;
+  size_bytes: number;
+  created_at: string;
+};
+
+type IfcExample = {
+  name: string;
+  filename: string;
+  sizeBytes: number;
+};
+
+const IFC_EXAMPLES: IfcExample[] = [
+  { name: "Renga House", filename: "Renga_House.ifc", sizeBytes: 1_317_373 },
+];
+
+const MAX_IFC_BYTES = 200 * 1024 * 1024;
+const MAX_FRAGMENT_BYTES = 100 * 1024 * 1024;
+const APP_BASE = window.location.pathname.startsWith("/ifc-engine-wasm/") ? "/ifc-engine-wasm" : "";
+const API_BASE = "/ifc-engine-wasm/api";
 
 const app = document.getElementById("app") as HTMLElement;
 const profileKmBtn = document.getElementById("profileKmBtn") as HTMLButtonElement;
@@ -16,6 +38,8 @@ const profileBimBtn = document.getElementById("profileBimBtn") as HTMLButtonElem
 const backToProfilesBtn = document.getElementById("backToProfilesBtn") as HTMLButtonElement;
 const bimStub = document.getElementById("bimStub") as HTMLElement;
 const statusText = document.getElementById("statusText") as HTMLSpanElement;
+const loadingOverlay = document.getElementById("loadingOverlay") as HTMLDivElement;
+const loadingStatus = document.getElementById("loadingStatus") as HTMLSpanElement;
 const fileName = document.getElementById("fileName") as HTMLElement;
 const modelCount = document.getElementById("modelCount") as HTMLElement;
 const selectionCount = document.getElementById("selectionCount") as HTMLElement;
@@ -27,7 +51,16 @@ const searchPanel = document.getElementById("searchPanel") as HTMLElement;
 const progress = document.getElementById("progress") as HTMLDivElement;
 const progressBar = document.getElementById("progressBar") as HTMLDivElement;
 const viewport = document.getElementById("viewport") as HTMLDivElement;
-const viewCube = document.getElementById("viewCube") as CUI.ViewCube;
+const libraryModal = document.getElementById("libraryModal") as HTMLElement;
+const libraryStart = document.getElementById("libraryStart") as HTMLElement;
+const libraryListPanel = document.getElementById("libraryListPanel") as HTMLElement;
+const fragmentList = document.getElementById("fragmentList") as HTMLDivElement;
+const exampleList = document.getElementById("exampleList") as HTMLDivElement;
+const closeLibraryBtn = document.getElementById("closeLibraryBtn") as HTMLButtonElement;
+const chooseFragmentBtn = document.getElementById("chooseFragmentBtn") as HTMLButtonElement;
+const addIfcBtn = document.getElementById("addIfcBtn") as HTMLButtonElement;
+const libraryBackBtn = document.getElementById("libraryBackBtn") as HTMLButtonElement;
+const saveFragmentBtn = document.getElementById("saveFragmentBtn") as LoadingElement;
 
 const ifcInput = document.getElementById("ifcInput") as HTMLInputElement;
 const fragInput = document.getElementById("fragInput") as HTMLInputElement;
@@ -40,6 +73,7 @@ const hideSelectedBtn = document.getElementById("hideSelectedBtn") as LoadingEle
 const isolateSelectedBtn = document.getElementById("isolateSelectedBtn") as LoadingElement;
 const showAllBtn = document.getElementById("showAllBtn") as LoadingElement;
 const searchToggleBtn = document.getElementById("searchToggleBtn") as HTMLButtonElement;
+const homeViewBtn = document.getElementById("homeViewBtn") as HTMLButtonElement;
 const searchBtn = document.getElementById("searchBtn") as LoadingElement;
 const clearSearchBtn = document.getElementById("clearSearchBtn") as LoadingElement;
 
@@ -66,13 +100,14 @@ components.get(OBC.Grids).create(world);
 components.get(OBC.Raycasters).get(world);
 
 const fragments = components.get(OBC.FragmentsManager);
-fragments.init(workerUrl);
+const fragmentsWorkerUrl = await createFragmentsWorkerUrl(workerUrl);
+fragments.init(fragmentsWorkerUrl);
 
 const ifcLoader = components.get(OBC.IfcLoader);
 await ifcLoader.setup({
   autoSetWasm: false,
   wasm: {
-    path: "/web-ifc/",
+    path: `${APP_BASE}/web-ifc/`,
     absolute: true,
   },
 });
@@ -111,10 +146,11 @@ treeOutput.replaceChildren(spatialTree);
 
 const hider = components.get(OBC.Hider);
 let activeSelection: ModelIdMap = {};
+let lastConvertedModelId = "";
+let lastSourceIfcName = "";
 
 world.camera.controls.addEventListener("update", () => {
   fragments.core.update();
-  viewCube.updateOrientation();
 });
 
 world.onCameraChanged.add((camera) => {
@@ -124,12 +160,14 @@ world.onCameraChanged.add((camera) => {
   fragments.core.update(true);
 });
 
-fragments.list.onItemSet.add(({ value: model }) => {
+fragments.core.onModelLoaded.add((model) => {
   model.useCamera(world.camera.three);
   world.scene.three.add(model.object);
-  fragments.core.update(true);
   refreshModelState();
-  void fitToModels();
+  void (async () => {
+    await fragments.core.update(true);
+    await fitToModels();
+  })();
 });
 
 fragments.list.onItemDeleted.add(() => {
@@ -156,15 +194,7 @@ highlighter.events.select.onClear.add(() => {
   clearSelectionInfo();
 });
 
-viewCube.camera = world.camera.three;
-viewCube.addEventListener("rightclick", () => setCamera(30, 10, 0));
-viewCube.addEventListener("leftclick", () => setCamera(-30, 10, 0));
-viewCube.addEventListener("topclick", () => setCamera(0, 32, 0));
-viewCube.addEventListener("bottomclick", () => setCamera(0, -32, 0));
-viewCube.addEventListener("frontclick", () => setCamera(0, 10, 30));
-viewCube.addEventListener("backclick", () => setCamera(0, 10, -30));
-
-loadIfcBtn.onclick = () => ifcInput.click();
+loadIfcBtn.onclick = () => openLibraryModal();
 loadFragBtn.onclick = () => fragInput.click();
 fitBtn.onclick = () => void fitToModels();
 clearBtn.onclick = () => void clearModels();
@@ -173,11 +203,20 @@ hideSelectedBtn.onclick = () => void hideSelected();
 isolateSelectedBtn.onclick = () => void isolateSelected();
 showAllBtn.onclick = () => void hider.set(true);
 searchToggleBtn.onclick = () => toggleSearchPanel();
+homeViewBtn.onclick = () => void resetHomeView();
 searchBtn.onclick = () => void searchItems();
-clearSearchBtn.onclick = () => void clearSearch();
+clearSearchBtn.onclick = () => void closeSearchPanel();
+searchPanel.onclick = () => {
+  if (searchPanel.classList.contains("is-collapsed")) expandSearchPanel();
+};
 profileKmBtn.onclick = () => navigateToProfile("km");
 profileBimBtn.onclick = () => navigateToProfile("bim");
 backToProfilesBtn.onclick = () => navigateToProfile("pending");
+closeLibraryBtn.onclick = () => closeLibraryModal();
+chooseFragmentBtn.onclick = () => void showFragmentLibrary();
+addIfcBtn.onclick = () => ifcInput.click();
+libraryBackBtn.onclick = () => showLibraryStart();
+saveFragmentBtn.onclick = () => void saveCurrentFragment();
 
 ifcInput.onchange = () => {
   const [file] = ifcInput.files ?? [];
@@ -203,6 +242,7 @@ window.addEventListener("keydown", (event) => {
 });
 
 syncProfileWithLocation();
+renderExampleList();
 refreshModelState();
 
 function profilePath(profile: "pending" | "km" | "bim") {
@@ -244,6 +284,11 @@ function selectProfile(profile: "pending" | "km" | "bim") {
 }
 
 async function loadIfc(file: File) {
+  if (file.size > MAX_IFC_BYTES) {
+    statusText.textContent = "IFC больше 200 МБ";
+    return;
+  }
+
   setBusy(true, "Конвертация IFC в браузере");
   fileName.textContent = file.name;
   propertiesOutput.textContent = "IFC читается через web-ifc WASM. Серверная обработка не используется.";
@@ -252,7 +297,7 @@ async function loadIfc(file: File) {
     const buffer = new Uint8Array(await file.arrayBuffer());
     const modelId = createModelId(file.name);
 
-    await ifcLoader.load(buffer, true, modelId, {
+    const loadingModel = ifcLoader.load(buffer, true, modelId, {
       userData: { sourceName: file.name, sourceType: "ifc" },
       instanceCallback: (importer) => {
         importer.addAllAttributes();
@@ -260,13 +305,19 @@ async function loadIfc(file: File) {
       },
       processData: {
         progressCallback: (value, data) => {
-          setProgress(value);
           statusText.textContent = `${formatProcess(data.process)}: ${Math.round(value * 100)}%`;
+          setProgress(value);
         },
       },
     });
+    loadingModel.catch((error) => console.error(error));
+    await loadingModel;
 
-    statusText.textContent = "IFC загружен и преобразован в Fragments";
+    lastConvertedModelId = modelId;
+    lastSourceIfcName = file.name;
+    saveFragmentBtn.hidden = false;
+    closeLibraryModal();
+    statusText.textContent = "IFC загружен и преобразован. Можно сохранить fragment";
     setProgress(1);
   } catch (error) {
     showError(error);
@@ -280,18 +331,217 @@ async function loadFrag(file: File) {
   fileName.textContent = file.name;
 
   try {
-    const buffer = await file.arrayBuffer();
-    const modelId = createModelId(file.name);
-    await fragments.core.load(buffer, {
-      modelId,
-      userData: { sourceName: file.name, sourceType: "frag" },
-    });
+    await loadFragBuffer(await file.arrayBuffer(), file.name);
     statusText.textContent = "FRAG загружен";
     setProgress(1);
   } catch (error) {
     showError(error);
   } finally {
     setBusy(false);
+  }
+}
+
+async function loadFragBuffer(buffer: ArrayBuffer, name: string) {
+  await clearModels({ keepStatus: true });
+  const modelId = createModelId(name);
+  const loadingModel = fragments.core.load(buffer, {
+    modelId,
+    camera: world.camera.three,
+    raw: true,
+    userData: { sourceName: name, sourceType: "frag" },
+    onProgress: (event) => {
+      const value = event.stage === "done" ? 1 : event.progress;
+      statusText.textContent = `${formatFragmentStage(event.stage)}: ${Math.round(value * 100)}%`;
+      setProgress(value);
+    },
+  });
+  loadingModel.catch((error) => console.error(error));
+  await loadingModel;
+  await fragments.core.update(true);
+}
+
+async function createFragmentsWorkerUrl(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Не удалось загрузить worker fragments");
+  const workerBlob = await response.blob();
+  const workerFile = new File([workerBlob], "worker.mjs", { type: "text/javascript" });
+  return URL.createObjectURL(workerFile);
+}
+
+function openLibraryModal() {
+  libraryModal.hidden = false;
+  showLibraryStart();
+}
+
+function closeLibraryModal() {
+  libraryModal.hidden = true;
+}
+
+function showLibraryStart() {
+  libraryStart.hidden = false;
+  libraryListPanel.hidden = true;
+  fragmentList.replaceChildren();
+}
+
+function renderExampleList() {
+  const title = document.createElement("div");
+  title.className = "example-list-title";
+  title.textContent = "Открыть пример";
+
+  const cards = IFC_EXAMPLES.map((example) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "library-action example-action";
+    button.innerHTML = `
+      <strong>${escapeHtml(example.name)}</strong>
+      <span>${escapeHtml(example.filename)} · ${formatBytes(example.sizeBytes)}</span>
+    `;
+    button.onclick = () => void loadIfcExample(example);
+    return button;
+  });
+
+  exampleList.replaceChildren(title, ...cards);
+}
+
+async function loadIfcExample(example: IfcExample) {
+  setBusy(true, "Загрузка примера IFC");
+  try {
+    const blob = await fetchExampleBlob(example.filename);
+    await loadIfc(new File([blob], example.filename, { type: "application/octet-stream" }));
+  } catch (error) {
+    showError(error);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function fetchExampleBlob(filename: string) {
+  const encodedFilename = encodeURIComponent(filename);
+  const paths = APP_BASE ? [`${APP_BASE}/examples/${encodedFilename}`, `/examples/${encodedFilename}`] : [`/examples/${encodedFilename}`];
+
+  for (const path of paths) {
+    const response = await fetch(path);
+    const contentType = response.headers.get("content-type") ?? "";
+    if (response.ok && !contentType.includes("text/html")) return response.blob();
+  }
+
+  throw new Error(`Не удалось загрузить пример IFC: ${filename}`);
+}
+
+async function showFragmentLibrary() {
+  libraryStart.hidden = true;
+  libraryListPanel.hidden = false;
+  fragmentList.replaceChildren(createMessage("Загрузка списка..."));
+
+  try {
+    const records = await fetchFragments();
+    if (records.length === 0) {
+      fragmentList.replaceChildren(createMessage("Сохранённых fragments пока нет."));
+      return;
+    }
+
+    const list = document.createElement("div");
+    list.className = "fragment-cards";
+    for (const record of records) list.append(createFragmentCard(record));
+    fragmentList.replaceChildren(list);
+  } catch (error) {
+    fragmentList.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
+  }
+}
+
+function createFragmentCard(record: FragmentRecord) {
+  const card = document.createElement("article");
+  card.className = "fragment-card";
+  const date = new Date(record.created_at);
+  card.innerHTML = `
+    <div>
+      <strong>${escapeHtml(record.name)}</strong>
+      <span>${Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString("ru-RU")} · ${formatBytes(record.size_bytes)}</span>
+    </div>
+  `;
+
+  const actions = document.createElement("div");
+  actions.className = "fragment-actions";
+
+  const openButton = document.createElement("button");
+  openButton.type = "button";
+  openButton.textContent = "Открыть";
+  openButton.onclick = () => void openSavedFragment(record);
+
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "danger-button";
+  deleteButton.textContent = "Удалить";
+  deleteButton.onclick = () => void deleteSavedFragment(record);
+
+  actions.append(openButton, deleteButton);
+  card.append(actions);
+  return card;
+}
+
+async function fetchFragments() {
+  const response = await fetch(apiUrl("/fragments"));
+  if (!response.ok) throw new Error("Не удалось получить список fragments");
+  return (await response.json()) as FragmentRecord[];
+}
+
+async function openSavedFragment(record: FragmentRecord) {
+  setBusy(true, "Загрузка fragment");
+  try {
+    const response = await fetch(apiUrl(`/fragments/${record.id}/download`));
+    if (!response.ok) throw new Error("Не удалось загрузить fragment");
+    await loadFragBuffer(await response.arrayBuffer(), record.name);
+    fileName.textContent = record.name;
+    statusText.textContent = "FRAG загружен из библиотеки";
+    closeLibraryModal();
+  } catch (error) {
+    showError(error);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function deleteSavedFragment(record: FragmentRecord) {
+  if (!confirm(`Удалить ${record.name}?`)) return;
+  const response = await fetch(apiUrl(`/fragments/${record.id}`), { method: "DELETE" });
+  if (!response.ok) {
+    fragmentList.replaceChildren(createMessage("Не удалось удалить fragment."));
+    return;
+  }
+  await showFragmentLibrary();
+}
+
+async function saveCurrentFragment() {
+  if (!lastConvertedModelId || !lastSourceIfcName) return;
+
+  const model = fragments.list.get(lastConvertedModelId);
+  if (!model) {
+    statusText.textContent = "Нет модели для сохранения";
+    return;
+  }
+
+  saveFragmentBtn.loading = true;
+  statusText.textContent = "Сохранение fragment";
+  try {
+    const fragsBuffer = await model.getBuffer(true);
+    if (fragsBuffer.byteLength > MAX_FRAGMENT_BYTES) {
+      statusText.textContent = "Fragment больше 100 МБ";
+      return;
+    }
+
+    const form = new FormData();
+    form.set("name", lastSourceIfcName);
+    form.set("file", new File([fragsBuffer], `${lastSourceIfcName}.frag`, { type: "application/octet-stream" }));
+
+    const response = await fetch(apiUrl("/fragments"), { method: "POST", body: form });
+    if (!response.ok) throw new Error(await response.text());
+
+    saveFragmentBtn.hidden = true;
+    statusText.textContent = "Fragment сохранён";
+  } catch (error) {
+    showError(error);
+  } finally {
+    saveFragmentBtn.loading = false;
   }
 }
 
@@ -346,15 +596,16 @@ async function isolateSelected() {
   await hider.isolate(activeSelection);
 }
 
-async function clearModels() {
+async function clearModels(options: { keepStatus?: boolean } = {}) {
   for (const [modelId] of fragments.list) {
     await fragments.core.disposeModel(modelId);
   }
   await highlighter.clear("select");
   await clearSearch();
   searchPanel.hidden = true;
+  saveFragmentBtn.hidden = true;
   fileName.textContent = "-";
-  statusText.textContent = "Загрузите IFC";
+  if (!options.keepStatus) statusText.textContent = "Загрузите IFC";
   refreshModelState();
 }
 
@@ -397,8 +648,30 @@ async function searchItems() {
 }
 
 function toggleSearchPanel() {
-  searchPanel.hidden = !searchPanel.hidden;
-  if (!searchPanel.hidden) searchInput.focus();
+  if (searchPanel.hidden) {
+    expandSearchPanel();
+    return;
+  }
+
+  closeSearchPanel();
+}
+
+function expandSearchPanel() {
+  searchPanel.hidden = false;
+  searchPanel.classList.remove("is-collapsed");
+  searchInput.focus();
+}
+
+function closeSearchPanel() {
+  searchPanel.hidden = true;
+  searchPanel.classList.remove("is-collapsed");
+  searchInput.value = "";
+  searchOutput.replaceChildren(createMessage("Введите текст поиска."));
+}
+
+function collapseSearchPanel() {
+  searchPanel.hidden = false;
+  searchPanel.classList.add("is-collapsed");
 }
 
 async function clearSearch() {
@@ -564,8 +837,11 @@ async function renderSearchResults(modelIdMap: ModelIdMap) {
         <span>${escapeHtml(category || modelId)} · ${localId}</span>
         ${guid ? `<small>${escapeHtml(guid)}</small>` : ""}
       `;
-      button.onclick = () => {
-        void applySearchHighlight(singleItem).then(() => fitToItems(singleItem));
+      button.onclick = (event) => {
+        event.stopPropagation();
+        void applySearchHighlight(singleItem)
+          .then(() => fitToItems(singleItem))
+          .then(() => collapseSearchPanel());
       };
       list.append(button);
       rendered++;
@@ -586,7 +862,7 @@ async function downloadFragments() {
   if (fragments.list.size === 0) return;
 
   for (const [, model] of fragments.list) {
-    const fragsBuffer = await model.getBuffer(false);
+    const fragsBuffer = await model.getBuffer(true);
     const file = new File([fragsBuffer], `${model.modelId}.frag`);
     const link = document.createElement("a");
     link.href = URL.createObjectURL(file);
@@ -616,8 +892,9 @@ async function fitToModels() {
   }
 }
 
-function setCamera(x: number, y: number, z: number) {
-  void world.camera.controls.setLookAt(x, y, z, 0, 0, 0, true);
+async function resetHomeView() {
+  await world.camera.controls.setLookAt(24, 18, 24, 0, 0, 0, true);
+  await fitToModels();
 }
 
 function refreshModelState() {
@@ -625,6 +902,7 @@ function refreshModelState() {
   modelCount.textContent = String(fragments.list.size);
   loadIfcBtn.hidden = hasModels;
   searchToggleBtn.hidden = !hasModels;
+  homeViewBtn.hidden = !hasModels;
 }
 
 function clearSelectionInfo() {
@@ -650,14 +928,19 @@ function isEmptySelection(modelIdMap: ModelIdMap) {
 function setBusy(isBusy: boolean, message?: string) {
   loadIfcBtn.loading = isBusy;
   loadFragBtn.loading = isBusy;
+  loadingOverlay.hidden = !isBusy;
   progress.hidden = !isBusy;
   if (isBusy) setProgress(0);
-  if (message) statusText.textContent = message;
+  if (message) {
+    statusText.textContent = message;
+    loadingStatus.textContent = message;
+  }
 }
 
 function setProgress(value: number) {
   const percentage = Math.max(0, Math.min(100, value * 100));
   progressBar.style.width = `${percentage}%`;
+  loadingStatus.textContent = `${statusText.textContent || "Обработка модели"} · ${Math.round(percentage)}%`;
 }
 
 function showError(error: unknown) {
@@ -676,6 +959,32 @@ function formatProcess(process: string) {
     conversion: "Конвертация",
   };
   return labels[process] ?? process;
+}
+
+function formatFragmentStage(stage: string) {
+  const labels: Record<string, string> = {
+    decompressing: "Распаковка fragment",
+    parsing: "Чтение fragment",
+    generating: "Построение сцены",
+    done: "Fragment загружен",
+  };
+  return labels[stage] ?? "Загрузка fragment";
+}
+
+function apiUrl(path: string) {
+  return `${API_BASE}${path}`;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} Б`;
+  const units = ["КБ", "МБ", "ГБ"];
+  let value = bytes / 1024;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex++;
+  }
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
 function limitSelection(modelIdMap: ModelIdMap, maxItems: number) {

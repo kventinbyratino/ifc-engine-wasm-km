@@ -61,6 +61,13 @@ const chooseFragmentBtn = document.getElementById("chooseFragmentBtn") as HTMLBu
 const addIfcBtn = document.getElementById("addIfcBtn") as HTMLButtonElement;
 const libraryBackBtn = document.getElementById("libraryBackBtn") as HTMLButtonElement;
 const saveFragmentBtn = document.getElementById("saveFragmentBtn") as LoadingElement;
+const shareModelBtn = document.getElementById("shareModelBtn") as HTMLButtonElement;
+const shareModal = document.getElementById("shareModal") as HTMLElement;
+const shareLinkInput = document.getElementById("shareLinkInput") as HTMLInputElement;
+const shareModelName = document.getElementById("shareModelName") as HTMLElement;
+const shareCopyStatus = document.getElementById("shareCopyStatus") as HTMLElement;
+const closeShareBtn = document.getElementById("closeShareBtn") as HTMLButtonElement;
+const copyShareBtn = document.getElementById("copyShareBtn") as HTMLButtonElement;
 
 const ifcInput = document.getElementById("ifcInput") as HTMLInputElement;
 const fragInput = document.getElementById("fragInput") as HTMLInputElement;
@@ -148,6 +155,7 @@ const hider = components.get(OBC.Hider);
 let activeSelection: ModelIdMap = {};
 let lastConvertedModelId = "";
 let lastSourceIfcName = "";
+let activeShareRecord: FragmentRecord | null = null;
 
 world.camera.controls.addEventListener("update", () => {
   fragments.core.update();
@@ -217,6 +225,9 @@ chooseFragmentBtn.onclick = () => void showFragmentLibrary();
 addIfcBtn.onclick = () => ifcInput.click();
 libraryBackBtn.onclick = () => showLibraryStart();
 saveFragmentBtn.onclick = () => void saveCurrentFragment();
+shareModelBtn.onclick = () => openShareModal();
+closeShareBtn.onclick = () => closeShareModal();
+copyShareBtn.onclick = () => void copyShareLink();
 
 ifcInput.onchange = () => {
   const [file] = ifcInput.files ?? [];
@@ -232,6 +243,7 @@ fragInput.onchange = () => {
 
 window.addEventListener("keydown", (event) => {
   if (event.code === "Escape") {
+    closeShareModal();
     void highlighter.clear("select");
     void highlighter.clear("search");
   }
@@ -244,6 +256,7 @@ window.addEventListener("keydown", (event) => {
 syncProfileWithLocation();
 renderExampleList();
 refreshModelState();
+void openFragmentFromUrl();
 
 function profilePath(profile: "pending" | "km" | "bim") {
   if (profile === "km") return "/ifc-engine-wasm/viewer/";
@@ -284,6 +297,7 @@ function selectProfile(profile: "pending" | "km" | "bim") {
 }
 
 async function loadIfc(file: File) {
+  setActiveShareRecord(null);
   if (file.size > MAX_IFC_BYTES) {
     statusText.textContent = "IFC больше 200 МБ";
     return;
@@ -327,6 +341,7 @@ async function loadIfc(file: File) {
 }
 
 async function loadFrag(file: File) {
+  setActiveShareRecord(null);
   setBusy(true, "Загрузка Fragments");
   fileName.textContent = file.name;
 
@@ -375,6 +390,51 @@ function openLibraryModal() {
 
 function closeLibraryModal() {
   libraryModal.hidden = true;
+}
+
+function openShareModal() {
+  if (!activeShareRecord) return;
+  shareLinkInput.value = createShareLink(activeShareRecord.id);
+  shareModelName.textContent = activeShareRecord.name;
+  shareCopyStatus.textContent = "";
+  shareModal.hidden = false;
+  shareLinkInput.focus();
+  shareLinkInput.select();
+}
+
+function closeShareModal() {
+  shareModal.hidden = true;
+}
+
+async function copyShareLink() {
+  const link = shareLinkInput.value;
+  if (!link) return;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(link);
+    } else {
+      shareLinkInput.focus();
+      shareLinkInput.select();
+      document.execCommand("copy");
+    }
+    shareCopyStatus.textContent = "Ссылка скопирована";
+  } catch (error) {
+    console.error(error);
+    shareCopyStatus.textContent = "Не удалось скопировать. Скопируйте вручную.";
+  }
+}
+
+function setActiveShareRecord(record: FragmentRecord | null) {
+  activeShareRecord = record;
+  shareModelBtn.hidden = !record;
+  if (!record) closeShareModal();
+}
+
+function createShareLink(fragmentId: string) {
+  const url = new URL(`${APP_BASE || ""}/viewer/`, window.location.origin);
+  url.searchParams.set("fragment", fragmentId);
+  return url.toString();
 }
 
 function showLibraryStart() {
@@ -485,6 +545,24 @@ async function fetchFragments() {
   return (await response.json()) as FragmentRecord[];
 }
 
+async function openFragmentFromUrl() {
+  const fragmentId = new URLSearchParams(window.location.search).get("fragment")?.trim();
+  if (!fragmentId) return;
+
+  selectProfile("km");
+  setBusy(true, "Загрузка модели по ссылке");
+  try {
+    const records = await fetchFragments();
+    const record = records.find((item) => item.id === fragmentId);
+    if (!record) throw new Error("Модель по ссылке не найдена");
+    await openSavedFragment(record);
+  } catch (error) {
+    showError(error);
+  } finally {
+    setBusy(false);
+  }
+}
+
 async function openSavedFragment(record: FragmentRecord) {
   setBusy(true, "Загрузка fragment");
   try {
@@ -492,6 +570,7 @@ async function openSavedFragment(record: FragmentRecord) {
     if (!response.ok) throw new Error("Не удалось загрузить fragment");
     await loadFragBuffer(await response.arrayBuffer(), record.name);
     fileName.textContent = record.name;
+    setActiveShareRecord(record);
     statusText.textContent = "FRAG загружен из библиотеки";
     closeLibraryModal();
   } catch (error) {
@@ -535,8 +614,10 @@ async function saveCurrentFragment() {
 
     const response = await fetch(apiUrl("/fragments"), { method: "POST", body: form });
     if (!response.ok) throw new Error(await response.text());
+    const savedRecord = (await response.json()) as FragmentRecord;
 
     saveFragmentBtn.hidden = true;
+    setActiveShareRecord(savedRecord);
     statusText.textContent = "Fragment сохранён";
   } catch (error) {
     showError(error);
@@ -604,6 +685,7 @@ async function clearModels(options: { keepStatus?: boolean } = {}) {
   await clearSearch();
   searchPanel.hidden = true;
   saveFragmentBtn.hidden = true;
+  setActiveShareRecord(null);
   fileName.textContent = "-";
   if (!options.keepStatus) statusText.textContent = "Загрузите IFC";
   refreshModelState();

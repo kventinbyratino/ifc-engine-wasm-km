@@ -100,7 +100,8 @@ components.get(OBC.Grids).create(world);
 components.get(OBC.Raycasters).get(world);
 
 const fragments = components.get(OBC.FragmentsManager);
-fragments.init(workerUrl);
+const fragmentsWorkerUrl = await createFragmentsWorkerUrl(workerUrl);
+fragments.init(fragmentsWorkerUrl);
 
 const ifcLoader = components.get(OBC.IfcLoader);
 await ifcLoader.setup({
@@ -159,12 +160,14 @@ world.onCameraChanged.add((camera) => {
   fragments.core.update(true);
 });
 
-fragments.list.onItemSet.add(({ value: model }) => {
+fragments.core.onModelLoaded.add((model) => {
   model.useCamera(world.camera.three);
   world.scene.three.add(model.object);
-  fragments.core.update(true);
   refreshModelState();
-  void fitToModels();
+  void (async () => {
+    await fragments.core.update(true);
+    await fitToModels();
+  })();
 });
 
 fragments.list.onItemDeleted.add(() => {
@@ -308,7 +311,7 @@ async function loadIfc(file: File) {
       },
     });
     loadingModel.catch((error) => console.error(error));
-    await waitForModel(modelId);
+    await loadingModel;
 
     lastConvertedModelId = modelId;
     lastSourceIfcName = file.name;
@@ -341,9 +344,10 @@ async function loadFrag(file: File) {
 async function loadFragBuffer(buffer: ArrayBuffer, name: string) {
   await clearModels({ keepStatus: true });
   const modelId = createModelId(name);
-  const loadingModel = fragments.core.load(new Uint8Array(buffer), {
+  const loadingModel = fragments.core.load(buffer, {
     modelId,
     camera: world.camera.three,
+    raw: true,
     userData: { sourceName: name, sourceType: "frag" },
     onProgress: (event) => {
       const value = event.stage === "done" ? 1 : event.progress;
@@ -352,29 +356,16 @@ async function loadFragBuffer(buffer: ArrayBuffer, name: string) {
     },
   });
   loadingModel.catch((error) => console.error(error));
-  await Promise.race([waitForModel(modelId), loadingModel.then(() => undefined)]);
-  await waitForModel(modelId, 5000);
+  await loadingModel;
   await fragments.core.update(true);
 }
 
-function waitForModel(modelId: string, timeoutMs = 30000) {
-  if (fragments.list.has(modelId)) return Promise.resolve();
-
-  return new Promise<void>((resolve, reject) => {
-    const startedAt = Date.now();
-    const timer = window.setInterval(() => {
-      if (fragments.list.has(modelId)) {
-        window.clearInterval(timer);
-        resolve();
-        return;
-      }
-
-      if (Date.now() - startedAt > timeoutMs) {
-        window.clearInterval(timer);
-        reject(new Error("Модель не появилась в сцене"));
-      }
-    }, 100);
-  });
+async function createFragmentsWorkerUrl(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Не удалось загрузить worker fragments");
+  const workerBlob = await response.blob();
+  const workerFile = new File([workerBlob], "worker.mjs", { type: "text/javascript" });
+  return URL.createObjectURL(workerFile);
 }
 
 function openLibraryModal() {
@@ -532,7 +523,7 @@ async function saveCurrentFragment() {
   saveFragmentBtn.loading = true;
   statusText.textContent = "Сохранение fragment";
   try {
-    const fragsBuffer = await model.getBuffer(false);
+    const fragsBuffer = await model.getBuffer(true);
     if (fragsBuffer.byteLength > MAX_FRAGMENT_BYTES) {
       statusText.textContent = "Fragment больше 100 МБ";
       return;
@@ -871,7 +862,7 @@ async function downloadFragments() {
   if (fragments.list.size === 0) return;
 
   for (const [, model] of fragments.list) {
-    const fragsBuffer = await model.getBuffer(false);
+    const fragsBuffer = await model.getBuffer(true);
     const file = new File([fragsBuffer], `${model.modelId}.frag`);
     const link = document.createElement("a");
     link.href = URL.createObjectURL(file);

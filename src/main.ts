@@ -39,6 +39,8 @@ const profileBimBtn = document.getElementById("profileBimBtn") as HTMLButtonElem
 const backToProfilesBtn = document.getElementById("backToProfilesBtn") as HTMLButtonElement;
 const bimStub = document.getElementById("bimStub") as HTMLElement;
 const statusText = document.getElementById("statusText") as HTMLSpanElement;
+const loadingOverlay = document.getElementById("loadingOverlay") as HTMLDivElement;
+const loadingStatus = document.getElementById("loadingStatus") as HTMLSpanElement;
 const fileName = document.getElementById("fileName") as HTMLElement;
 const modelCount = document.getElementById("modelCount") as HTMLElement;
 const selectionCount = document.getElementById("selectionCount") as HTMLElement;
@@ -306,8 +308,8 @@ async function loadIfc(file: File) {
       },
       processData: {
         progressCallback: (value, data) => {
-          setProgress(value);
           statusText.textContent = `${formatProcess(data.process)}: ${Math.round(value * 100)}%`;
+          setProgress(value);
         },
       },
     });
@@ -607,6 +609,7 @@ async function clearModels() {
   await highlighter.clear("select");
   await clearSearch();
   searchPanel.hidden = true;
+  saveFragmentBtn.hidden = true;
   fileName.textContent = "-";
   statusText.textContent = "Загрузите IFC";
   refreshModelState();
@@ -877,7 +880,7 @@ function setCamera(x: number, y: number, z: number) {
 function refreshModelState() {
   const hasModels = fragments.list.size > 0;
   modelCount.textContent = String(fragments.list.size);
-  loadIfcBtn.hidden = false;
+  loadIfcBtn.hidden = hasModels;
   searchToggleBtn.hidden = !hasModels;
 }
 
@@ -904,14 +907,19 @@ function isEmptySelection(modelIdMap: ModelIdMap) {
 function setBusy(isBusy: boolean, message?: string) {
   loadIfcBtn.loading = isBusy;
   loadFragBtn.loading = isBusy;
+  loadingOverlay.hidden = !isBusy;
   progress.hidden = !isBusy;
   if (isBusy) setProgress(0);
-  if (message) statusText.textContent = message;
+  if (message) {
+    statusText.textContent = message;
+    loadingStatus.textContent = message;
+  }
 }
 
 function setProgress(value: number) {
   const percentage = Math.max(0, Math.min(100, value * 100));
   progressBar.style.width = `${percentage}%`;
+  loadingStatus.textContent = `${statusText.textContent || "Обработка модели"} · ${Math.round(percentage)}%`;
 }
 
 function showError(error: unknown) {

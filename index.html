@@ -47,6 +47,14 @@
           <span>+</span>
         </button>
 
+        <div id="loadingOverlay" class="loading-overlay" hidden>
+          <div class="loading-card" role="status" aria-live="polite">
+            <span class="loading-spinner" aria-hidden="true"></span>
+            <strong id="loadingTitle">Загрузка модели</strong>
+            <span id="loadingStatus">Подготовка...</span>
+          </div>
+        </div>
+
         <section id="libraryModal" class="library-modal" aria-label="Библиотека фрагментов" hidden>
           <div class="library-sheet">
             <div class="library-header">
@@ -73,13 +81,16 @@
           </div>
         </section>
 
-        <button id="saveFragmentBtn" class="save-fragment" type="button" hidden>
-          Сохранить fragment
-        </button>
+        <div class="action-rail" aria-label="Действия модели">
+          <button id="saveFragmentBtn" class="action-button save-fragment" type="button" aria-label="Сохранить fragment" hidden>
+            <span aria-hidden="true">💾</span>
+            <span class="sr-only">Сохранить fragment</span>
+          </button>
 
-        <button id="searchToggleBtn" class="floating-search" type="button" aria-label="Поиск" hidden>
-          🔎
-        </button>
+          <button id="searchToggleBtn" class="action-button floating-search" type="button" aria-label="Поиск" hidden>
+            <span aria-hidden="true">🔎</span>
+          </button>
+        </div>
 
         <section id="searchPanel" class="search-panel" hidden>
           <div class="search-row">

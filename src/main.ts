@@ -395,7 +395,7 @@ function showLibraryStart() {
 function renderExampleList() {
   const title = document.createElement("div");
   title.className = "example-list-title";
-  title.textContent = "Примеры IFC";
+  title.textContent = "Открыть пример";
 
   const cards = IFC_EXAMPLES.map((example) => {
     const button = document.createElement("button");

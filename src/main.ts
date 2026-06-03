@@ -298,7 +298,7 @@ async function loadIfc(file: File) {
     const buffer = new Uint8Array(await file.arrayBuffer());
     const modelId = createModelId(file.name);
 
-    await ifcLoader.load(buffer, true, modelId, {
+    const loadingModel = ifcLoader.load(buffer, true, modelId, {
       userData: { sourceName: file.name, sourceType: "ifc" },
       instanceCallback: (importer) => {
         importer.addAllAttributes();
@@ -311,6 +311,8 @@ async function loadIfc(file: File) {
         },
       },
     });
+    loadingModel.catch((error) => console.error(error));
+    await waitForModel(modelId);
 
     lastConvertedModelId = modelId;
     lastSourceIfcName = file.name;
@@ -342,9 +344,31 @@ async function loadFrag(file: File) {
 
 async function loadFragBuffer(buffer: ArrayBuffer, name: string) {
   const modelId = createModelId(name);
-  await fragments.core.load(buffer, {
+  const loadingModel = fragments.core.load(buffer, {
     modelId,
     userData: { sourceName: name, sourceType: "frag" },
+  });
+  loadingModel.catch((error) => console.error(error));
+  await waitForModel(modelId);
+}
+
+function waitForModel(modelId: string, timeoutMs = 30000) {
+  if (fragments.list.has(modelId)) return Promise.resolve();
+
+  return new Promise<void>((resolve, reject) => {
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      if (fragments.list.has(modelId)) {
+        window.clearInterval(timer);
+        resolve();
+        return;
+      }
+
+      if (Date.now() - startedAt > timeoutMs) {
+        window.clearInterval(timer);
+        reject(new Error("Модель не появилась в сцене"));
+      }
+    }, 100);
   });
 }
 

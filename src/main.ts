@@ -17,8 +17,20 @@ type FragmentRecord = {
   created_at: string;
 };
 
+type IfcExample = {
+  name: string;
+  filename: string;
+  sizeBytes: number;
+};
+
+const IFC_EXAMPLES: IfcExample[] = [
+  { name: "Renga House", filename: "Renga_House.ifc", sizeBytes: 1_317_373 },
+  { name: "Подкрановая балка — вариант 2", filename: "подкрановая балка 2 ВАРИАНТ.ifc", sizeBytes: 9_833_023 },
+];
+
 const MAX_IFC_BYTES = 200 * 1024 * 1024;
 const MAX_FRAGMENT_BYTES = 100 * 1024 * 1024;
+const APP_BASE = window.location.pathname.startsWith("/ifc-engine-wasm/") ? "/ifc-engine-wasm" : "";
 const API_BASE = "/ifc-engine-wasm/api";
 
 const app = document.getElementById("app") as HTMLElement;
@@ -43,6 +55,7 @@ const libraryModal = document.getElementById("libraryModal") as HTMLElement;
 const libraryStart = document.getElementById("libraryStart") as HTMLElement;
 const libraryListPanel = document.getElementById("libraryListPanel") as HTMLElement;
 const fragmentList = document.getElementById("fragmentList") as HTMLDivElement;
+const exampleList = document.getElementById("exampleList") as HTMLDivElement;
 const closeLibraryBtn = document.getElementById("closeLibraryBtn") as HTMLButtonElement;
 const chooseFragmentBtn = document.getElementById("chooseFragmentBtn") as HTMLButtonElement;
 const addIfcBtn = document.getElementById("addIfcBtn") as HTMLButtonElement;
@@ -92,7 +105,7 @@ const ifcLoader = components.get(OBC.IfcLoader);
 await ifcLoader.setup({
   autoSetWasm: false,
   wasm: {
-    path: "/web-ifc/",
+    path: `${APP_BASE}/web-ifc/`,
     absolute: true,
   },
 });
@@ -230,6 +243,7 @@ window.addEventListener("keydown", (event) => {
 });
 
 syncProfileWithLocation();
+renderExampleList();
 refreshModelState();
 
 function profilePath(profile: "pending" | "km" | "bim") {
@@ -347,6 +361,51 @@ function showLibraryStart() {
   libraryStart.hidden = false;
   libraryListPanel.hidden = true;
   fragmentList.replaceChildren();
+}
+
+function renderExampleList() {
+  const title = document.createElement("div");
+  title.className = "example-list-title";
+  title.textContent = "Примеры IFC";
+
+  const cards = IFC_EXAMPLES.map((example) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "library-action example-action";
+    button.innerHTML = `
+      <strong>${escapeHtml(example.name)}</strong>
+      <span>${escapeHtml(example.filename)} · ${formatBytes(example.sizeBytes)}</span>
+    `;
+    button.onclick = () => void loadIfcExample(example);
+    return button;
+  });
+
+  exampleList.replaceChildren(title, ...cards);
+}
+
+async function loadIfcExample(example: IfcExample) {
+  setBusy(true, "Загрузка примера IFC");
+  try {
+    const blob = await fetchExampleBlob(example.filename);
+    await loadIfc(new File([blob], example.filename, { type: "application/octet-stream" }));
+  } catch (error) {
+    showError(error);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function fetchExampleBlob(filename: string) {
+  const encodedFilename = encodeURIComponent(filename);
+  const paths = APP_BASE ? [`${APP_BASE}/examples/${encodedFilename}`, `/examples/${encodedFilename}`] : [`/examples/${encodedFilename}`];
+
+  for (const path of paths) {
+    const response = await fetch(path);
+    const contentType = response.headers.get("content-type") ?? "";
+    if (response.ok && !contentType.includes("text/html")) return response.blob();
+  }
+
+  throw new Error(`Не удалось загрузить пример IFC: ${filename}`);
 }
 
 async function showFragmentLibrary() {

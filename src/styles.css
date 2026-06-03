@@ -266,7 +266,8 @@ body {
 
 .library-actions,
 .library-list-panel,
-.fragment-cards {
+.fragment-cards,
+.example-list {
   display: grid;
   gap: 10px;
 }
@@ -287,6 +288,24 @@ body {
 .library-action {
   cursor: pointer;
   font: inherit;
+}
+
+.example-list {
+  padding: 10px 0;
+  border-top: 1px solid rgba(23, 32, 38, 0.08);
+  border-bottom: 1px solid rgba(23, 32, 38, 0.08);
+}
+
+.example-list-title {
+  color: #687782;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.example-action {
+  background: #eef7ff;
 }
 
 .library-action strong,

@@ -463,6 +463,23 @@ body {
   backdrop-filter: blur(14px);
 }
 
+.search-panel.is-collapsed {
+  right: calc(max(16px, env(safe-area-inset-right)) + 66px);
+  bottom: max(18px, env(safe-area-inset-bottom));
+  width: min(430px, calc(100vw - 98px));
+  max-height: 58px;
+  padding: 6px;
+  cursor: pointer;
+}
+
+.search-panel.is-collapsed .search-output {
+  display: none;
+}
+
+.search-panel.is-collapsed .search-input {
+  pointer-events: none;
+}
+
 .search-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 42px 42px;
@@ -612,6 +629,13 @@ bim-view-cube {
     right: 10px;
     bottom: calc(max(14px, env(safe-area-inset-bottom)) + 120px);
     width: calc(100vw - 20px);
+  }
+
+  .search-panel.is-collapsed {
+    right: calc(max(12px, env(safe-area-inset-right)) + 60px);
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: calc(100vw - 84px);
+    max-height: 54px;
   }
 
   bim-view-cube {

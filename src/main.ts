@@ -211,7 +211,10 @@ isolateSelectedBtn.onclick = () => void isolateSelected();
 showAllBtn.onclick = () => void hider.set(true);
 searchToggleBtn.onclick = () => toggleSearchPanel();
 searchBtn.onclick = () => void searchItems();
-clearSearchBtn.onclick = () => void clearSearch();
+clearSearchBtn.onclick = () => void closeSearchPanel();
+searchPanel.onclick = () => {
+  if (searchPanel.classList.contains("is-collapsed")) expandSearchPanel();
+};
 profileKmBtn.onclick = () => navigateToProfile("km");
 profileBimBtn.onclick = () => navigateToProfile("bim");
 backToProfilesBtn.onclick = () => navigateToProfile("pending");
@@ -654,8 +657,30 @@ async function searchItems() {
 }
 
 function toggleSearchPanel() {
-  searchPanel.hidden = !searchPanel.hidden;
-  if (!searchPanel.hidden) searchInput.focus();
+  if (searchPanel.hidden) {
+    expandSearchPanel();
+    return;
+  }
+
+  closeSearchPanel();
+}
+
+function expandSearchPanel() {
+  searchPanel.hidden = false;
+  searchPanel.classList.remove("is-collapsed");
+  searchInput.focus();
+}
+
+function closeSearchPanel() {
+  searchPanel.hidden = true;
+  searchPanel.classList.remove("is-collapsed");
+  searchInput.value = "";
+  searchOutput.replaceChildren(createMessage("Введите текст поиска."));
+}
+
+function collapseSearchPanel() {
+  searchPanel.hidden = false;
+  searchPanel.classList.add("is-collapsed");
 }
 
 async function clearSearch() {
@@ -821,8 +846,11 @@ async function renderSearchResults(modelIdMap: ModelIdMap) {
         <span>${escapeHtml(category || modelId)} · ${localId}</span>
         ${guid ? `<small>${escapeHtml(guid)}</small>` : ""}
       `;
-      button.onclick = () => {
-        void applySearchHighlight(singleItem).then(() => fitToItems(singleItem));
+      button.onclick = (event) => {
+        event.stopPropagation();
+        void applySearchHighlight(singleItem)
+          .then(() => fitToItems(singleItem))
+          .then(() => collapseSearchPanel());
       };
       list.append(button);
       rendered++;

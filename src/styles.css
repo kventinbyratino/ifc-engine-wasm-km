@@ -471,7 +471,8 @@ body {
   white-space: nowrap;
 }
 
-.floating-search {
+.floating-search,
+.home-view {
   font-size: 21px;
 }
 
@@ -629,12 +630,6 @@ body {
   display: none;
 }
 
-bim-view-cube {
-  right: 14px;
-  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 142px);
-  z-index: 6;
-}
-
 @media (max-width: 520px) {
   .status-pill {
     top: max(10px, env(safe-area-inset-top));
@@ -667,10 +662,6 @@ bim-view-cube {
     max-height: 54px;
   }
 
-  bim-view-cube {
-    right: 12px;
-    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 128px);
-  }
 }
 
 @media (min-width: 760px) {

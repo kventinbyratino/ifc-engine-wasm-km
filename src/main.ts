@@ -25,7 +25,6 @@ type IfcExample = {
 
 const IFC_EXAMPLES: IfcExample[] = [
   { name: "Renga House", filename: "Renga_House.ifc", sizeBytes: 1_317_373 },
-  { name: "Подкрановая балка — вариант 2", filename: "подкрановая балка 2 ВАРИАНТ.ifc", sizeBytes: 9_833_023 },
 ];
 
 const MAX_IFC_BYTES = 200 * 1024 * 1024;
@@ -52,7 +51,6 @@ const searchPanel = document.getElementById("searchPanel") as HTMLElement;
 const progress = document.getElementById("progress") as HTMLDivElement;
 const progressBar = document.getElementById("progressBar") as HTMLDivElement;
 const viewport = document.getElementById("viewport") as HTMLDivElement;
-const viewCube = document.getElementById("viewCube") as CUI.ViewCube;
 const libraryModal = document.getElementById("libraryModal") as HTMLElement;
 const libraryStart = document.getElementById("libraryStart") as HTMLElement;
 const libraryListPanel = document.getElementById("libraryListPanel") as HTMLElement;
@@ -75,6 +73,7 @@ const hideSelectedBtn = document.getElementById("hideSelectedBtn") as LoadingEle
 const isolateSelectedBtn = document.getElementById("isolateSelectedBtn") as LoadingElement;
 const showAllBtn = document.getElementById("showAllBtn") as LoadingElement;
 const searchToggleBtn = document.getElementById("searchToggleBtn") as HTMLButtonElement;
+const homeViewBtn = document.getElementById("homeViewBtn") as HTMLButtonElement;
 const searchBtn = document.getElementById("searchBtn") as LoadingElement;
 const clearSearchBtn = document.getElementById("clearSearchBtn") as LoadingElement;
 
@@ -151,7 +150,6 @@ let lastSourceIfcName = "";
 
 world.camera.controls.addEventListener("update", () => {
   fragments.core.update();
-  viewCube.updateOrientation();
 });
 
 world.onCameraChanged.add((camera) => {
@@ -193,14 +191,6 @@ highlighter.events.select.onClear.add(() => {
   clearSelectionInfo();
 });
 
-viewCube.camera = world.camera.three;
-viewCube.addEventListener("rightclick", () => setCamera(30, 10, 0));
-viewCube.addEventListener("leftclick", () => setCamera(-30, 10, 0));
-viewCube.addEventListener("topclick", () => setCamera(0, 32, 0));
-viewCube.addEventListener("bottomclick", () => setCamera(0, -32, 0));
-viewCube.addEventListener("frontclick", () => setCamera(0, 10, 30));
-viewCube.addEventListener("backclick", () => setCamera(0, 10, -30));
-
 loadIfcBtn.onclick = () => openLibraryModal();
 loadFragBtn.onclick = () => fragInput.click();
 fitBtn.onclick = () => void fitToModels();
@@ -210,6 +200,7 @@ hideSelectedBtn.onclick = () => void hideSelected();
 isolateSelectedBtn.onclick = () => void isolateSelected();
 showAllBtn.onclick = () => void hider.set(true);
 searchToggleBtn.onclick = () => toggleSearchPanel();
+homeViewBtn.onclick = () => void resetHomeView();
 searchBtn.onclick = () => void searchItems();
 clearSearchBtn.onclick = () => void closeSearchPanel();
 searchPanel.onclick = () => {
@@ -348,13 +339,22 @@ async function loadFrag(file: File) {
 }
 
 async function loadFragBuffer(buffer: ArrayBuffer, name: string) {
+  await clearModels({ keepStatus: true });
   const modelId = createModelId(name);
-  const loadingModel = fragments.core.load(buffer, {
+  const loadingModel = fragments.core.load(new Uint8Array(buffer), {
     modelId,
+    camera: world.camera.three,
     userData: { sourceName: name, sourceType: "frag" },
+    onProgress: (event) => {
+      const value = event.stage === "done" ? 1 : event.progress;
+      statusText.textContent = `${formatFragmentStage(event.stage)}: ${Math.round(value * 100)}%`;
+      setProgress(value);
+    },
   });
   loadingModel.catch((error) => console.error(error));
-  await waitForModel(modelId);
+  await Promise.race([waitForModel(modelId), loadingModel.then(() => undefined)]);
+  await waitForModel(modelId, 5000);
+  await fragments.core.update(true);
 }
 
 function waitForModel(modelId: string, timeoutMs = 30000) {
@@ -605,7 +605,7 @@ async function isolateSelected() {
   await hider.isolate(activeSelection);
 }
 
-async function clearModels() {
+async function clearModels(options: { keepStatus?: boolean } = {}) {
   for (const [modelId] of fragments.list) {
     await fragments.core.disposeModel(modelId);
   }
@@ -614,7 +614,7 @@ async function clearModels() {
   searchPanel.hidden = true;
   saveFragmentBtn.hidden = true;
   fileName.textContent = "-";
-  statusText.textContent = "Загрузите IFC";
+  if (!options.keepStatus) statusText.textContent = "Загрузите IFC";
   refreshModelState();
 }
 
@@ -901,8 +901,9 @@ async function fitToModels() {
   }
 }
 
-function setCamera(x: number, y: number, z: number) {
-  void world.camera.controls.setLookAt(x, y, z, 0, 0, 0, true);
+async function resetHomeView() {
+  await world.camera.controls.setLookAt(24, 18, 24, 0, 0, 0, true);
+  await fitToModels();
 }
 
 function refreshModelState() {
@@ -910,6 +911,7 @@ function refreshModelState() {
   modelCount.textContent = String(fragments.list.size);
   loadIfcBtn.hidden = hasModels;
   searchToggleBtn.hidden = !hasModels;
+  homeViewBtn.hidden = !hasModels;
 }
 
 function clearSelectionInfo() {
@@ -966,6 +968,16 @@ function formatProcess(process: string) {
     conversion: "Конвертация",
   };
   return labels[process] ?? process;
+}
+
+function formatFragmentStage(stage: string) {
+  const labels: Record<string, string> = {
+    decompressing: "Распаковка fragment",
+    parsing: "Чтение fragment",
+    generating: "Построение сцены",
+    done: "Fragment загружен",
+  };
+  return labels[stage] ?? "Загрузка fragment";
 }
 
 function apiUrl(path: string) {

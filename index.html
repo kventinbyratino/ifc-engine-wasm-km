@@ -93,6 +93,10 @@
           <button id="searchToggleBtn" class="action-button floating-search" type="button" aria-label="Поиск" hidden>
             <span aria-hidden="true">🔎</span>
           </button>
+
+          <button id="homeViewBtn" class="action-button home-view" type="button" aria-label="Вернуть камеру домой" hidden>
+            <span aria-hidden="true">🏠</span>
+          </button>
         </div>
 
         <section id="searchPanel" class="search-panel" hidden>
@@ -110,17 +114,6 @@
             <span class="empty-state">Введите текст поиска.</span>
           </div>
         </section>
-
-        <bim-view-cube
-          id="viewCube"
-          size="56"
-          right-text="+X"
-          left-text="-X"
-          top-text="+Y"
-          bottom-text="-Y"
-          front-text="+Z"
-          back-text="-Z"
-        ></bim-view-cube>
 
         <div id="progress" class="progress" hidden>
           <div id="progressBar" class="progress-bar"></div>

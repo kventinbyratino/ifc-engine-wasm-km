@@ -21,6 +21,15 @@ import {
   fillSelectOptions,
   renderElementTable,
 } from "./data/data-browser";
+import {
+  createTechnicalDrawing,
+  disposeDrawing,
+  downloadDrawingDxf,
+  fitCameraToDrawing,
+  renderDrawingList,
+  type DrawingSource,
+  type DrawingView,
+} from "./drawings/drawings-panel";
 import { createMessage, escapeHtml, formatBytes, getAttrText } from "./ui/dom-utils";
 import { createBimViewer, dimHighlightStyle, searchHighlightStyle } from "./viewer/viewer";
 import { mountSpatialTree } from "./tree/spatial-tree";
@@ -77,6 +86,7 @@ export async function startBimApp() {
     searchToggleBtn,
     homeViewBtn,
     dataBrowserBtn,
+    drawingsBtn,
     dataPanel,
     dataSummary,
     closeDataPanelBtn,
@@ -87,6 +97,15 @@ export async function startBimApp() {
     exportCsvBtn,
     exportJsonBtn,
     dataTableOutput,
+    drawingsPanel,
+    drawingsSummary,
+    closeDrawingsPanelBtn,
+    drawingSourceSelect,
+    drawingViewSelect,
+    drawingFarInput,
+    generateDrawingBtn,
+    clearDrawingsBtn,
+    drawingsOutput,
     searchBtn,
     clearSearchBtn,
   } = getDomElements();
@@ -162,6 +181,7 @@ export async function startBimApp() {
   searchToggleBtn.onclick = () => toggleSearchPanel();
   homeViewBtn.onclick = () => void resetHomeView();
   dataBrowserBtn.onclick = () => toggleDataPanel();
+  drawingsBtn.onclick = () => toggleDrawingsPanel();
   closeDataPanelBtn.onclick = () => closeDataPanel();
   dataSearchInput.oninput = () => applyDataFilters();
   dataCategoryFilter.onchange = () => applyDataFilters();
@@ -169,6 +189,9 @@ export async function startBimApp() {
   highlightFilteredBtn.onclick = () => void highlightFilteredElements();
   exportCsvBtn.onclick = () => exportElementsCsv(workspace.filteredElements);
   exportJsonBtn.onclick = () => exportElementsJson(workspace.filteredElements);
+  closeDrawingsPanelBtn.onclick = () => closeDrawingsPanel();
+  generateDrawingBtn.onclick = () => void generateDrawing();
+  clearDrawingsBtn.onclick = () => clearDrawings();
   searchBtn.onclick = () => void searchItems();
   clearSearchBtn.onclick = () => void closeSearchPanel();
   searchPanel.onclick = () => {
@@ -582,6 +605,7 @@ export async function startBimApp() {
     searchPanel.hidden = true;
     saveFragmentBtn.hidden = true;
     setActiveShareRecord(null);
+    clearDrawings();
     resetDataIndex();
     fileName.textContent = "-";
     if (!options.keepStatus) statusText.textContent = "Загрузите IFC";
@@ -685,6 +709,101 @@ export async function startBimApp() {
     } finally {
       highlightFilteredBtn.loading = false;
     }
+  }
+
+  function toggleDrawingsPanel() {
+    if (drawingsPanel.hidden) {
+      openDrawingsPanel();
+      return;
+    }
+    closeDrawingsPanel();
+  }
+
+  function openDrawingsPanel() {
+    drawingsPanel.hidden = false;
+    renderDrawingsPanel();
+  }
+
+  function closeDrawingsPanel() {
+    drawingsPanel.hidden = true;
+  }
+
+  async function generateDrawing() {
+    if (fragments.list.size === 0) return;
+
+    generateDrawingBtn.loading = true;
+    try {
+      const source = drawingSourceSelect.value as DrawingSource;
+      const view = drawingViewSelect.value as DrawingView;
+      const modelIdMap = await getDrawingSourceMap(source);
+      const far = Number(drawingFarInput.value) || 40;
+      drawingsSummary.textContent = "Генерация проекции...";
+
+      const record = await createTechnicalDrawing({
+        components,
+        world,
+        fragments,
+        modelIdMap,
+        view,
+        source,
+        far,
+        onProgress: (message, progressValue) => {
+          const progressText = typeof progressValue === "number" ? ` · ${Math.round(progressValue * 100)}%` : "";
+          drawingsSummary.textContent = `${message}${progressText}`;
+        },
+      });
+
+      workspace.drawings.unshift(record);
+      renderDrawingsPanel();
+      await fitCameraToDrawing(world, record);
+      statusText.textContent = `Чертёж готов: ${record.lineCount} линий`;
+    } catch (error) {
+      console.error(error);
+      drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+    } finally {
+      generateDrawingBtn.loading = false;
+    }
+  }
+
+  async function getDrawingSourceMap(source: DrawingSource) {
+    if (source === "selection") {
+      if (isEmptySelection(workspace.activeSelection)) throw new Error("Нет текущей выборки");
+      return workspace.activeSelection;
+    }
+
+    if (source === "filtered") {
+      if (workspace.filteredElements.length === 0) throw new Error("Нет элементов в фильтре Data Browser");
+      return recordsToModelIdMap(workspace.filteredElements);
+    }
+
+    return getGeometryItemsMap();
+  }
+
+  function renderDrawingsPanel() {
+    const totalLines = workspace.drawings.reduce((sum, record) => sum + record.lineCount, 0);
+    drawingsSummary.textContent = workspace.drawings.length
+      ? `${workspace.drawings.length} черт. · ${totalLines} линий`
+      : fragments.list.size > 0
+        ? "Можно генерировать план/фасады"
+        : "Загрузите модель";
+
+    renderDrawingList({
+      records: workspace.drawings,
+      output: drawingsOutput,
+      onSelect: (record) => void fitCameraToDrawing(world, record),
+      onExport: downloadDrawingDxf,
+      onDelete: (record) => {
+        disposeDrawing(record);
+        workspace.drawings = workspace.drawings.filter((item) => item.id !== record.id);
+        renderDrawingsPanel();
+      },
+    });
+  }
+
+  function clearDrawings() {
+    for (const record of workspace.drawings) disposeDrawing(record);
+    workspace.drawings = [];
+    renderDrawingsPanel();
   }
 
   async function searchItems() {
@@ -972,7 +1091,11 @@ export async function startBimApp() {
     searchToggleBtn.hidden = !hasModels;
     homeViewBtn.hidden = !hasModels;
     dataBrowserBtn.hidden = !hasModels;
-    if (!hasModels) dataPanel.hidden = true;
+    drawingsBtn.hidden = !hasModels;
+    if (!hasModels) {
+      dataPanel.hidden = true;
+      drawingsPanel.hidden = true;
+    }
   }
 
   function clearSelectionInfo() {

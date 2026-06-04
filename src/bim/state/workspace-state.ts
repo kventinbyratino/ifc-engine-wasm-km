@@ -1,5 +1,6 @@
 import type { FragmentRecord, ModelIdMap } from "../types";
 import type { BimElementRecord } from "../data/element-index";
+import type { DrawingRecord } from "../drawings/drawings-panel";
 
 export type WorkspaceState = {
   activeSelection: ModelIdMap;
@@ -8,6 +9,7 @@ export type WorkspaceState = {
   activeShareRecord: FragmentRecord | null;
   elementIndex: BimElementRecord[];
   filteredElements: BimElementRecord[];
+  drawings: DrawingRecord[];
 };
 
 export function createWorkspaceState(): WorkspaceState {
@@ -18,5 +20,6 @@ export function createWorkspaceState(): WorkspaceState {
     activeShareRecord: null,
     elementIndex: [],
     filteredElements: [],
+    drawings: [],
   };
 }

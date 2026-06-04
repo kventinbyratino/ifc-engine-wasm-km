@@ -943,3 +943,119 @@ body {
     height: 86px;
   }
 }
+
+.drawings-button {
+  font-size: 22px;
+}
+
+.drawings-panel {
+  position: absolute;
+  top: calc(max(14px, env(safe-area-inset-top)) + 60px);
+  left: max(14px, env(safe-area-inset-left));
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 74px);
+  z-index: 10;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 10px;
+  width: min(430px, calc(100vw - 28px));
+  padding: 12px;
+  border: 1px solid rgba(18, 28, 34, 0.1);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 18px 52px rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(14px);
+}
+
+.drawings-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 86px;
+  gap: 8px;
+}
+
+.data-action-secondary {
+  color: #172026;
+  background: #e8eef3;
+}
+
+.drawings-output {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid rgba(23, 32, 38, 0.08);
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.9);
+}
+
+.drawing-list {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+}
+
+.drawing-card {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(23, 32, 38, 0.08);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.drawing-card-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.drawing-card-main strong,
+.drawing-card-main span,
+.drawing-card-main small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawing-card-main strong {
+  font-size: 13px;
+}
+
+.drawing-card-main span,
+.drawing-card-main small {
+  color: #687782;
+  font-size: 11px;
+}
+
+.drawing-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 0.8fr;
+  gap: 6px;
+}
+
+.drawing-card-actions button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  background: #141a20;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.drawing-card-actions .drawing-danger {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+@media (max-width: 720px) {
+  .drawings-panel {
+    left: max(14px, env(safe-area-inset-left));
+    right: max(14px, env(safe-area-inset-right));
+    width: auto;
+  }
+
+  .drawings-toolbar {
+    grid-template-columns: 1fr;
+  }
+}

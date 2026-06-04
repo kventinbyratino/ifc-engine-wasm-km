@@ -126,6 +126,10 @@
           <button id="dataBrowserBtn" class="action-button data-browser-button" type="button" aria-label="BIM данные" hidden>
             <span aria-hidden="true">▦</span>
           </button>
+
+          <button id="drawingsBtn" class="action-button drawings-button" type="button" aria-label="Чертежи и DXF" hidden>
+            <span aria-hidden="true">⌗</span>
+          </button>
         </div>
 
         <section id="dataPanel" class="data-panel" hidden>
@@ -151,6 +155,39 @@
 
           <div id="dataTableOutput" class="data-table-output">
             <span class="empty-state">Загрузите IFC или fragment.</span>
+          </div>
+        </section>
+
+        <section id="drawingsPanel" class="drawings-panel" hidden>
+          <div class="data-panel-header">
+            <div>
+              <strong>Drawings / DXF</strong>
+              <span id="drawingsSummary">Загрузите модель</span>
+            </div>
+            <button id="closeDrawingsPanelBtn" class="plain-button" type="button" aria-label="Закрыть Drawings">×</button>
+          </div>
+
+          <div class="drawings-toolbar">
+            <select id="drawingSourceSelect" class="data-select" aria-label="Источник элементов для чертежа">
+              <option value="all">Вся модель</option>
+              <option value="selection">Текущая выборка</option>
+              <option value="filtered">Фильтр Data Browser</option>
+            </select>
+            <select id="drawingViewSelect" class="data-select" aria-label="Вид чертежа">
+              <option value="plan">План сверху</option>
+              <option value="front">Фасад спереди</option>
+              <option value="right">Фасад справа</option>
+            </select>
+            <input id="drawingFarInput" class="data-search-input" type="number" min="1" step="1" value="40" aria-label="Глубина проекции" />
+          </div>
+
+          <div class="data-actions">
+            <button id="generateDrawingBtn" class="data-action" type="button">Сгенерировать</button>
+            <button id="clearDrawingsBtn" class="data-action data-action-secondary" type="button">Очистить чертежи</button>
+          </div>
+
+          <div id="drawingsOutput" class="drawings-output">
+            <span class="empty-state">Чертежей пока нет.</span>
           </div>
         </section>
 

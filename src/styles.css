@@ -619,12 +619,20 @@ body {
   outline: none;
 }
 
-.data-actions {
+.data-actions,
+.ids-builder {
   justify-content: flex-start;
   flex-wrap: wrap;
 }
 
-.data-action {
+.ids-builder {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.5fr) 110px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.data-action,
+.ids-upload-label {
   min-height: 36px;
   padding: 0 12px;
   border: 0;
@@ -635,6 +643,16 @@ body {
   font: inherit;
   font-size: 12px;
   font-weight: 700;
+  display: inline-grid;
+  place-items: center;
+}
+
+.ids-upload-label input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .data-action:disabled,
@@ -944,11 +962,13 @@ body {
   }
 }
 
-.drawings-button {
+.drawings-button,
+.checks-button {
   font-size: 22px;
 }
 
-.drawings-panel {
+.drawings-panel,
+.checks-panel {
   position: absolute;
   top: calc(max(14px, env(safe-area-inset-top)) + 60px);
   left: max(14px, env(safe-area-inset-left));
@@ -982,12 +1002,80 @@ body {
   background: #e8eef3;
 }
 
+.checks-output,
 .drawings-output {
   min-height: 0;
   overflow: auto;
   border: 1px solid rgba(23, 32, 38, 0.08);
   border-radius: 14px;
   background: rgba(248, 250, 252, 0.9);
+}
+
+.checks-list {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+}
+
+.check-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(23, 32, 38, 0.08);
+  border-left: 4px solid #94a3b8;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.check-card-critical {
+  border-left-color: #dc2626;
+}
+
+.check-card-warning {
+  border-left-color: #f59e0b;
+}
+
+.check-card-info {
+  border-left-color: #2563eb;
+}
+
+.check-card-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.check-card-main strong,
+.check-card-main span,
+.check-card-main small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.check-card-main strong {
+  font-size: 13px;
+}
+
+.check-card-main span,
+.check-card-main small {
+  color: #687782;
+  font-size: 11px;
+}
+
+.check-card button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  background: #141a20;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .drawing-list {
@@ -1054,7 +1142,8 @@ body {
 }
 
 @media (max-width: 720px) {
-  .drawings-panel {
+  .drawings-panel,
+  .checks-panel {
     left: max(14px, env(safe-area-inset-left));
     right: max(14px, env(safe-area-inset-right));
     width: auto;

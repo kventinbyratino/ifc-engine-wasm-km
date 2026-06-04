@@ -37,6 +37,20 @@ import {
   getDrawingAnnotationTypeLabel,
   type DrawingAnnotationType,
 } from "./drawings/drawing-annotations";
+import {
+  exportChecksCsv,
+  exportChecksJson,
+  formatChecksSummary,
+  renderChecksPanel,
+} from "./ui/checks-panel";
+import {
+  addIDSPropertyRequirement,
+  exportIDSSpecifications,
+  getIDSTitle,
+  getLoadedIDSSpecificationCount,
+  loadIDSSpecifications,
+  runIDSValidation,
+} from "./checks/model-health";
 import { getProfileCapabilities } from "./profiles";
 import { createMessage, escapeHtml, formatBytes, getAttrText } from "./ui/dom-utils";
 import { createBimViewer, dimHighlightStyle, searchHighlightStyle } from "./viewer/viewer";
@@ -94,6 +108,7 @@ export async function startBimApp() {
     searchToggleBtn,
     homeViewBtn,
     dataBrowserBtn,
+    checksBtn,
     drawingsBtn,
     dataPanel,
     dataSummary,
@@ -105,6 +120,21 @@ export async function startBimApp() {
     exportCsvBtn,
     exportJsonBtn,
     dataTableOutput,
+    checksPanel,
+    checksSummary,
+    closeChecksPanelBtn,
+    runChecksBtn,
+    idsFileInput,
+    idsTitleInput,
+    idsSpecNameInput,
+    idsEntityInput,
+    idsPsetInput,
+    idsPropertyInput,
+    addIdsRequirementBtn,
+    saveIdsBtn,
+    exportChecksCsvBtn,
+    exportChecksJsonBtn,
+    checksOutput,
     drawingsPanel,
     drawingsSummary,
     closeDrawingsPanelBtn,
@@ -193,6 +223,7 @@ export async function startBimApp() {
   searchToggleBtn.onclick = () => toggleSearchPanel();
   homeViewBtn.onclick = () => void resetHomeView();
   dataBrowserBtn.onclick = () => toggleDataPanel();
+  checksBtn.onclick = () => toggleChecksPanel();
   drawingsBtn.onclick = () => toggleDrawingsPanel();
   closeDataPanelBtn.onclick = () => closeDataPanel();
   dataSearchInput.oninput = () => applyDataFilters();
@@ -201,6 +232,13 @@ export async function startBimApp() {
   highlightFilteredBtn.onclick = () => void highlightFilteredElements();
   exportCsvBtn.onclick = () => exportElementsCsv(workspace.filteredElements);
   exportJsonBtn.onclick = () => exportElementsJson(workspace.filteredElements);
+  closeChecksPanelBtn.onclick = () => closeChecksPanel();
+  idsFileInput.onchange = () => void loadIDSFile();
+  addIdsRequirementBtn.onclick = () => addIDSRequirementFromForm();
+  saveIdsBtn.onclick = () => saveIDSFile();
+  runChecksBtn.onclick = () => void runChecks();
+  exportChecksCsvBtn.onclick = () => exportChecksCsv(workspace.healthReport);
+  exportChecksJsonBtn.onclick = () => exportChecksJson(workspace.healthReport);
   closeDrawingsPanelBtn.onclick = () => closeDrawingsPanel();
   generateDrawingBtn.onclick = () => void generateDrawing();
   addAnnotationBtn.onclick = () => void annotateActiveDrawing();
@@ -303,8 +341,13 @@ export async function startBimApp() {
     return getProfileCapabilities(workspace.activeProfile).drawings;
   }
 
+  function canUseChecks() {
+    return getProfileCapabilities(workspace.activeProfile).qaQc;
+  }
+
   function refreshProfilePanels() {
     if (!canUseDataBrowser()) closeDataPanel();
+    if (!canUseChecks()) closeChecksPanel();
     if (!canUseDrawings()) closeDrawingsPanel();
     refreshModelState();
   }
@@ -638,6 +681,7 @@ export async function startBimApp() {
     setActiveShareRecord(null);
     clearDrawings();
     resetDataIndex();
+    resetChecks();
     fileName.textContent = "-";
     if (!options.keepStatus) statusText.textContent = "Загрузите IFC";
     refreshModelState();
@@ -669,6 +713,126 @@ export async function startBimApp() {
 
   function closeDataPanel() {
     dataPanel.hidden = true;
+  }
+
+  function toggleChecksPanel() {
+    if (checksPanel.hidden) {
+      openChecksPanel();
+      return;
+    }
+
+    closeChecksPanel();
+  }
+
+  function openChecksPanel() {
+    if (!canUseChecks()) {
+      checksPanel.hidden = true;
+      statusText.textContent = "Model Health Checks доступны только в профиле BIM";
+      return;
+    }
+
+    checksPanel.hidden = false;
+    renderChecksPanel({ report: workspace.healthReport, output: checksOutput, onSelect: selectDataRecord });
+    checksSummary.textContent = formatChecksSummary(workspace.healthReport);
+  }
+
+  function closeChecksPanel() {
+    checksPanel.hidden = true;
+  }
+
+  async function loadIDSFile() {
+    const file = idsFileInput.files?.[0];
+    if (!file) return;
+    try {
+      const xml = await file.text();
+      const specs = loadIDSSpecifications(components, xml);
+      const loadedTitle = getIDSTitle(components);
+      if (loadedTitle) idsTitleInput.value = loadedTitle;
+      workspace.healthReport = null;
+      checksSummary.textContent = `IDS загружен: ${specs.length} specs`;
+      checksOutput.replaceChildren(createMessage(`Файл ${file.name}. Запустите проверку по IDS.`));
+    } catch (error) {
+      console.error(error);
+      checksSummary.textContent = "Ошибка IDS";
+      checksOutput.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
+    }
+  }
+
+  function addIDSRequirementFromForm() {
+    const title = idsTitleInput.value.trim() || "BIM IDS";
+    const specificationName = idsSpecNameInput.value.trim();
+    const entity = idsEntityInput.value.trim();
+    const propertySet = idsPsetInput.value.trim();
+    const propertyName = idsPropertyInput.value.trim();
+
+    if (!(specificationName && entity && propertySet && propertyName)) {
+      checksSummary.textContent = "Заполните spec, entity, pset и property";
+      return;
+    }
+
+    const spec = addIDSPropertyRequirement(components, {
+      title,
+      specificationName,
+      entity,
+      propertySet,
+      propertyName,
+    });
+    workspace.healthReport = null;
+    checksSummary.textContent = `IDS spec добавлен: ${spec.name}`;
+    checksOutput.replaceChildren(
+      createMessage(`Всего IDS specs: ${getLoadedIDSSpecificationCount(components)}. Можно сохранить IDS или проверить модель.`),
+    );
+  }
+
+  function saveIDSFile() {
+    if (getLoadedIDSSpecificationCount(components) === 0) {
+      checksSummary.textContent = "Нет IDS specs для сохранения";
+      return;
+    }
+
+    const xml = exportIDSSpecifications(components, idsTitleInput.value);
+    downloadTextFile("bim-requirements.ids", xml, "application/xml");
+    checksSummary.textContent = `IDS сохранён: ${getLoadedIDSSpecificationCount(components)} specs`;
+  }
+
+  async function runChecks() {
+    if (!canUseChecks()) return;
+    if (fragments.list.size === 0) return;
+
+    if (getLoadedIDSSpecificationCount(components) === 0) {
+      checksSummary.textContent = "Сначала загрузите .ids/.xml";
+      checksOutput.replaceChildren(createMessage("Проверки Sprint 5 выполняются по IDS-файлу, а не по эвристикам."));
+      return;
+    }
+
+    runChecksBtn.loading = true;
+    try {
+      checksPanel.hidden = false;
+      if (workspace.elementIndex.length === 0) {
+        checksSummary.textContent = "Сначала индексируем элементы...";
+        await rebuildDataIndex();
+      }
+      workspace.healthReport = await runIDSValidation({
+        components,
+        modelIds: [...fragments.list.keys()],
+        elementIndex: workspace.elementIndex,
+      });
+      checksSummary.textContent = formatChecksSummary(workspace.healthReport);
+      renderChecksPanel({ report: workspace.healthReport, output: checksOutput, onSelect: selectDataRecord });
+      statusText.textContent = `IDS report: fail ${workspace.healthReport.summary.fail}, pass ${workspace.healthReport.summary.pass}`;
+    } catch (error) {
+      console.error(error);
+      checksSummary.textContent = "Ошибка проверки";
+      checksOutput.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
+    } finally {
+      runChecksBtn.loading = false;
+    }
+  }
+
+  function resetChecks() {
+    workspace.healthReport = null;
+    checksSummary.textContent = "Проверка не выполнена";
+    checksOutput.replaceChildren(createMessage("Загрузите модель и запустите проверку."));
   }
 
   async function rebuildDataIndex() {
@@ -1137,6 +1301,15 @@ export async function startBimApp() {
     searchOutput.replaceChildren(wrapper);
   }
 
+  function downloadTextFile(name: string, content: string, type: string) {
+    const file = new File([content], name, { type });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(file);
+    link.download = file.name;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
   async function downloadFragments() {
     if (fragments.list.size === 0) return;
 
@@ -1184,9 +1357,13 @@ export async function startBimApp() {
     searchToggleBtn.hidden = !hasModels;
     homeViewBtn.hidden = !hasModels;
     dataBrowserBtn.hidden = !hasModels || !capabilities.dataBrowser;
+    checksBtn.hidden = !hasModels || !capabilities.qaQc;
     drawingsBtn.hidden = !hasModels || !capabilities.drawings;
     if (!hasModels || !capabilities.dataBrowser) {
       dataPanel.hidden = true;
+    }
+    if (!hasModels || !capabilities.qaQc) {
+      checksPanel.hidden = true;
     }
     if (!hasModels || !capabilities.drawings) {
       drawingsPanel.hidden = true;

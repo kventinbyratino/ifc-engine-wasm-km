@@ -1,6 +1,7 @@
 import type { FragmentRecord, ModelIdMap, Profile } from "../types";
 import type { BimElementRecord } from "../data/element-index";
 import type { DrawingRecord } from "../drawings/drawings-panel";
+import type { IDSValidationReport } from "../checks/check-types";
 
 export type WorkspaceState = {
   activeProfile: Profile;
@@ -11,6 +12,7 @@ export type WorkspaceState = {
   elementIndex: BimElementRecord[];
   filteredElements: BimElementRecord[];
   drawings: DrawingRecord[];
+  healthReport: IDSValidationReport | null;
 };
 
 export function createWorkspaceState(): WorkspaceState {
@@ -23,5 +25,6 @@ export function createWorkspaceState(): WorkspaceState {
     elementIndex: [],
     filteredElements: [],
     drawings: [],
+    healthReport: null,
   };
 }

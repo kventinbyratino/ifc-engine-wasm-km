@@ -127,6 +127,10 @@
             <span aria-hidden="true">▦</span>
           </button>
 
+          <button id="checksBtn" class="action-button checks-button" type="button" aria-label="Проверки модели" hidden>
+            <span aria-hidden="true">✓</span>
+          </button>
+
           <button id="drawingsBtn" class="action-button drawings-button" type="button" aria-label="Чертежи и DXF" hidden>
             <span aria-hidden="true">⌗</span>
           </button>
@@ -155,6 +159,40 @@
 
           <div id="dataTableOutput" class="data-table-output">
             <span class="empty-state">Загрузите IFC или fragment.</span>
+          </div>
+        </section>
+
+        <section id="checksPanel" class="checks-panel" hidden>
+          <div class="data-panel-header">
+            <div>
+              <strong>Model Health Checks</strong>
+              <span id="checksSummary">Проверка не выполнена</span>
+            </div>
+            <button id="closeChecksPanelBtn" class="plain-button" type="button" aria-label="Закрыть проверки модели">×</button>
+          </div>
+
+          <div class="ids-builder" aria-label="IDS builder">
+            <input id="idsTitleInput" class="data-search-input" type="text" value="BIM IDS" aria-label="IDS title" placeholder="IDS title" />
+            <input id="idsSpecNameInput" class="data-search-input" type="text" value="Doors must have FireRating" aria-label="IDS specification name" placeholder="Spec name" />
+            <input id="idsEntityInput" class="data-search-input" type="text" value="IFCDOOR" aria-label="IDS entity" placeholder="IFC entity" />
+            <input id="idsPsetInput" class="data-search-input" type="text" value="Pset_DoorCommon" aria-label="IDS property set" placeholder="Property set" />
+            <input id="idsPropertyInput" class="data-search-input" type="text" value="FireRating" aria-label="IDS property" placeholder="Property" />
+          </div>
+
+          <div class="data-actions">
+            <label class="ids-upload-label">
+              IDS
+              <input id="idsFileInput" type="file" accept=".ids,.xml,application/xml,text/xml" />
+            </label>
+            <button id="addIdsRequirementBtn" class="data-action" type="button">Добавить IDS</button>
+            <button id="saveIdsBtn" class="data-action" type="button">Сохранить IDS</button>
+            <button id="runChecksBtn" class="data-action" type="button">Проверить по IDS</button>
+            <button id="exportChecksCsvBtn" class="data-action" type="button">CSV</button>
+            <button id="exportChecksJsonBtn" class="data-action" type="button">JSON</button>
+          </div>
+
+          <div id="checksOutput" class="checks-output">
+            <span class="empty-state">Загрузите модель и запустите проверку.</span>
           </div>
         </section>
 

@@ -8,6 +8,19 @@ import { renderSelectedProperties } from "./properties/properties-panel";
 import { countSelection, isEmptySelection, subtractModelIdMap } from "./selection/selection";
 import type { FragmentRecord, IfcExample, ModelIdMap, Profile } from "./types";
 import { createWorkspaceState } from "./state/workspace-state";
+import {
+  buildElementIndex,
+  filterElementIndex,
+  getUniqueValues,
+  recordsToModelIdMap,
+  type BimElementRecord,
+} from "./data/element-index";
+import {
+  exportElementsCsv,
+  exportElementsJson,
+  fillSelectOptions,
+  renderElementTable,
+} from "./data/data-browser";
 import { createMessage, escapeHtml, formatBytes, getAttrText } from "./ui/dom-utils";
 import { createBimViewer, dimHighlightStyle, searchHighlightStyle } from "./viewer/viewer";
 import { mountSpatialTree } from "./tree/spatial-tree";
@@ -63,6 +76,17 @@ export async function startBimApp() {
     showAllBtn,
     searchToggleBtn,
     homeViewBtn,
+    dataBrowserBtn,
+    dataPanel,
+    dataSummary,
+    closeDataPanelBtn,
+    dataSearchInput,
+    dataCategoryFilter,
+    dataStoreyFilter,
+    highlightFilteredBtn,
+    exportCsvBtn,
+    exportJsonBtn,
+    dataTableOutput,
     searchBtn,
     clearSearchBtn,
   } = getDomElements();
@@ -99,6 +123,7 @@ export async function startBimApp() {
     void (async () => {
       await fragments.core.update(true);
       await fitToModels();
+      await rebuildDataIndex();
     })();
   });
 
@@ -136,6 +161,14 @@ export async function startBimApp() {
   showAllBtn.onclick = () => void hider.set(true);
   searchToggleBtn.onclick = () => toggleSearchPanel();
   homeViewBtn.onclick = () => void resetHomeView();
+  dataBrowserBtn.onclick = () => toggleDataPanel();
+  closeDataPanelBtn.onclick = () => closeDataPanel();
+  dataSearchInput.oninput = () => applyDataFilters();
+  dataCategoryFilter.onchange = () => applyDataFilters();
+  dataStoreyFilter.onchange = () => applyDataFilters();
+  highlightFilteredBtn.onclick = () => void highlightFilteredElements();
+  exportCsvBtn.onclick = () => exportElementsCsv(workspace.filteredElements);
+  exportJsonBtn.onclick = () => exportElementsJson(workspace.filteredElements);
   searchBtn.onclick = () => void searchItems();
   clearSearchBtn.onclick = () => void closeSearchPanel();
   searchPanel.onclick = () => {
@@ -179,6 +212,7 @@ export async function startBimApp() {
   });
 
   syncProfileWithLocation();
+  resetDataIndex();
   renderExampleList();
   refreshModelState();
   void openFragmentFromUrl();
@@ -548,9 +582,109 @@ export async function startBimApp() {
     searchPanel.hidden = true;
     saveFragmentBtn.hidden = true;
     setActiveShareRecord(null);
+    resetDataIndex();
     fileName.textContent = "-";
     if (!options.keepStatus) statusText.textContent = "Загрузите IFC";
     refreshModelState();
+  }
+
+  function toggleDataPanel() {
+    if (dataPanel.hidden) {
+      openDataPanel();
+      return;
+    }
+
+    closeDataPanel();
+  }
+
+  function openDataPanel() {
+    dataPanel.hidden = false;
+    if (workspace.elementIndex.length === 0 && fragments.list.size > 0) {
+      void rebuildDataIndex();
+      return;
+    }
+    applyDataFilters();
+  }
+
+  function closeDataPanel() {
+    dataPanel.hidden = true;
+  }
+
+  async function rebuildDataIndex() {
+    if (fragments.list.size === 0) {
+      resetDataIndex();
+      return;
+    }
+
+    dataSummary.textContent = "Индексация элементов...";
+    dataTableOutput.replaceChildren(createMessage("Сбор IFC атрибутов..."));
+
+    try {
+      workspace.elementIndex = await buildElementIndex({
+        fragments,
+        onProgress: (processed, total) => {
+          dataSummary.textContent = `Индексация: ${processed}/${total}`;
+        },
+      });
+      fillSelectOptions(dataCategoryFilter, getUniqueValues(workspace.elementIndex, "category"), "Все IFC Class");
+      fillSelectOptions(dataStoreyFilter, getUniqueValues(workspace.elementIndex, "storey"), "Все этажи");
+      applyDataFilters();
+    } catch (error) {
+      console.error(error);
+      dataSummary.textContent = "Ошибка индексации";
+      dataTableOutput.replaceChildren(
+        createMessage(error instanceof Error ? error.message : String(error)),
+      );
+    }
+  }
+
+  function resetDataIndex() {
+    workspace.elementIndex = [];
+    workspace.filteredElements = [];
+    dataSummary.textContent = "Загрузите модель";
+    dataSearchInput.value = "";
+    fillSelectOptions(dataCategoryFilter, [], "Все IFC Class");
+    fillSelectOptions(dataStoreyFilter, [], "Все этажи");
+    dataTableOutput.replaceChildren(createMessage("Загрузите IFC или fragment."));
+  }
+
+  function applyDataFilters() {
+    workspace.filteredElements = filterElementIndex(workspace.elementIndex, {
+      query: dataSearchInput.value,
+      category: dataCategoryFilter.value,
+      storey: dataStoreyFilter.value,
+    });
+
+    dataSummary.textContent = `${workspace.filteredElements.length} из ${workspace.elementIndex.length} элементов`;
+    renderElementTable({
+      records: workspace.filteredElements,
+      totalCount: workspace.filteredElements.length,
+      output: dataTableOutput,
+      onSelect: selectDataRecord,
+    });
+  }
+
+  async function selectDataRecord(record: BimElementRecord) {
+    const modelIdMap = recordsToModelIdMap([record]);
+    await applySearchHighlight(modelIdMap);
+    await fitToItems(modelIdMap);
+    await renderSelectedProperties({ components, modelIdMap, output: propertiesOutput });
+    workspace.activeSelection = modelIdMap;
+    selectionCount.textContent = "1";
+  }
+
+  async function highlightFilteredElements() {
+    if (workspace.filteredElements.length === 0) return;
+    highlightFilteredBtn.loading = true;
+    try {
+      const limitedRecords = workspace.filteredElements.slice(0, 1500);
+      const modelIdMap = recordsToModelIdMap(limitedRecords);
+      await applySearchHighlight(modelIdMap);
+      await fitToItems(modelIdMap);
+      statusText.textContent = `Подсвечено элементов: ${limitedRecords.length}`;
+    } finally {
+      highlightFilteredBtn.loading = false;
+    }
   }
 
   async function searchItems() {
@@ -837,6 +971,8 @@ export async function startBimApp() {
     loadIfcBtn.hidden = hasModels;
     searchToggleBtn.hidden = !hasModels;
     homeViewBtn.hidden = !hasModels;
+    dataBrowserBtn.hidden = !hasModels;
+    if (!hasModels) dataPanel.hidden = true;
   }
 
   function clearSelectionInfo() {

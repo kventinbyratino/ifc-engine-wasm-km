@@ -122,7 +122,37 @@
           <button id="homeViewBtn" class="action-button home-view" type="button" aria-label="Вернуть камеру домой" hidden>
             <span aria-hidden="true">🏠</span>
           </button>
+
+          <button id="dataBrowserBtn" class="action-button data-browser-button" type="button" aria-label="BIM данные" hidden>
+            <span aria-hidden="true">▦</span>
+          </button>
         </div>
+
+        <section id="dataPanel" class="data-panel" hidden>
+          <div class="data-panel-header">
+            <div>
+              <strong>BIM Data Browser</strong>
+              <span id="dataSummary">Загрузите модель</span>
+            </div>
+            <button id="closeDataPanelBtn" class="plain-button" type="button" aria-label="Закрыть BIM Data Browser">×</button>
+          </div>
+
+          <div class="data-toolbar">
+            <input id="dataSearchInput" class="data-search-input" type="search" placeholder="Поиск: класс, имя, GUID, параметр" />
+            <select id="dataCategoryFilter" class="data-select" aria-label="Фильтр IFC Class"></select>
+            <select id="dataStoreyFilter" class="data-select" aria-label="Фильтр Storey"></select>
+          </div>
+
+          <div class="data-actions">
+            <button id="highlightFilteredBtn" class="data-action" type="button">Подсветить выборку</button>
+            <button id="exportCsvBtn" class="data-action" type="button">CSV</button>
+            <button id="exportJsonBtn" class="data-action" type="button">JSON</button>
+          </div>
+
+          <div id="dataTableOutput" class="data-table-output">
+            <span class="empty-state">Загрузите IFC или fragment.</span>
+          </div>
+        </section>
 
         <section id="searchPanel" class="search-panel" hidden>
           <div class="search-row">

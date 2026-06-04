@@ -2,6 +2,7 @@ import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import type { ModelIdMap } from "../types";
 import { countSelection, isEmptySelection } from "../selection/selection";
+import type { DrawingAnnotation } from "./drawing-annotations";
 
 export type DrawingView = "plan" | "front" | "right";
 export type DrawingSource = "all" | "selection" | "filtered";
@@ -13,6 +14,7 @@ export type DrawingRecord = {
   source: DrawingSource;
   itemCount: number;
   lineCount: number;
+  annotations: DrawingAnnotation[];
   createdAt: Date;
   drawing: OBC.TechnicalDrawing;
 };
@@ -52,6 +54,7 @@ export function renderDrawingList(options: {
   output: HTMLElement;
   onSelect: (record: DrawingRecord) => void;
   onExport: (record: DrawingRecord) => void;
+  onAnnotate: (record: DrawingRecord) => void;
   onDelete: (record: DrawingRecord) => void;
 }) {
   if (options.records.length === 0) {
@@ -68,7 +71,7 @@ export function renderDrawingList(options: {
     card.innerHTML = `
       <div class="drawing-card-main">
         <strong>${escapeHtml(record.name)}</strong>
-        <span>${escapeHtml(getDrawingViewLabel(record.view))} · ${record.itemCount} эл. · ${record.lineCount} линий</span>
+        <span>${escapeHtml(getDrawingViewLabel(record.view))} · ${record.itemCount} эл. · ${record.lineCount} линий · ${record.annotations.length} анн.</span>
         <small>${record.createdAt.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>
       </div>
     `;
@@ -86,13 +89,18 @@ export function renderDrawingList(options: {
     exportButton.textContent = "DXF";
     exportButton.onclick = () => options.onExport(record);
 
+    const annotate = document.createElement("button");
+    annotate.type = "button";
+    annotate.textContent = "Аннотация";
+    annotate.onclick = () => options.onAnnotate(record);
+
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "drawing-danger";
     remove.textContent = "Удалить";
     remove.onclick = () => options.onDelete(record);
 
-    actions.append(select, exportButton, remove);
+    actions.append(select, annotate, exportButton, remove);
     card.append(actions);
     list.append(card);
   }
@@ -143,6 +151,7 @@ export async function createTechnicalDrawing(options: DrawingBuildOptions): Prom
     source: options.source,
     itemCount,
     lineCount,
+    annotations: [],
     createdAt: new Date(),
     drawing,
   };
@@ -197,8 +206,19 @@ function countDrawingLines(drawing: OBC.TechnicalDrawing) {
 
 function drawingToDxf(record: DrawingRecord) {
   const lines: Array<{ start: THREE.Vector3; end: THREE.Vector3; layer: string }> = [];
+  const texts: Array<{ position: THREE.Vector3; text: string; size: number; layer: string }> = [];
   record.drawing.three.updateWorldMatrix(true, true);
   record.drawing.three.traverse((object) => {
+    if (object instanceof THREE.Sprite && typeof object.userData.dxfText === "string") {
+      texts.push({
+        position: object.getWorldPosition(new THREE.Vector3()),
+        text: object.userData.dxfText,
+        size: Number(object.userData.dxfTextSize) || 1,
+        layer: typeof object.userData.layer === "string" ? object.userData.layer : "annotation_text",
+      });
+      return;
+    }
+
     if (!(object instanceof THREE.LineSegments)) return;
     const position = object.geometry.getAttribute("position");
     const layer = typeof object.userData?.layer === "string" ? object.userData.layer : "0";
@@ -220,9 +240,19 @@ function drawingToDxf(record: DrawingRecord) {
     "31", formatDxfNumber(line.end.y),
   ]);
 
+  const textBody = texts.flatMap((text) => [
+    "0", "TEXT",
+    "8", sanitizeLayer(text.layer),
+    "10", formatDxfNumber(text.position.x),
+    "20", formatDxfNumber(text.position.z),
+    "30", formatDxfNumber(text.position.y),
+    "40", formatDxfNumber(text.size),
+    "1", sanitizeDxfText(text.text),
+  ]);
+
   return [
     "0", "SECTION", "2", "HEADER", "9", "$ACADVER", "1", "AC1027", "0", "ENDSEC",
-    "0", "SECTION", "2", "ENTITIES", ...body, "0", "ENDSEC", "0", "EOF", "",
+    "0", "SECTION", "2", "ENTITIES", ...body, ...textBody, "0", "ENDSEC", "0", "EOF", "",
   ].join("\n");
 }
 
@@ -233,6 +263,10 @@ function formatDxfNumber(value: number) {
 
 function sanitizeLayer(layer: string) {
   return layer.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64) || "0";
+}
+
+function sanitizeDxfText(text: string) {
+  return text.replace(/[\r\n]+/g, " ").slice(0, 255);
 }
 
 function sanitizeFilename(name: string) {

@@ -181,8 +181,20 @@
             <input id="drawingFarInput" class="data-search-input" type="number" min="1" step="1" value="40" aria-label="Глубина проекции" />
           </div>
 
+          <div class="annotation-toolbar" aria-label="Аннотации чертежа">
+            <select id="annotationTypeSelect" class="data-select" aria-label="Тип аннотации">
+              <option value="linear">Размер</option>
+              <option value="leader">Выноска</option>
+              <option value="callout">Маркер</option>
+              <option value="label">Подпись</option>
+            </select>
+            <input id="annotationTextInput" class="data-search-input" type="text" placeholder="Текст аннотации" />
+          </div>
+
           <div class="data-actions">
             <button id="generateDrawingBtn" class="data-action" type="button">Сгенерировать</button>
+            <button id="addAnnotationBtn" class="data-action" type="button">Добавить аннотацию</button>
+            <button id="clearAnnotationsBtn" class="data-action data-action-secondary" type="button">Очистить анн.</button>
             <button id="clearDrawingsBtn" class="data-action data-action-secondary" type="button">Очистить чертежи</button>
           </div>
 

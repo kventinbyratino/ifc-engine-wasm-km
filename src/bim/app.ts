@@ -27,9 +27,16 @@ import {
   downloadDrawingDxf,
   fitCameraToDrawing,
   renderDrawingList,
+  type DrawingRecord,
   type DrawingSource,
   type DrawingView,
 } from "./drawings/drawings-panel";
+import {
+  addDrawingAnnotation,
+  clearDrawingAnnotations,
+  getDrawingAnnotationTypeLabel,
+  type DrawingAnnotationType,
+} from "./drawings/drawing-annotations";
 import { getProfileCapabilities } from "./profiles";
 import { createMessage, escapeHtml, formatBytes, getAttrText } from "./ui/dom-utils";
 import { createBimViewer, dimHighlightStyle, searchHighlightStyle } from "./viewer/viewer";
@@ -104,6 +111,10 @@ export async function startBimApp() {
     drawingSourceSelect,
     drawingViewSelect,
     drawingFarInput,
+    annotationTypeSelect,
+    annotationTextInput,
+    addAnnotationBtn,
+    clearAnnotationsBtn,
     generateDrawingBtn,
     clearDrawingsBtn,
     drawingsOutput,
@@ -192,6 +203,8 @@ export async function startBimApp() {
   exportJsonBtn.onclick = () => exportElementsJson(workspace.filteredElements);
   closeDrawingsPanelBtn.onclick = () => closeDrawingsPanel();
   generateDrawingBtn.onclick = () => void generateDrawing();
+  addAnnotationBtn.onclick = () => void annotateActiveDrawing();
+  clearAnnotationsBtn.onclick = () => clearActiveDrawingAnnotations();
   clearDrawingsBtn.onclick = () => clearDrawings();
   searchBtn.onclick = () => void searchItems();
   clearSearchBtn.onclick = () => void closeSearchPanel();
@@ -817,8 +830,9 @@ export async function startBimApp() {
 
   function renderDrawingsPanel() {
     const totalLines = workspace.drawings.reduce((sum, record) => sum + record.lineCount, 0);
+    const totalAnnotations = workspace.drawings.reduce((sum, record) => sum + record.annotations.length, 0);
     drawingsSummary.textContent = workspace.drawings.length
-      ? `${workspace.drawings.length} черт. · ${totalLines} линий`
+      ? `${workspace.drawings.length} черт. · ${totalLines} линий · ${totalAnnotations} анн.`
       : fragments.list.size > 0
         ? "Можно генерировать план/фасады"
         : "Загрузите модель";
@@ -828,12 +842,54 @@ export async function startBimApp() {
       output: drawingsOutput,
       onSelect: (record) => void fitCameraToDrawing(world, record),
       onExport: downloadDrawingDxf,
+      onAnnotate: (record) => void annotateDrawing(record),
       onDelete: (record) => {
         disposeDrawing(record);
         workspace.drawings = workspace.drawings.filter((item) => item.id !== record.id);
         renderDrawingsPanel();
       },
     });
+  }
+
+  async function annotateActiveDrawing() {
+    const record = workspace.drawings[0];
+    if (!record) {
+      drawingsSummary.textContent = "Сначала сгенерируйте чертёж";
+      return;
+    }
+    await annotateDrawing(record);
+  }
+
+  async function annotateDrawing(record: DrawingRecord) {
+    addAnnotationBtn.loading = true;
+    try {
+      const type = annotationTypeSelect.value as DrawingAnnotationType;
+      const annotation = addDrawingAnnotation(record, {
+        type,
+        text: annotationTextInput.value,
+      });
+      annotationTextInput.value = "";
+      renderDrawingsPanel();
+      await fitCameraToDrawing(world, record);
+      drawingsSummary.textContent = `${getDrawingAnnotationTypeLabel(annotation.type)} добавлена · всего ${record.annotations.length}`;
+      statusText.textContent = `Аннотация добавлена: ${annotation.text}`;
+    } catch (error) {
+      console.error(error);
+      drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+    } finally {
+      addAnnotationBtn.loading = false;
+    }
+  }
+
+  function clearActiveDrawingAnnotations() {
+    const record = workspace.drawings[0];
+    if (!record) {
+      drawingsSummary.textContent = "Сначала сгенерируйте чертёж";
+      return;
+    }
+    clearDrawingAnnotations(record);
+    renderDrawingsPanel();
+    drawingsSummary.textContent = `Аннотации очищены: ${record.name}`;
   }
 
   function clearDrawings() {

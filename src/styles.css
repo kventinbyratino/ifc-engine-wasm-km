@@ -177,7 +177,7 @@ body {
 .status-pill {
   position: absolute;
   top: max(14px, env(safe-area-inset-top));
-  left: 14px;
+  left: calc(max(14px, env(safe-area-inset-left)) + 68px);
   right: 14px;
   z-index: 5;
   display: flex;
@@ -465,6 +465,13 @@ body {
   z-index: 12;
 }
 
+.top-back-button {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+  z-index: 12;
+}
+
 .share-description {
   margin: 0;
   min-width: 0;
@@ -705,8 +712,13 @@ body {
 @media (max-width: 520px) {
   .status-pill {
     top: max(10px, env(safe-area-inset-top));
-    left: 10px;
+    left: calc(max(10px, env(safe-area-inset-left)) + 62px);
     right: 10px;
+  }
+
+  .top-back-button {
+    top: max(10px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
   }
 
   .share-button {

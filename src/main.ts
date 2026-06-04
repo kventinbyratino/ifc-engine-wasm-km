@@ -68,6 +68,7 @@ const shareModelName = document.getElementById("shareModelName") as HTMLElement;
 const shareCopyStatus = document.getElementById("shareCopyStatus") as HTMLElement;
 const closeShareBtn = document.getElementById("closeShareBtn") as HTMLButtonElement;
 const copyShareBtn = document.getElementById("copyShareBtn") as HTMLButtonElement;
+const topBackBtn = document.getElementById("topBackBtn") as HTMLButtonElement;
 
 const ifcInput = document.getElementById("ifcInput") as HTMLInputElement;
 const fragInput = document.getElementById("fragInput") as HTMLInputElement;
@@ -228,6 +229,7 @@ saveFragmentBtn.onclick = () => void saveCurrentFragment();
 shareModelBtn.onclick = () => openShareModal();
 closeShareBtn.onclick = () => closeShareModal();
 copyShareBtn.onclick = () => void copyShareLink();
+topBackBtn.onclick = () => navigateToProfile("pending");
 
 ifcInput.onchange = () => {
   const [file] = ifcInput.files ?? [];

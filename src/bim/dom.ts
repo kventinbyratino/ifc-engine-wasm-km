@@ -1,0 +1,65 @@
+import type { LoadingElement } from "./types";
+
+const requiredElement = <T extends HTMLElement>(id: string) => {
+  const element = document.getElementById(id) as T | null;
+  if (!element) throw new Error(`Missing DOM element: #${id}`);
+  return element;
+};
+
+export type BimDomElements = ReturnType<typeof getDomElements>;
+
+export function getDomElements() {
+  return {
+    app: requiredElement<HTMLElement>("app"),
+    profileKmBtn: requiredElement<HTMLButtonElement>("profileKmBtn"),
+    profileBimBtn: requiredElement<HTMLButtonElement>("profileBimBtn"),
+    backToProfilesBtn: requiredElement<HTMLButtonElement>("backToProfilesBtn"),
+    bimStub: requiredElement<HTMLElement>("bimStub"),
+    statusText: requiredElement<HTMLSpanElement>("statusText"),
+    loadingOverlay: requiredElement<HTMLDivElement>("loadingOverlay"),
+    loadingStatus: requiredElement<HTMLSpanElement>("loadingStatus"),
+    fileName: requiredElement<HTMLElement>("fileName"),
+    modelCount: requiredElement<HTMLElement>("modelCount"),
+    selectionCount: requiredElement<HTMLElement>("selectionCount"),
+    propertiesOutput: requiredElement<HTMLDivElement>("propertiesOutput"),
+    treeOutput: requiredElement<HTMLDivElement>("treeOutput"),
+    searchInput: requiredElement<HTMLInputElement>("searchInput"),
+    searchOutput: requiredElement<HTMLDivElement>("searchOutput"),
+    searchPanel: requiredElement<HTMLElement>("searchPanel"),
+    progress: requiredElement<HTMLDivElement>("progress"),
+    progressBar: requiredElement<HTMLDivElement>("progressBar"),
+    viewport: requiredElement<HTMLDivElement>("viewport"),
+    libraryModal: requiredElement<HTMLElement>("libraryModal"),
+    libraryStart: requiredElement<HTMLElement>("libraryStart"),
+    libraryListPanel: requiredElement<HTMLElement>("libraryListPanel"),
+    fragmentList: requiredElement<HTMLDivElement>("fragmentList"),
+    exampleList: requiredElement<HTMLDivElement>("exampleList"),
+    closeLibraryBtn: requiredElement<HTMLButtonElement>("closeLibraryBtn"),
+    chooseFragmentBtn: requiredElement<HTMLButtonElement>("chooseFragmentBtn"),
+    addIfcBtn: requiredElement<HTMLButtonElement>("addIfcBtn"),
+    libraryBackBtn: requiredElement<HTMLButtonElement>("libraryBackBtn"),
+    saveFragmentBtn: requiredElement<LoadingElement>("saveFragmentBtn"),
+    shareModelBtn: requiredElement<HTMLButtonElement>("shareModelBtn"),
+    shareModal: requiredElement<HTMLElement>("shareModal"),
+    shareLinkInput: requiredElement<HTMLInputElement>("shareLinkInput"),
+    shareModelName: requiredElement<HTMLElement>("shareModelName"),
+    shareCopyStatus: requiredElement<HTMLElement>("shareCopyStatus"),
+    closeShareBtn: requiredElement<HTMLButtonElement>("closeShareBtn"),
+    copyShareBtn: requiredElement<HTMLButtonElement>("copyShareBtn"),
+    topBackBtn: requiredElement<HTMLButtonElement>("topBackBtn"),
+    ifcInput: requiredElement<HTMLInputElement>("ifcInput"),
+    fragInput: requiredElement<HTMLInputElement>("fragInput"),
+    loadIfcBtn: requiredElement<LoadingElement>("loadIfcBtn"),
+    loadFragBtn: requiredElement<LoadingElement>("loadFragBtn"),
+    fitBtn: requiredElement<LoadingElement>("fitBtn"),
+    clearBtn: requiredElement<LoadingElement>("clearBtn"),
+    downloadFragBtn: requiredElement<LoadingElement>("downloadFragBtn"),
+    hideSelectedBtn: requiredElement<LoadingElement>("hideSelectedBtn"),
+    isolateSelectedBtn: requiredElement<LoadingElement>("isolateSelectedBtn"),
+    showAllBtn: requiredElement<LoadingElement>("showAllBtn"),
+    searchToggleBtn: requiredElement<HTMLButtonElement>("searchToggleBtn"),
+    homeViewBtn: requiredElement<HTMLButtonElement>("homeViewBtn"),
+    searchBtn: requiredElement<LoadingElement>("searchBtn"),
+    clearSearchBtn: requiredElement<LoadingElement>("clearSearchBtn"),
+  };
+}

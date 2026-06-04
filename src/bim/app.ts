@@ -30,6 +30,7 @@ import {
   type DrawingSource,
   type DrawingView,
 } from "./drawings/drawings-panel";
+import { getProfileCapabilities } from "./profiles";
 import { createMessage, escapeHtml, formatBytes, getAttrText } from "./ui/dom-utils";
 import { createBimViewer, dimHighlightStyle, searchHighlightStyle } from "./viewer/viewer";
 import { mountSpatialTree } from "./tree/spatial-tree";
@@ -142,7 +143,7 @@ export async function startBimApp() {
     void (async () => {
       await fragments.core.update(true);
       await fitToModels();
-      await rebuildDataIndex();
+      if (canUseDataBrowser()) await rebuildDataIndex();
     })();
   });
 
@@ -267,15 +268,32 @@ export async function startBimApp() {
   }
 
   function selectProfile(profile: Profile) {
+    workspace.activeProfile = profile;
     app.classList.remove("profile-pending", "profile-km", "profile-bim");
     bimStub.hidden = true;
 
     if (profile === "pending") {
       app.classList.add("profile-pending");
+      refreshProfilePanels();
       return;
     }
 
     app.classList.add(profile === "km" ? "profile-km" : "profile-bim");
+    refreshProfilePanels();
+  }
+
+  function canUseDataBrowser() {
+    return getProfileCapabilities(workspace.activeProfile).dataBrowser;
+  }
+
+  function canUseDrawings() {
+    return getProfileCapabilities(workspace.activeProfile).drawings;
+  }
+
+  function refreshProfilePanels() {
+    if (!canUseDataBrowser()) closeDataPanel();
+    if (!canUseDrawings()) closeDrawingsPanel();
+    refreshModelState();
   }
 
   async function loadIfc(file: File) {
@@ -622,6 +640,12 @@ export async function startBimApp() {
   }
 
   function openDataPanel() {
+    if (!canUseDataBrowser()) {
+      dataPanel.hidden = true;
+      statusText.textContent = "BIM Data Browser доступен только в профиле BIM";
+      return;
+    }
+
     dataPanel.hidden = false;
     if (workspace.elementIndex.length === 0 && fragments.list.size > 0) {
       void rebuildDataIndex();
@@ -635,6 +659,11 @@ export async function startBimApp() {
   }
 
   async function rebuildDataIndex() {
+    if (!canUseDataBrowser()) {
+      resetDataIndex();
+      return;
+    }
+
     if (fragments.list.size === 0) {
       resetDataIndex();
       return;
@@ -720,6 +749,12 @@ export async function startBimApp() {
   }
 
   function openDrawingsPanel() {
+    if (!canUseDrawings()) {
+      drawingsPanel.hidden = true;
+      statusText.textContent = "Drawings / DXF доступны только в профиле BIM";
+      return;
+    }
+
     drawingsPanel.hidden = false;
     renderDrawingsPanel();
   }
@@ -729,6 +764,7 @@ export async function startBimApp() {
   }
 
   async function generateDrawing() {
+    if (!canUseDrawings()) return;
     if (fragments.list.size === 0) return;
 
     generateDrawingBtn.loading = true;
@@ -1086,14 +1122,17 @@ export async function startBimApp() {
 
   function refreshModelState() {
     const hasModels = fragments.list.size > 0;
+    const capabilities = getProfileCapabilities(workspace.activeProfile);
     modelCount.textContent = String(fragments.list.size);
     loadIfcBtn.hidden = hasModels;
     searchToggleBtn.hidden = !hasModels;
     homeViewBtn.hidden = !hasModels;
-    dataBrowserBtn.hidden = !hasModels;
-    drawingsBtn.hidden = !hasModels;
-    if (!hasModels) {
+    dataBrowserBtn.hidden = !hasModels || !capabilities.dataBrowser;
+    drawingsBtn.hidden = !hasModels || !capabilities.drawings;
+    if (!hasModels || !capabilities.dataBrowser) {
       dataPanel.hidden = true;
+    }
+    if (!hasModels || !capabilities.drawings) {
       drawingsPanel.hidden = true;
     }
   }

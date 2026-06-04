@@ -1,8 +1,9 @@
-import type { FragmentRecord, ModelIdMap } from "../types";
+import type { FragmentRecord, ModelIdMap, Profile } from "../types";
 import type { BimElementRecord } from "../data/element-index";
 import type { DrawingRecord } from "../drawings/drawings-panel";
 
 export type WorkspaceState = {
+  activeProfile: Profile;
   activeSelection: ModelIdMap;
   lastConvertedModelId: string;
   lastSourceIfcName: string;
@@ -14,6 +15,7 @@ export type WorkspaceState = {
 
 export function createWorkspaceState(): WorkspaceState {
   return {
+    activeProfile: "pending",
     activeSelection: {},
     lastConvertedModelId: "",
     lastSourceIfcName: "",

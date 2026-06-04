@@ -19,3 +19,11 @@ export type IfcExample = {
 };
 
 export type Profile = "pending" | "km" | "bim";
+
+export type ProfileCapabilities = {
+  dataBrowser: boolean;
+  drawings: boolean;
+  dxf: boolean;
+  issues: boolean;
+  qaQc: boolean;
+};

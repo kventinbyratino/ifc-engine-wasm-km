@@ -288,7 +288,7 @@ function syncProfileWithLocation() {
 
 function selectProfile(profile: "pending" | "km" | "bim") {
   app.classList.remove("profile-pending", "profile-km", "profile-bim");
-  bimStub.hidden = profile !== "bim";
+  bimStub.hidden = true;
 
   if (profile === "pending") {
     app.classList.add("profile-pending");

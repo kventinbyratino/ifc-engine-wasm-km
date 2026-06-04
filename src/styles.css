@@ -132,8 +132,7 @@ body {
   padding: 12px 18px;
 }
 
-.profile-pending .viewer-shell,
-.profile-bim .viewer-shell {
+.profile-pending .viewer-shell {
   visibility: hidden;
 }
 

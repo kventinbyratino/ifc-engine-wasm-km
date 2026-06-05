@@ -273,6 +273,18 @@
             <input id="drawingFarInput" class="data-search-input" type="number" min="1" step="1" value="40" aria-label="Глубина проекции" />
           </div>
 
+          <div class="sheet-toolbar" aria-label="Листы и выпуск">
+            <select id="sheetFormatSelect" class="data-select" aria-label="Формат листа">
+              <option value="A3">A3</option>
+              <option value="A1">A1</option>
+              <option value="A4">A4</option>
+              <option value="A2">A2</option>
+              <option value="A0">A0</option>
+            </select>
+            <button id="createSheetBtn" class="data-action" type="button">Создать лист</button>
+            <button id="exportSpecsBtn" class="data-action" type="button">Спеки CSV</button>
+          </div>
+
           <div class="annotation-toolbar" aria-label="Аннотации чертежа">
             <select id="annotationTypeSelect" class="data-select" aria-label="Тип аннотации">
               <option value="linear">Размер</option>
@@ -286,6 +298,9 @@
           <div class="data-actions">
             <button id="generateDrawingBtn" class="data-action" type="button">Сгенерировать</button>
             <button id="addAnnotationBtn" class="data-action" type="button">Добавить аннотацию</button>
+            <button id="exportSheetSvgBtn" class="data-action" type="button">SVG</button>
+            <button id="exportSheetPngBtn" class="data-action" type="button">PNG</button>
+            <button id="exportSheetPdfBtn" class="data-action" type="button">PDF</button>
             <button id="clearAnnotationsBtn" class="data-action data-action-secondary" type="button">Очистить анн.</button>
             <button id="clearDrawingsBtn" class="data-action data-action-secondary" type="button">Очистить чертежи</button>
           </div>

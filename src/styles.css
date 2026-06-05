@@ -978,7 +978,7 @@ body {
   bottom: calc(max(18px, env(safe-area-inset-bottom)) + 74px);
   z-index: 10;
   display: grid;
-  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
   gap: 10px;
   width: min(430px, calc(100vw - 28px));
   padding: 12px;
@@ -991,7 +991,8 @@ body {
 
 .drawings-toolbar,
 .annotation-toolbar,
-.clash-toolbar {
+.clash-toolbar,
+.sheet-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 86px;
   gap: 8px;
@@ -999,6 +1000,10 @@ body {
 
 .annotation-toolbar {
   grid-template-columns: 130px minmax(0, 1fr);
+}
+
+.sheet-toolbar {
+  grid-template-columns: 90px 1fr 1fr;
 }
 
 .data-action-secondary {

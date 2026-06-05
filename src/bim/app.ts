@@ -38,6 +38,10 @@ import {
   getDrawingAnnotationTypeLabel,
   type DrawingAnnotationType,
 } from "./drawings/drawing-annotations";
+import { createSheet } from "./sheets/sheet-board";
+import { downloadSheetPng, downloadSheetSvg, openSheetPdfPrint } from "./sheets/pdf-export";
+import type { SheetFormat } from "./sheets/sheet-types";
+import { generateSpecification, specificationToCsv } from "./specs/spec-generator";
 import {
   exportChecksCsv,
   exportChecksJson,
@@ -170,10 +174,16 @@ export async function startBimApp() {
     drawingSourceSelect,
     drawingViewSelect,
     drawingFarInput,
+    sheetFormatSelect,
     annotationTypeSelect,
     annotationTextInput,
     addAnnotationBtn,
     clearAnnotationsBtn,
+    createSheetBtn,
+    exportSheetSvgBtn,
+    exportSheetPngBtn,
+    exportSheetPdfBtn,
+    exportSpecsBtn,
     generateDrawingBtn,
     clearDrawingsBtn,
     drawingsOutput,
@@ -289,6 +299,11 @@ export async function startBimApp() {
   generateDrawingBtn.onclick = () => void generateDrawing();
   addAnnotationBtn.onclick = () => void annotateActiveDrawing();
   clearAnnotationsBtn.onclick = () => clearActiveDrawingAnnotations();
+  createSheetBtn.onclick = () => createSheetFromActiveDrawing();
+  exportSheetSvgBtn.onclick = () => exportActiveSheetSvg();
+  exportSheetPngBtn.onclick = () => void exportActiveSheetPng();
+  exportSheetPdfBtn.onclick = () => exportActiveSheetPdf();
+  exportSpecsBtn.onclick = () => exportSpecifications();
   clearDrawingsBtn.onclick = () => clearDrawings();
   searchBtn.onclick = () => void searchItems();
   clearSearchBtn.onclick = () => void closeSearchPanel();
@@ -1275,7 +1290,7 @@ export async function startBimApp() {
     const totalLines = workspace.drawings.reduce((sum, record) => sum + record.lineCount, 0);
     const totalAnnotations = workspace.drawings.reduce((sum, record) => sum + record.annotations.length, 0);
     drawingsSummary.textContent = workspace.drawings.length
-      ? `${workspace.drawings.length} черт. · ${totalLines} линий · ${totalAnnotations} анн.`
+      ? `${workspace.drawings.length} черт. · ${workspace.sheets.length} лист. · ${totalLines} линий · ${totalAnnotations} анн.`
       : fragments.list.size > 0
         ? "Можно генерировать план/фасады"
         : "Загрузите модель";
@@ -1335,9 +1350,77 @@ export async function startBimApp() {
     drawingsSummary.textContent = `Аннотации очищены: ${record.name}`;
   }
 
+  function createSheetFromActiveDrawing() {
+    const record = workspace.drawings[0];
+    if (!record) {
+      drawingsSummary.textContent = "Сначала сгенерируйте чертёж";
+      return;
+    }
+    const sheet = createSheet({
+      format: sheetFormatSelect.value as SheetFormat,
+      drawing: record,
+      title: record.name,
+      projectName: fileName.textContent && fileName.textContent !== "-" ? fileName.textContent : "BIM Manager Workbench",
+    });
+    workspace.sheets.unshift(sheet);
+    renderDrawingsPanel();
+    drawingsSummary.textContent = `Лист создан: ${sheet.format} · ${sheet.title}`;
+  }
+
+  function getActiveSheet() {
+    if (!workspace.sheets[0]) createSheetFromActiveDrawing();
+    return workspace.sheets[0] ?? null;
+  }
+
+  function exportActiveSheetSvg() {
+    const sheet = getActiveSheet();
+    if (!sheet) return;
+    downloadSheetSvg(sheet);
+    drawingsSummary.textContent = `SVG экспортирован: ${sheet.format}`;
+  }
+
+  async function exportActiveSheetPng() {
+    const sheet = getActiveSheet();
+    if (!sheet) return;
+    exportSheetPngBtn.loading = true;
+    try {
+      await downloadSheetPng(sheet);
+      drawingsSummary.textContent = `PNG экспортирован: ${sheet.format}`;
+    } catch (error) {
+      console.error(error);
+      drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+    } finally {
+      exportSheetPngBtn.loading = false;
+    }
+  }
+
+  function exportActiveSheetPdf() {
+    const sheet = getActiveSheet();
+    if (!sheet) return;
+    try {
+      openSheetPdfPrint(sheet);
+      drawingsSummary.textContent = `PDF/print открыт: ${sheet.format}`;
+    } catch (error) {
+      console.error(error);
+      drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  function exportSpecifications() {
+    const source = workspace.filteredElements.length > 0 ? workspace.filteredElements : workspace.elementIndex;
+    if (source.length === 0) {
+      drawingsSummary.textContent = "Нет элементов для спецификации";
+      return;
+    }
+    const rows = generateSpecification(source);
+    downloadTextFile("bim-specification.csv", specificationToCsv(rows), "text/csv;charset=utf-8");
+    drawingsSummary.textContent = `Спецификация экспортирована: ${rows.length} строк`;
+  }
+
   function clearDrawings() {
     for (const record of workspace.drawings) disposeDrawing(record);
     workspace.drawings = [];
+    workspace.sheets = [];
     renderDrawingsPanel();
   }
 

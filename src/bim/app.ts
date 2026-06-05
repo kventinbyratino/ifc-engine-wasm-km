@@ -571,7 +571,8 @@ export async function startBimApp() {
   }
 
   function createShareLink(fragmentId: string) {
-    const url = new URL(`${APP_BASE || ""}/viewer/`, window.location.origin);
+    const profileSegment = workspace.activeProfile === "bim" ? "bim" : "viewer";
+    const url = new URL(`${APP_BASE || ""}/${profileSegment}/`, window.location.origin);
     url.searchParams.set("fragment", fragmentId);
     return url.toString();
   }
@@ -688,7 +689,9 @@ export async function startBimApp() {
     const fragmentId = new URLSearchParams(window.location.search).get("fragment")?.trim();
     if (!fragmentId) return;
 
-    selectProfile("km");
+    if (workspace.activeProfile === "pending") {
+      selectProfile("km");
+    }
     setBusy(true, "Загрузка модели по ссылке");
     try {
       const records = await fetchFragments();

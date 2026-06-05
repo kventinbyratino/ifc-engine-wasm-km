@@ -4,8 +4,14 @@ import type { ModelIdMap } from "../types";
 import { countSelection, isEmptySelection } from "../selection/selection";
 import type { DrawingAnnotation } from "./drawing-annotations";
 
-export type DrawingView = "plan" | "front" | "right";
+export type DrawingView = "plan" | "front" | "right" | "back" | "left" | "section";
 export type DrawingSource = "all" | "selection" | "filtered";
+
+export type DrawingProjection = {
+  far: number;
+  bounds: OBC.DrawingViewportConfig;
+  scale: number;
+};
 
 export type DrawingRecord = {
   id: string;
@@ -17,6 +23,8 @@ export type DrawingRecord = {
   annotations: DrawingAnnotation[];
   createdAt: Date;
   drawing: OBC.TechnicalDrawing;
+  viewport: OBC.DrawingViewport | null;
+  projection: DrawingProjection;
 };
 
 export type DrawingBuildOptions = {
@@ -45,6 +53,9 @@ export function getDrawingViewLabel(view: DrawingView) {
     plan: "План",
     front: "Фасад спереди",
     right: "Фасад справа",
+    back: "Фасад сзади",
+    left: "Фасад слева",
+    section: "Разрез",
   };
   return labels[view];
 }
@@ -144,6 +155,9 @@ export async function createTechnicalDrawing(options: DrawingBuildOptions): Prom
   });
 
   const lineCount = countDrawingLines(drawing);
+  const bounds = createDrawingViewportBounds(drawing);
+  const viewport = drawing.viewports.create({ ...bounds, name: options.name || getDrawingViewLabel(options.view) });
+  viewport.helperVisible = true;
   const record: DrawingRecord = {
     id: drawing.uuid,
     name: options.name || `${getDrawingViewLabel(options.view)} · ${getDrawingSourceLabel(options.source)}`,
@@ -154,6 +168,12 @@ export async function createTechnicalDrawing(options: DrawingBuildOptions): Prom
     annotations: [],
     createdAt: new Date(),
     drawing,
+    viewport,
+    projection: {
+      far,
+      bounds,
+      scale: viewport.drawingScale,
+    },
   };
   return record;
 }
@@ -176,16 +196,39 @@ export async function fitCameraToDrawing(world: OBC.World, record: DrawingRecord
 
 function directionForView(view: DrawingView) {
   if (view === "front") return new THREE.Vector3(0, 0, -1);
+  if (view === "back") return new THREE.Vector3(0, 0, 1);
   if (view === "right") return new THREE.Vector3(-1, 0, 0);
+  if (view === "left") return new THREE.Vector3(1, 0, 0);
+  if (view === "section") return new THREE.Vector3(-1, 0, 0);
   return new THREE.Vector3(0, -1, 0);
 }
 
 function originForView(view: DrawingView, center: THREE.Vector3, size: THREE.Vector3, far: number) {
   const origin = center.clone();
   if (view === "front") origin.z = center.z + size.z / 2 + far * 0.02;
-  else if (view === "right") origin.x = center.x + size.x / 2 + far * 0.02;
+  else if (view === "back") origin.z = center.z - size.z / 2 - far * 0.02;
+  else if (view === "right" || view === "section") origin.x = center.x + size.x / 2 + far * 0.02;
+  else if (view === "left") origin.x = center.x - size.x / 2 - far * 0.02;
   else origin.y = center.y + size.y / 2 + far * 0.02;
   return origin;
+}
+
+function createDrawingViewportBounds(drawing: OBC.TechnicalDrawing): OBC.DrawingViewportConfig {
+  const box = new THREE.Box3().setFromObject(drawing.three);
+  if (box.isEmpty()) return { left: -5, right: 5, top: 5, bottom: -5, scale: 100 };
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const pad = Math.max(size.x, size.z, 1) * 0.08;
+  const left = center.x - size.x / 2 - pad;
+  const right = center.x + size.x / 2 + pad;
+  const top = -box.min.z + pad;
+  const bottom = -box.max.z - pad;
+  const width = Math.max(right - left, 0.001);
+  const height = Math.max(top - bottom, 0.001);
+  const targetPaperWidthMm = 360;
+  const targetPaperHeightMm = 240;
+  const scale = Math.max(1, Math.ceil(Math.max((width * 1000) / targetPaperWidthMm, (height * 1000) / targetPaperHeightMm) / 10) * 10);
+  return { left, right, top, bottom, scale };
 }
 
 function unionBoxes(boxes: THREE.Box3[]) {

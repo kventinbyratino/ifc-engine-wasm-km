@@ -1011,6 +1011,17 @@ body {
   background: #e8eef3;
 }
 
+.data-action.is-active {
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f766e, #2563eb);
+}
+
+.viewport.is-drawing-annotation-mode {
+  cursor: crosshair;
+  outline: 2px solid rgba(37, 99, 235, 0.45);
+  outline-offset: -2px;
+}
+
 .checks-output,
 .issues-output,
 .clash-output,

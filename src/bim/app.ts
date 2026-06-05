@@ -36,8 +36,17 @@ import {
   addDrawingAnnotation,
   clearDrawingAnnotations,
   getDrawingAnnotationTypeLabel,
+  syncDrawingAnnotations,
   type DrawingAnnotationType,
 } from "./drawings/drawing-annotations";
+import { createDrawingInteractionController } from "./drawings/drawing-interaction";
+import {
+  clearStoredDrawingWorkspace,
+  loadStoredDrawingWorkspace,
+  replayStoredAnnotations,
+  saveDrawingWorkspace,
+  type StoredDrawingWorkspace,
+} from "./drawings/drawing-persistence";
 import { createSheet } from "./sheets/sheet-board";
 import { downloadSheetPng, downloadSheetSvg, openSheetPdfPrint } from "./sheets/pdf-export";
 import { downloadSheetDxfPaperSpace } from "./sheets/dxf-paper-export";
@@ -179,6 +188,7 @@ export async function startBimApp() {
     annotationTypeSelect,
     annotationTextInput,
     addAnnotationBtn,
+    interactiveAnnotationBtn,
     clearAnnotationsBtn,
     createSheetBtn,
     exportSheetSvgBtn,
@@ -207,6 +217,24 @@ export async function startBimApp() {
 
   const workspace = createWorkspaceState();
   const issueStore = createIssueStore();
+  const drawingInteraction = createDrawingInteractionController({
+    viewport,
+    world,
+    components,
+    getActiveDrawing: () => workspace.drawings[0] ?? null,
+    getAnnotationType: () => annotationTypeSelect.value as DrawingAnnotationType,
+    getAnnotationText: () => annotationTextInput.value,
+    onAnnotationAdded: (record) => {
+      annotationTextInput.value = "";
+      syncDrawingAnnotations(components, record);
+      persistDrawings();
+      renderDrawingsPanel();
+    },
+    onStatus: (message) => {
+      drawingsSummary.textContent = message;
+      statusText.textContent = message;
+    },
+  });
 
   world.camera.controls.addEventListener("update", () => {
     fragments.core.update();
@@ -300,6 +328,10 @@ export async function startBimApp() {
   closeDrawingsPanelBtn.onclick = () => closeDrawingsPanel();
   generateDrawingBtn.onclick = () => void generateDrawing();
   addAnnotationBtn.onclick = () => void annotateActiveDrawing();
+  interactiveAnnotationBtn.onclick = () => {
+    drawingInteraction.setActive(!drawingInteraction.active);
+    interactiveAnnotationBtn.classList.toggle("is-active", drawingInteraction.active);
+  };
   clearAnnotationsBtn.onclick = () => clearActiveDrawingAnnotations();
   createSheetBtn.onclick = () => createSheetFromActiveDrawing();
   exportSheetSvgBtn.onclick = () => exportActiveSheetSvg();
@@ -1263,7 +1295,15 @@ export async function startBimApp() {
         },
       });
 
+      const stored = getStoredDrawingWorkspace();
+      const storedDrawing = stored?.drawings.find((item) => item.view === view && item.source === source);
+      if (storedDrawing?.annotations.length) {
+        replayStoredAnnotations(record, storedDrawing.annotations, components);
+        syncDrawingAnnotations(components, record);
+      }
+
       workspace.drawings.unshift(record);
+      persistDrawings();
       renderDrawingsPanel();
       await fitCameraToDrawing(world, record);
       statusText.textContent = `Чертёж готов: ${record.lineCount} линий`;
@@ -1307,6 +1347,8 @@ export async function startBimApp() {
       onDelete: (record) => {
         disposeDrawing(record);
         workspace.drawings = workspace.drawings.filter((item) => item.id !== record.id);
+        workspace.sheets = workspace.sheets.filter((sheet) => sheet.drawing.id !== record.id);
+        persistDrawings();
         renderDrawingsPanel();
       },
     });
@@ -1326,10 +1368,13 @@ export async function startBimApp() {
     try {
       const type = annotationTypeSelect.value as DrawingAnnotationType;
       const annotation = addDrawingAnnotation(record, {
+        components,
         type,
         text: annotationTextInput.value,
       });
       annotationTextInput.value = "";
+      syncDrawingAnnotations(components, record);
+      persistDrawings();
       renderDrawingsPanel();
       await fitCameraToDrawing(world, record);
       drawingsSummary.textContent = `${getDrawingAnnotationTypeLabel(annotation.type)} добавлена · всего ${record.annotations.length}`;
@@ -1348,7 +1393,8 @@ export async function startBimApp() {
       drawingsSummary.textContent = "Сначала сгенерируйте чертёж";
       return;
     }
-    clearDrawingAnnotations(record);
+    clearDrawingAnnotations(record, components);
+    persistDrawings();
     renderDrawingsPanel();
     drawingsSummary.textContent = `Аннотации очищены: ${record.name}`;
   }
@@ -1366,6 +1412,7 @@ export async function startBimApp() {
       projectName: fileName.textContent && fileName.textContent !== "-" ? fileName.textContent : "BIM Manager Workbench",
     });
     workspace.sheets.unshift(sheet);
+    persistDrawings();
     renderDrawingsPanel();
     drawingsSummary.textContent = `Лист создан: ${sheet.format} · ${sheet.title}`;
   }
@@ -1373,6 +1420,27 @@ export async function startBimApp() {
   function getActiveSheet() {
     if (!workspace.sheets[0]) createSheetFromActiveDrawing();
     return workspace.sheets[0] ?? null;
+  }
+
+  function persistDrawings() {
+    if (typeof localStorage === "undefined") return null;
+    const projectName = fileName.textContent && fileName.textContent !== "-" ? fileName.textContent : "BIM Manager Workbench";
+    try {
+      return saveDrawingWorkspace(projectName, workspace.drawings, workspace.sheets, components);
+    } catch (error) {
+      console.warn("Drawing persistence failed", error);
+      return null;
+    }
+  }
+
+  function getStoredDrawingWorkspace(): StoredDrawingWorkspace | null {
+    const projectName = fileName.textContent && fileName.textContent !== "-" ? fileName.textContent : "BIM Manager Workbench";
+    try {
+      return loadStoredDrawingWorkspace(projectName);
+    } catch (error) {
+      console.warn("Drawing persistence restore failed", error);
+      return null;
+    }
   }
 
   function exportActiveSheetSvg() {
@@ -1436,6 +1504,7 @@ export async function startBimApp() {
     for (const record of workspace.drawings) disposeDrawing(record);
     workspace.drawings = [];
     workspace.sheets = [];
+    clearStoredDrawingWorkspace();
     renderDrawingsPanel();
   }
 

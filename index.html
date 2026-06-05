@@ -267,8 +267,11 @@
             </select>
             <select id="drawingViewSelect" class="data-select" aria-label="Вид чертежа">
               <option value="plan">План сверху</option>
+              <option value="section">Разрез</option>
               <option value="front">Фасад спереди</option>
               <option value="right">Фасад справа</option>
+              <option value="back">Фасад сзади</option>
+              <option value="left">Фасад слева</option>
             </select>
             <input id="drawingFarInput" class="data-search-input" type="number" min="1" step="1" value="40" aria-label="Глубина проекции" />
           </div>
@@ -298,6 +301,7 @@
           <div class="data-actions">
             <button id="generateDrawingBtn" class="data-action" type="button">Сгенерировать</button>
             <button id="addAnnotationBtn" class="data-action" type="button">Добавить аннотацию</button>
+            <button id="interactiveAnnotationBtn" class="data-action data-action-secondary" type="button">Интерактивно</button>
             <button id="exportSheetSvgBtn" class="data-action" type="button">SVG</button>
             <button id="exportSheetPngBtn" class="data-action" type="button">PNG</button>
             <button id="exportSheetPdfBtn" class="data-action" type="button">PDF</button>

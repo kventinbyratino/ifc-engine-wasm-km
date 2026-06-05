@@ -116,6 +116,7 @@ export function getDomElements() {
     annotationTypeSelect: requiredElement<HTMLSelectElement>("annotationTypeSelect"),
     annotationTextInput: requiredElement<HTMLInputElement>("annotationTextInput"),
     addAnnotationBtn: requiredElement<LoadingElement>("addAnnotationBtn"),
+    interactiveAnnotationBtn: requiredElement<HTMLButtonElement>("interactiveAnnotationBtn"),
     clearAnnotationsBtn: requiredElement<HTMLButtonElement>("clearAnnotationsBtn"),
     createSheetBtn: requiredElement<LoadingElement>("createSheetBtn"),
     exportSheetSvgBtn: requiredElement<HTMLButtonElement>("exportSheetSvgBtn"),

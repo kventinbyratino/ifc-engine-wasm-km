@@ -1,9 +1,8 @@
 import * as THREE from "three";
 import workerUrl from "@thatopen/fragments/worker?url";
 import "../styles.css";
-import { APP_BASE, API_BASE, IFC_EXAMPLES, MAX_FRAGMENT_BYTES, MAX_IFC_BYTES } from "./config";
+import { APP_BASE, API_BASE, IFC_EXAMPLES, MAX_FRAGMENT_BYTES } from "./config";
 import { getDomElements } from "./dom";
-import { loadFragBuffer as loadFragmentsBuffer, loadIfcModel } from "./models/model-loader";
 import { renderSelectedProperties } from "./properties/properties-panel";
 import { countSelection, isEmptySelection, subtractModelIdMap } from "./selection/selection";
 import type { FragmentRecord, IfcExample, ModelIdMap } from "./types";
@@ -81,6 +80,7 @@ import { createBimViewer, dimHighlightStyle, searchHighlightStyle } from "./view
 import { mountSpatialTree } from "./tree/spatial-tree";
 import type { BimAppContext } from "./app/app-context";
 import { createProfileRouter } from "./app/profile-router";
+import { createModelController } from "./app/model-controller";
 
 export async function startBimApp() {
   const {
@@ -251,6 +251,30 @@ export async function startBimApp() {
       statusText.textContent = message;
     },
   });
+
+  const modelController = createModelController({
+    ctx,
+    clearSearch,
+    clearDrawings,
+    renderIssues,
+    renderClash,
+    resetDataIndex,
+    resetChecks,
+    setActiveShareRecord,
+    closeLibraryModal,
+  });
+  const {
+    loadIfc,
+    loadFrag,
+    loadFragBuffer,
+    hideSelected,
+    isolateSelected,
+    clearModels,
+    downloadFragments,
+    fitToModels,
+    resetHomeView,
+    refreshModelState,
+  } = modelController;
 
   const profileRouter = createProfileRouter({
     ctx,
@@ -423,70 +447,6 @@ export async function startBimApp() {
   renderExampleList();
   refreshModelState();
   void openFragmentFromUrl();
-
-  async function loadIfc(file: File) {
-    setActiveShareRecord(null);
-    if (file.size > MAX_IFC_BYTES) {
-      statusText.textContent = "IFC больше 200 МБ";
-      return;
-    }
-
-    setBusy(true, "Конвертация IFC в браузере");
-    fileName.textContent = file.name;
-    propertiesOutput.textContent = "IFC читается через web-ifc WASM. Серверная обработка не используется.";
-
-    try {
-      const { modelId, sourceName } = await loadIfcModel({
-        file,
-        ifcLoader,
-        onProgress: (value, process) => {
-          statusText.textContent = `${formatProcess(process)}: ${Math.round(value * 100)}%`;
-          setProgress(value);
-        },
-      });
-
-      workspace.lastConvertedModelId = modelId;
-      workspace.lastSourceIfcName = sourceName;
-      saveFragmentBtn.hidden = false;
-      closeLibraryModal();
-      statusText.textContent = "IFC загружен и преобразован. Можно сохранить fragment";
-      setProgress(1);
-    } catch (error) {
-      showError(error);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function loadFrag(file: File) {
-    setActiveShareRecord(null);
-    setBusy(true, "Загрузка Fragments");
-    fileName.textContent = file.name;
-
-    try {
-      await loadFragBuffer(await file.arrayBuffer(), file.name);
-      statusText.textContent = "FRAG загружен";
-      setProgress(1);
-    } catch (error) {
-      showError(error);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function loadFragBuffer(buffer: ArrayBuffer, name: string) {
-    await clearModels({ keepStatus: true });
-    await loadFragmentsBuffer({
-      buffer,
-      name,
-      fragments,
-      camera: world.camera.three,
-      onProgress: (value, stage) => {
-        statusText.textContent = `${formatFragmentStage(stage)}: ${Math.round(value * 100)}%`;
-        setProgress(value);
-      },
-    });
-  }
 
   function openLibraryModal() {
     libraryModal.hidden = false;
@@ -733,39 +693,6 @@ export async function startBimApp() {
       saveFragmentBtn.loading = false;
     }
   }
-
-  async function hideSelected() {
-    if (isEmptySelection(workspace.activeSelection)) return;
-    await hider.set(false, workspace.activeSelection);
-    await highlighter.clear("select");
-  }
-
-  async function isolateSelected() {
-    if (isEmptySelection(workspace.activeSelection)) return;
-    await hider.isolate(workspace.activeSelection);
-  }
-
-  async function clearModels(options: { keepStatus?: boolean } = {}) {
-    for (const [modelId] of fragments.list) {
-      await fragments.core.disposeModel(modelId);
-    }
-    await highlighter.clear("select");
-    await clearSearch();
-    searchPanel.hidden = true;
-    saveFragmentBtn.hidden = true;
-    setActiveShareRecord(null);
-    clearDrawings();
-    issueStore.clear();
-    renderIssues();
-    workspace.clashes = [];
-    renderClash();
-    resetDataIndex();
-    resetChecks();
-    fileName.textContent = "-";
-    if (!options.keepStatus) statusText.textContent = "Загрузите IFC";
-    refreshModelState();
-  }
-
   function toggleDataPanel() {
     if (dataPanel.hidden) {
       openDataPanel();
@@ -1725,74 +1652,6 @@ export async function startBimApp() {
     URL.revokeObjectURL(link.href);
   }
 
-  async function downloadFragments() {
-    if (fragments.list.size === 0) return;
-
-    for (const [, model] of fragments.list) {
-      const fragsBuffer = await model.getBuffer(true);
-      const file = new File([fragsBuffer], `${model.modelId}.frag`);
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(file);
-      link.download = file.name;
-      link.click();
-      URL.revokeObjectURL(link.href);
-    }
-  }
-
-  async function fitToModels() {
-    const objects = [...fragments.list.values()].map((model) => model.object);
-    if (objects.length === 0) return;
-
-    const box = new THREE.Box3();
-    for (const object of objects) {
-      object.updateWorldMatrix(true, true);
-      box.expandByObject(object);
-    }
-
-    if (!box.isEmpty()) {
-      await world.camera.controls.fitToBox(box, true, {
-        paddingLeft: 1,
-        paddingRight: 1,
-        paddingTop: 1,
-        paddingBottom: 1,
-      });
-    }
-  }
-
-  async function resetHomeView() {
-    await world.camera.controls.setLookAt(24, 18, 24, 0, 0, 0, true);
-    await fitToModels();
-  }
-
-  function refreshModelState() {
-    const hasModels = fragments.list.size > 0;
-    const capabilities = getProfileCapabilities(workspace.activeProfile);
-    modelCount.textContent = String(fragments.list.size);
-    loadIfcBtn.hidden = hasModels;
-    searchToggleBtn.hidden = !hasModels;
-    homeViewBtn.hidden = !hasModels;
-    dataBrowserBtn.hidden = !hasModels || !capabilities.dataBrowser;
-    checksBtn.hidden = !hasModels || !capabilities.qaQc;
-    issuesBtn.hidden = !hasModels || !capabilities.issues;
-    clashBtn.hidden = !hasModels || !capabilities.coordination;
-    drawingsBtn.hidden = !hasModels || !capabilities.drawings;
-    if (!hasModels || !capabilities.dataBrowser) {
-      dataPanel.hidden = true;
-    }
-    if (!hasModels || !capabilities.qaQc) {
-      checksPanel.hidden = true;
-    }
-    if (!hasModels || !capabilities.issues) {
-      issuesPanel.hidden = true;
-    }
-    if (!hasModels || !capabilities.coordination) {
-      clashPanel.hidden = true;
-    }
-    if (!hasModels || !capabilities.drawings) {
-      drawingsPanel.hidden = true;
-    }
-  }
-
   function clearSelectionInfo() {
     workspace.activeSelection = {};
     selectionCount.textContent = "0";
@@ -1823,26 +1682,6 @@ export async function startBimApp() {
     propertiesOutput.replaceChildren(
       createMessage(error instanceof Error ? error.message : String(error)),
     );
-  }
-
-  function formatProcess(process: string) {
-    const labels: Record<string, string> = {
-      geometries: "Геометрия",
-      attributes: "Атрибуты",
-      relations: "Связи",
-      conversion: "Конвертация",
-    };
-    return labels[process] ?? process;
-  }
-
-  function formatFragmentStage(stage: string) {
-    const labels: Record<string, string> = {
-      decompressing: "Распаковка fragment",
-      parsing: "Чтение fragment",
-      generating: "Построение сцены",
-      done: "Fragment загружен",
-    };
-    return labels[stage] ?? "Загрузка fragment";
   }
 
   function apiUrl(path: string) {

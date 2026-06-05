@@ -6,7 +6,7 @@ import { getDomElements } from "./dom";
 import { loadFragBuffer as loadFragmentsBuffer, loadIfcModel } from "./models/model-loader";
 import { renderSelectedProperties } from "./properties/properties-panel";
 import { countSelection, isEmptySelection, subtractModelIdMap } from "./selection/selection";
-import type { FragmentRecord, IfcExample, ModelIdMap, Profile } from "./types";
+import type { FragmentRecord, IfcExample, ModelIdMap } from "./types";
 import { createWorkspaceState } from "./state/workspace-state";
 import {
   buildElementIndex,
@@ -80,6 +80,7 @@ import { createMessage, escapeHtml, formatBytes, getAttrText } from "./ui/dom-ut
 import { createBimViewer, dimHighlightStyle, searchHighlightStyle } from "./viewer/viewer";
 import { mountSpatialTree } from "./tree/spatial-tree";
 import type { BimAppContext } from "./app/app-context";
+import { createProfileRouter } from "./app/profile-router";
 
 export async function startBimApp() {
   const {
@@ -251,6 +252,26 @@ export async function startBimApp() {
     },
   });
 
+  const profileRouter = createProfileRouter({
+    ctx,
+    closeDataPanel,
+    closeChecksPanel,
+    closeIssuesPanel,
+    closeClashPanel,
+    closeDrawingsPanel,
+    refreshModelState,
+  });
+  const {
+    navigateToProfile,
+    syncProfileWithLocation,
+    selectProfile,
+    canUseDataBrowser,
+    canUseDrawings,
+    canUseChecks,
+    canUseIssues,
+    canUseCoordination,
+  } = profileRouter;
+
   world.camera.controls.addEventListener("update", () => {
     fragments.core.update();
   });
@@ -402,76 +423,6 @@ export async function startBimApp() {
   renderExampleList();
   refreshModelState();
   void openFragmentFromUrl();
-
-  function profilePath(profile: Profile) {
-    if (profile === "km") return "/ifc-engine-wasm/viewer/";
-    if (profile === "bim") return "/ifc-engine-wasm/bim/";
-    return "/ifc-engine-wasm/";
-  }
-
-  function navigateToProfile(profile: Profile) {
-    window.location.assign(profilePath(profile));
-  }
-
-  function syncProfileWithLocation() {
-    const path = window.location.pathname.replace(/\/+$/, "");
-
-    if (path === "/ifc-engine-wasm/viewer") {
-      selectProfile("km");
-      return;
-    }
-
-    if (path === "/ifc-engine-wasm/bim") {
-      selectProfile("bim");
-      return;
-    }
-
-    selectProfile("pending");
-  }
-
-  function selectProfile(profile: Profile) {
-    workspace.activeProfile = profile;
-    app.classList.remove("profile-pending", "profile-km", "profile-bim");
-    bimStub.hidden = true;
-
-    if (profile === "pending") {
-      app.classList.add("profile-pending");
-      refreshProfilePanels();
-      return;
-    }
-
-    app.classList.add(profile === "km" ? "profile-km" : "profile-bim");
-    refreshProfilePanels();
-  }
-
-  function canUseDataBrowser() {
-    return getProfileCapabilities(workspace.activeProfile).dataBrowser;
-  }
-
-  function canUseDrawings() {
-    return getProfileCapabilities(workspace.activeProfile).drawings;
-  }
-
-  function canUseChecks() {
-    return getProfileCapabilities(workspace.activeProfile).qaQc;
-  }
-
-  function canUseIssues() {
-    return getProfileCapabilities(workspace.activeProfile).issues;
-  }
-
-  function canUseCoordination() {
-    return getProfileCapabilities(workspace.activeProfile).coordination;
-  }
-
-  function refreshProfilePanels() {
-    if (!canUseDataBrowser()) closeDataPanel();
-    if (!canUseChecks()) closeChecksPanel();
-    if (!canUseIssues()) closeIssuesPanel();
-    if (!canUseCoordination()) closeClashPanel();
-    if (!canUseDrawings()) closeDrawingsPanel();
-    refreshModelState();
-  }
 
   async function loadIfc(file: File) {
     setActiveShareRecord(null);

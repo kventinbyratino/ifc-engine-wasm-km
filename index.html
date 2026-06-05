@@ -135,6 +135,10 @@
             <span aria-hidden="true">!</span>
           </button>
 
+          <button id="clashBtn" class="action-button clash-button" type="button" aria-label="Federation / Clash" hidden>
+            <span aria-hidden="true">⚡</span>
+          </button>
+
           <button id="drawingsBtn" class="action-button drawings-button" type="button" aria-label="Чертежи и DXF" hidden>
             <span aria-hidden="true">⌗</span>
           </button>
@@ -218,6 +222,31 @@
 
           <div id="issuesOutput" class="issues-output">
             <span class="empty-state">Замечаний пока нет.</span>
+          </div>
+        </section>
+
+        <section id="clashPanel" class="clash-panel" hidden>
+          <div class="data-panel-header">
+            <div>
+              <strong>Federation / Clash</strong>
+              <span id="clashSummary">Загрузите модель</span>
+            </div>
+            <button id="closeClashPanelBtn" class="plain-button" type="button" aria-label="Закрыть Clash">×</button>
+          </div>
+
+          <div class="clash-toolbar">
+            <select id="clashGroupASelect" class="data-select" aria-label="Группа A"></select>
+            <select id="clashGroupBSelect" class="data-select" aria-label="Группа B"></select>
+            <input id="clashToleranceInput" class="data-search-input" type="number" min="0" step="0.01" value="0.01" aria-label="Tolerance" />
+          </div>
+
+          <div class="data-actions">
+            <button id="runClashBtn" class="data-action" type="button">Найти clash</button>
+            <button id="clearClashBtn" class="data-action data-action-secondary" type="button">Очистить</button>
+          </div>
+
+          <div id="clashOutput" class="clash-output">
+            <span class="empty-state">Выберите группы элементов.</span>
           </div>
         </section>
 

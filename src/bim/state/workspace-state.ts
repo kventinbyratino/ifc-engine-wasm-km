@@ -2,6 +2,7 @@ import type { FragmentRecord, ModelIdMap, Profile } from "../types";
 import type { BimElementRecord } from "../data/element-index";
 import type { DrawingRecord } from "../drawings/drawings-panel";
 import type { ModelHealthReport } from "../checks/check-types";
+import type { ClashRecord } from "../clash/clash-types";
 
 export type WorkspaceState = {
   activeProfile: Profile;
@@ -13,6 +14,7 @@ export type WorkspaceState = {
   filteredElements: BimElementRecord[];
   drawings: DrawingRecord[];
   healthReport: ModelHealthReport | null;
+  clashes: ClashRecord[];
 };
 
 export function createWorkspaceState(): WorkspaceState {
@@ -26,5 +28,6 @@ export function createWorkspaceState(): WorkspaceState {
     filteredElements: [],
     drawings: [],
     healthReport: null,
+    clashes: [],
   };
 }

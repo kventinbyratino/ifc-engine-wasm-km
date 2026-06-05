@@ -963,13 +963,15 @@ body {
 }
 
 .drawings-button,
-.checks-button {
+.checks-button,
+.clash-button {
   font-size: 22px;
 }
 
 .drawings-panel,
 .checks-panel,
-.issues-panel {
+.issues-panel,
+.clash-panel {
   position: absolute;
   top: calc(max(14px, env(safe-area-inset-top)) + 60px);
   left: max(14px, env(safe-area-inset-left));
@@ -988,7 +990,8 @@ body {
 }
 
 .drawings-toolbar,
-.annotation-toolbar {
+.annotation-toolbar,
+.clash-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 86px;
   gap: 8px;
@@ -1005,6 +1008,7 @@ body {
 
 .checks-output,
 .issues-output,
+.clash-output,
 .drawings-output {
   min-height: 0;
   overflow: auto;
@@ -1014,14 +1018,16 @@ body {
 }
 
 .checks-list,
-.issues-list {
+.issues-list,
+.clash-list {
   display: grid;
   gap: 8px;
   padding: 8px;
 }
 
 .check-card,
-.issue-card {
+.issue-card,
+.clash-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
@@ -1046,7 +1052,8 @@ body {
 }
 
 .check-card-main,
-.issue-card-main {
+.issue-card-main,
+.clash-card-main {
   display: grid;
   gap: 3px;
   min-width: 0;
@@ -1057,7 +1064,10 @@ body {
 .check-card-main small,
 .issue-card-main strong,
 .issue-card-main span,
-.issue-card-main small {
+.issue-card-main small,
+.clash-card-main strong,
+.clash-card-main span,
+.clash-card-main small {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1065,20 +1075,24 @@ body {
 }
 
 .check-card-main strong,
-.issue-card-main strong {
+.issue-card-main strong,
+.clash-card-main strong {
   font-size: 13px;
 }
 
 .check-card-main span,
 .check-card-main small,
 .issue-card-main span,
-.issue-card-main small {
+.issue-card-main small,
+.clash-card-main span,
+.clash-card-main small {
   color: #687782;
   font-size: 11px;
 }
 
 .check-card button,
-.issue-card button {
+.issue-card button,
+.clash-card button {
   min-height: 34px;
   border: 0;
   border-radius: 10px;
@@ -1091,7 +1105,8 @@ body {
 }
 
 .check-card-actions,
-.issue-card-actions {
+.issue-card-actions,
+.clash-card-actions {
   display: grid;
   grid-template-columns: 1fr;
   gap: 6px;
@@ -1111,6 +1126,42 @@ body {
 
 .issue-card-low {
   border-left-color: #2563eb;
+}
+
+.clash-card-critical {
+  border-left-color: #dc2626;
+}
+
+.clash-card-warning {
+  border-left-color: #f97316;
+}
+
+.clash-card-info {
+  border-left-color: #2563eb;
+}
+
+.federation-summary {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 12px;
+  background: #eef4f8;
+  color: #42515d;
+  font-size: 11px;
+}
+
+.federation-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.federation-summary i {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 999px;
 }
 
 .issue-status-select {

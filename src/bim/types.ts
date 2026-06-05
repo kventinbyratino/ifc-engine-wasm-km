@@ -22,6 +22,7 @@ export type Profile = "pending" | "km" | "bim";
 
 export type ProfileCapabilities = {
   dataBrowser: boolean;
+  coordination: boolean;
   drawings: boolean;
   dxf: boolean;
   issues: boolean;

@@ -4,6 +4,7 @@ import { kmProfileCapabilities } from "./km";
 
 const pendingProfileCapabilities: ProfileCapabilities = {
   dataBrowser: false,
+  coordination: false,
   drawings: false,
   dxf: false,
   issues: false,

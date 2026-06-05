@@ -2,6 +2,7 @@ import type { ProfileCapabilities } from "../types";
 
 export const kmProfileCapabilities: ProfileCapabilities = {
   dataBrowser: false,
+  coordination: false,
   drawings: false,
   dxf: false,
   issues: false,

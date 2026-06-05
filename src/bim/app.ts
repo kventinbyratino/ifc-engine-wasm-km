@@ -57,6 +57,10 @@ import { createIssueStore } from "./issues/issues-store";
 import type { BimIssue, BimIssueStatus } from "./issues/issue-types";
 import { exportIssuesBcfLikeJson, exportIssuesJson } from "./issues/bcf-export";
 import { renderIssuesPanel } from "./ui/issues-panel";
+import { detectHardClashes } from "./clash/clash-detector";
+import type { ClashRecord } from "./clash/clash-types";
+import { getClashGroupOptions, selectClashGroup, summarizeFederatedModels } from "./federation/federation";
+import { fillClashGroupSelect, renderClashPanel } from "./ui/clash-panel";
 import { getProfileCapabilities } from "./profiles";
 import { createMessage, escapeHtml, formatBytes, getAttrText } from "./ui/dom-utils";
 import { createBimViewer, dimHighlightStyle, searchHighlightStyle } from "./viewer/viewer";
@@ -116,6 +120,7 @@ export async function startBimApp() {
     dataBrowserBtn,
     checksBtn,
     issuesBtn,
+    clashBtn,
     drawingsBtn,
     dataPanel,
     dataSummary,
@@ -150,6 +155,15 @@ export async function startBimApp() {
     exportIssuesBcfBtn,
     clearIssuesBtn,
     issuesOutput,
+    clashPanel,
+    clashSummary,
+    closeClashPanelBtn,
+    clashGroupASelect,
+    clashGroupBSelect,
+    clashToleranceInput,
+    runClashBtn,
+    clearClashBtn,
+    clashOutput,
     drawingsPanel,
     drawingsSummary,
     closeDrawingsPanelBtn,
@@ -241,6 +255,7 @@ export async function startBimApp() {
   dataBrowserBtn.onclick = () => toggleDataPanel();
   checksBtn.onclick = () => toggleChecksPanel();
   issuesBtn.onclick = () => toggleIssuesPanel();
+  clashBtn.onclick = () => toggleClashPanel();
   drawingsBtn.onclick = () => toggleDrawingsPanel();
   closeDataPanelBtn.onclick = () => closeDataPanel();
   dataSearchInput.oninput = () => applyDataFilters();
@@ -263,6 +278,12 @@ export async function startBimApp() {
   clearIssuesBtn.onclick = () => {
     issueStore.clear();
     renderIssues();
+  };
+  closeClashPanelBtn.onclick = () => closeClashPanel();
+  runClashBtn.onclick = () => void runClashDetection();
+  clearClashBtn.onclick = () => {
+    workspace.clashes = [];
+    renderClash();
   };
   closeDrawingsPanelBtn.onclick = () => closeDrawingsPanel();
   generateDrawingBtn.onclick = () => void generateDrawing();
@@ -374,10 +395,15 @@ export async function startBimApp() {
     return getProfileCapabilities(workspace.activeProfile).issues;
   }
 
+  function canUseCoordination() {
+    return getProfileCapabilities(workspace.activeProfile).coordination;
+  }
+
   function refreshProfilePanels() {
     if (!canUseDataBrowser()) closeDataPanel();
     if (!canUseChecks()) closeChecksPanel();
     if (!canUseIssues()) closeIssuesPanel();
+    if (!canUseCoordination()) closeClashPanel();
     if (!canUseDrawings()) closeDrawingsPanel();
     refreshModelState();
   }
@@ -712,6 +738,8 @@ export async function startBimApp() {
     clearDrawings();
     issueStore.clear();
     renderIssues();
+    workspace.clashes = [];
+    renderClash();
     resetDataIndex();
     resetChecks();
     fileName.textContent = "-";
@@ -891,6 +919,7 @@ export async function startBimApp() {
       fillSelectOptions(dataCategoryFilter, getUniqueValues(workspace.elementIndex, "category"), "Все IFC Class");
       fillSelectOptions(dataStoreyFilter, getUniqueValues(workspace.elementIndex, "storey"), "Все этажи");
       applyDataFilters();
+      refreshClashSelectors();
     } catch (error) {
       console.error(error);
       dataSummary.textContent = "Ошибка индексации";
@@ -908,6 +937,7 @@ export async function startBimApp() {
     fillSelectOptions(dataCategoryFilter, [], "Все IFC Class");
     fillSelectOptions(dataStoreyFilter, [], "Все этажи");
     dataTableOutput.replaceChildren(createMessage("Загрузите IFC или fragment."));
+    refreshClashSelectors();
   }
 
   function applyDataFilters() {
@@ -1046,6 +1076,108 @@ export async function startBimApp() {
       searchable: "",
     };
     await selectDataRecord(record);
+  }
+
+  function toggleClashPanel() {
+    if (clashPanel.hidden) {
+      openClashPanel();
+      return;
+    }
+    closeClashPanel();
+  }
+
+  function openClashPanel() {
+    if (!canUseCoordination()) {
+      clashPanel.hidden = true;
+      statusText.textContent = "Federation / Clash доступны только в профиле BIM";
+      return;
+    }
+
+    clashPanel.hidden = false;
+    if (workspace.elementIndex.length === 0 && fragments.list.size > 0) {
+      void rebuildDataIndex().then(() => renderClash());
+      return;
+    }
+    refreshClashSelectors();
+    renderClash();
+  }
+
+  function closeClashPanel() {
+    clashPanel.hidden = true;
+  }
+
+  function refreshClashSelectors() {
+    const models = summarizeFederatedModels(workspace.elementIndex);
+    const groups = getClashGroupOptions(workspace.elementIndex);
+    fillClashGroupSelect(clashGroupASelect, { models, ...groups });
+    fillClashGroupSelect(clashGroupBSelect, { models, ...groups });
+  }
+
+  function renderClash() {
+    renderClashPanel({
+      models: summarizeFederatedModels(workspace.elementIndex),
+      clashes: workspace.clashes,
+      output: clashOutput,
+      summary: clashSummary,
+      onSelect: (clash) => void selectClash(clash),
+      onCreateIssue: createIssueFromClash,
+    });
+  }
+
+  async function runClashDetection() {
+    if (!canUseCoordination()) return;
+    if (fragments.list.size === 0) return;
+
+    runClashBtn.loading = true;
+    try {
+      clashPanel.hidden = false;
+      if (workspace.elementIndex.length === 0) {
+        clashSummary.textContent = "Сначала индексируем элементы...";
+        await rebuildDataIndex();
+      }
+
+      const groupA = selectClashGroup(workspace.elementIndex, clashGroupASelect.value);
+      const groupB = selectClashGroup(workspace.elementIndex, clashGroupBSelect.value);
+      const tolerance = Math.max(0, Number(clashToleranceInput.value) || 0);
+      clashSummary.textContent = `Проверка пар: ${Math.min(groupA.length, 250)} × ${Math.min(groupB.length, 250)}`;
+
+      const result = await detectHardClashes(fragments, {
+        groupA,
+        groupB,
+        tolerance,
+        limit: 250,
+      });
+      workspace.clashes = result.clashes;
+      renderClash();
+      statusText.textContent = `Clash detection: ${result.clashes.length} найдено, ${result.checkedPairs} пар`;
+    } catch (error) {
+      console.error(error);
+      clashSummary.textContent = "Ошибка clash detection";
+      clashOutput.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
+    } finally {
+      runClashBtn.loading = false;
+    }
+  }
+
+  async function selectClash(clash: ClashRecord) {
+    await applySearchHighlight(clash.modelIdMap);
+    await fitToItems(clash.modelIdMap);
+    workspace.activeSelection = clash.modelIdMap;
+    selectionCount.textContent = String(countSelection(clash.modelIdMap));
+  }
+
+  function createIssueFromClash(clash: ClashRecord) {
+    const issue = issueStore.create({
+      title: `Clash: ${clash.title}`,
+      description: clash.description,
+      priority: clash.severity === "critical" ? "critical" : clash.severity === "warning" ? "high" : "medium",
+      source: "manual",
+      record: clash.a,
+      camera: captureCamera(),
+    });
+    issuesPanel.hidden = false;
+    renderIssues();
+    statusText.textContent = `Issue создан из clash: ${issue.title}`;
   }
 
   function findRecordInSelection() {
@@ -1506,6 +1638,7 @@ export async function startBimApp() {
     dataBrowserBtn.hidden = !hasModels || !capabilities.dataBrowser;
     checksBtn.hidden = !hasModels || !capabilities.qaQc;
     issuesBtn.hidden = !hasModels || !capabilities.issues;
+    clashBtn.hidden = !hasModels || !capabilities.coordination;
     drawingsBtn.hidden = !hasModels || !capabilities.drawings;
     if (!hasModels || !capabilities.dataBrowser) {
       dataPanel.hidden = true;
@@ -1515,6 +1648,9 @@ export async function startBimApp() {
     }
     if (!hasModels || !capabilities.issues) {
       issuesPanel.hidden = true;
+    }
+    if (!hasModels || !capabilities.coordination) {
+      clashPanel.hidden = true;
     }
     if (!hasModels || !capabilities.drawings) {
       drawingsPanel.hidden = true;

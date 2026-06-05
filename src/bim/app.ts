@@ -79,6 +79,7 @@ import { getProfileCapabilities } from "./profiles";
 import { createMessage, escapeHtml, formatBytes, getAttrText } from "./ui/dom-utils";
 import { createBimViewer, dimHighlightStyle, searchHighlightStyle } from "./viewer/viewer";
 import { mountSpatialTree } from "./tree/spatial-tree";
+import type { BimAppContext } from "./app/app-context";
 
 export async function startBimApp() {
   const {
@@ -217,6 +218,20 @@ export async function startBimApp() {
 
   const workspace = createWorkspaceState();
   const issueStore = createIssueStore();
+  const ctx: BimAppContext = {
+    dom: getDomElements(),
+    viewer: { components, world, fragments, ifcLoader, highlighter, hider },
+    workspace,
+    issueStore,
+    getCapabilities: () => getProfileCapabilities(workspace.activeProfile),
+    setStatus: (message) => {
+      statusText.textContent = message;
+    },
+    setBusy,
+    setProgress,
+    showError,
+  };
+  void ctx;
   const drawingInteraction = createDrawingInteractionController({
     viewport,
     world,

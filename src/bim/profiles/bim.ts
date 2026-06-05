@@ -4,6 +4,6 @@ export const bimProfileCapabilities: ProfileCapabilities = {
   dataBrowser: true,
   drawings: true,
   dxf: true,
-  issues: false,
+  issues: true,
   qaQc: true,
 };

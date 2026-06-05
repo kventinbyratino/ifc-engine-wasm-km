@@ -42,3 +42,44 @@ export type IDSValidationReport = {
   items: IDSReportItem[];
   summary: IDSReportSummary;
 };
+
+export type HealthCheckSeverity = "critical" | "warning" | "info";
+
+export type HealthCheckIssueType =
+  | "missing-name"
+  | "missing-global-id"
+  | "duplicate-global-id"
+  | "missing-storey"
+  | "missing-type"
+  | "proxy-overuse"
+  | "empty-property-sets"
+  | "door-missing-fire-rating"
+  | "space-missing-name-or-number"
+  | "missing-material";
+
+export type HealthCheckIssue = {
+  id: string;
+  type: HealthCheckIssueType;
+  title: string;
+  description: string;
+  severity: HealthCheckSeverity;
+  modelId: string;
+  localId: number;
+  globalId: string;
+  record: BimElementRecord;
+};
+
+export type HealthCheckSummary = {
+  totalElements: number;
+  critical: number;
+  warning: number;
+  info: number;
+  issueCount: number;
+};
+
+export type ModelHealthReport = {
+  title: string;
+  createdAt: string;
+  issues: HealthCheckIssue[];
+  summary: HealthCheckSummary;
+};

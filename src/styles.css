@@ -968,7 +968,8 @@ body {
 }
 
 .drawings-panel,
-.checks-panel {
+.checks-panel,
+.issues-panel {
   position: absolute;
   top: calc(max(14px, env(safe-area-inset-top)) + 60px);
   left: max(14px, env(safe-area-inset-left));
@@ -1003,6 +1004,7 @@ body {
 }
 
 .checks-output,
+.issues-output,
 .drawings-output {
   min-height: 0;
   overflow: auto;
@@ -1011,13 +1013,15 @@ body {
   background: rgba(248, 250, 252, 0.9);
 }
 
-.checks-list {
+.checks-list,
+.issues-list {
   display: grid;
   gap: 8px;
   padding: 8px;
 }
 
-.check-card {
+.check-card,
+.issue-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
@@ -1041,7 +1045,8 @@ body {
   border-left-color: #2563eb;
 }
 
-.check-card-main {
+.check-card-main,
+.issue-card-main {
   display: grid;
   gap: 3px;
   min-width: 0;
@@ -1049,24 +1054,31 @@ body {
 
 .check-card-main strong,
 .check-card-main span,
-.check-card-main small {
+.check-card-main small,
+.issue-card-main strong,
+.issue-card-main span,
+.issue-card-main small {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.check-card-main strong {
+.check-card-main strong,
+.issue-card-main strong {
   font-size: 13px;
 }
 
 .check-card-main span,
-.check-card-main small {
+.check-card-main small,
+.issue-card-main span,
+.issue-card-main small {
   color: #687782;
   font-size: 11px;
 }
 
-.check-card button {
+.check-card button,
+.issue-card button {
   min-height: 34px;
   border: 0;
   border-radius: 10px;
@@ -1076,6 +1088,34 @@ body {
   font: inherit;
   font-size: 11px;
   font-weight: 700;
+}
+
+.check-card-actions,
+.issue-card-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.issue-card-critical {
+  border-left-color: #dc2626;
+}
+
+.issue-card-high {
+  border-left-color: #f97316;
+}
+
+.issue-card-medium {
+  border-left-color: #f59e0b;
+}
+
+.issue-card-low {
+  border-left-color: #2563eb;
+}
+
+.issue-status-select {
+  height: 34px;
+  font-size: 11px;
 }
 
 .drawing-list {
@@ -1143,7 +1183,8 @@ body {
 
 @media (max-width: 720px) {
   .drawings-panel,
-  .checks-panel {
+  .checks-panel,
+  .issues-panel {
     left: max(14px, env(safe-area-inset-left));
     right: max(14px, env(safe-area-inset-right));
     width: auto;

@@ -8,6 +8,8 @@ export type BimElementRecord = {
   globalId: string;
   typeName: string;
   storey: string;
+  number: string;
+  materialName: string;
   psetCount: number;
   searchable: string;
 };
@@ -99,8 +101,10 @@ function createElementRecord(modelId: string, localId: number, item: RawItem | u
   const globalId = attr(item, "_guid") || attr(item, "GlobalId");
   const typeName = attr(item, "ObjectType") || attr(item, "PredefinedType") || attr(item, "Tag");
   const storey = findStorey(item);
+  const number = attr(item, "Tag") || attr(item, "LongName") || attr(item, "Number");
+  const materialName = findMaterial(item);
   const psetCount = countPropertySets(item);
-  const searchable = [modelId, localId, name, category, globalId, typeName, storey, stringifyValues(item)]
+  const searchable = [modelId, localId, name, category, globalId, typeName, storey, number, materialName, stringifyValues(item)]
     .join(" ")
     .toLocaleLowerCase();
 
@@ -112,6 +116,8 @@ function createElementRecord(modelId: string, localId: number, item: RawItem | u
     globalId,
     typeName,
     storey,
+    number,
+    materialName,
     psetCount,
     searchable,
   };
@@ -156,6 +162,11 @@ function findStorey(item: RawItem | undefined) {
   };
 
   return visit(item);
+}
+
+function findMaterial(item: RawItem | undefined) {
+  if (!item) return "";
+  return attr(item, "Material") || attr(item, "MaterialName") || attr(item, "RelatingMaterial") || "";
 }
 
 function countPropertySets(item: RawItem | undefined) {

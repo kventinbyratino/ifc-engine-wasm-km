@@ -131,6 +131,10 @@
             <span aria-hidden="true">✓</span>
           </button>
 
+          <button id="issuesBtn" class="action-button issues-button" type="button" aria-label="Issues / BCF" hidden>
+            <span aria-hidden="true">!</span>
+          </button>
+
           <button id="drawingsBtn" class="action-button drawings-button" type="button" aria-label="Чертежи и DXF" hidden>
             <span aria-hidden="true">⌗</span>
           </button>
@@ -186,13 +190,34 @@
             </label>
             <button id="addIdsRequirementBtn" class="data-action" type="button">Добавить IDS</button>
             <button id="saveIdsBtn" class="data-action" type="button">Сохранить IDS</button>
-            <button id="runChecksBtn" class="data-action" type="button">Проверить по IDS</button>
+            <button id="runChecksBtn" class="data-action" type="button">Проверить модель</button>
             <button id="exportChecksCsvBtn" class="data-action" type="button">CSV</button>
             <button id="exportChecksJsonBtn" class="data-action" type="button">JSON</button>
           </div>
 
           <div id="checksOutput" class="checks-output">
             <span class="empty-state">Загрузите модель и запустите проверку.</span>
+          </div>
+        </section>
+
+        <section id="issuesPanel" class="issues-panel" hidden>
+          <div class="data-panel-header">
+            <div>
+              <strong>Issues / BCF</strong>
+              <span id="issuesSummary">Замечаний пока нет</span>
+            </div>
+            <button id="closeIssuesPanelBtn" class="plain-button" type="button" aria-label="Закрыть Issues">×</button>
+          </div>
+
+          <div class="data-actions">
+            <button id="createIssueBtn" class="data-action" type="button">Issue из выбранного</button>
+            <button id="exportIssuesJsonBtn" class="data-action" type="button">JSON</button>
+            <button id="exportIssuesBcfBtn" class="data-action" type="button">BCF JSON</button>
+            <button id="clearIssuesBtn" class="data-action data-action-secondary" type="button">Очистить</button>
+          </div>
+
+          <div id="issuesOutput" class="issues-output">
+            <span class="empty-state">Замечаний пока нет.</span>
           </div>
         </section>
 

@@ -15,6 +15,7 @@ import {
   recordsToModelIdMap,
   type BimElementRecord,
 } from "./data/element-index";
+import type { HealthCheckIssue } from "./checks/check-types";
 import {
   exportElementsCsv,
   exportElementsJson,
@@ -50,7 +51,12 @@ import {
   getLoadedIDSSpecificationCount,
   loadIDSSpecifications,
   runIDSValidation,
+  runModelHealthChecks,
 } from "./checks/model-health";
+import { createIssueStore } from "./issues/issues-store";
+import type { BimIssue, BimIssueStatus } from "./issues/issue-types";
+import { exportIssuesBcfLikeJson, exportIssuesJson } from "./issues/bcf-export";
+import { renderIssuesPanel } from "./ui/issues-panel";
 import { getProfileCapabilities } from "./profiles";
 import { createMessage, escapeHtml, formatBytes, getAttrText } from "./ui/dom-utils";
 import { createBimViewer, dimHighlightStyle, searchHighlightStyle } from "./viewer/viewer";
@@ -109,6 +115,7 @@ export async function startBimApp() {
     homeViewBtn,
     dataBrowserBtn,
     checksBtn,
+    issuesBtn,
     drawingsBtn,
     dataPanel,
     dataSummary,
@@ -135,6 +142,14 @@ export async function startBimApp() {
     exportChecksCsvBtn,
     exportChecksJsonBtn,
     checksOutput,
+    issuesPanel,
+    issuesSummary,
+    closeIssuesPanelBtn,
+    createIssueBtn,
+    exportIssuesJsonBtn,
+    exportIssuesBcfBtn,
+    clearIssuesBtn,
+    issuesOutput,
     drawingsPanel,
     drawingsSummary,
     closeDrawingsPanelBtn,
@@ -165,6 +180,7 @@ export async function startBimApp() {
   });
 
   const workspace = createWorkspaceState();
+  const issueStore = createIssueStore();
 
   world.camera.controls.addEventListener("update", () => {
     fragments.core.update();
@@ -224,6 +240,7 @@ export async function startBimApp() {
   homeViewBtn.onclick = () => void resetHomeView();
   dataBrowserBtn.onclick = () => toggleDataPanel();
   checksBtn.onclick = () => toggleChecksPanel();
+  issuesBtn.onclick = () => toggleIssuesPanel();
   drawingsBtn.onclick = () => toggleDrawingsPanel();
   closeDataPanelBtn.onclick = () => closeDataPanel();
   dataSearchInput.oninput = () => applyDataFilters();
@@ -239,6 +256,14 @@ export async function startBimApp() {
   runChecksBtn.onclick = () => void runChecks();
   exportChecksCsvBtn.onclick = () => exportChecksCsv(workspace.healthReport);
   exportChecksJsonBtn.onclick = () => exportChecksJson(workspace.healthReport);
+  closeIssuesPanelBtn.onclick = () => closeIssuesPanel();
+  createIssueBtn.onclick = () => void createIssueFromSelection();
+  exportIssuesJsonBtn.onclick = () => exportIssuesJson(issueStore.list());
+  exportIssuesBcfBtn.onclick = () => exportIssuesBcfLikeJson(issueStore.list());
+  clearIssuesBtn.onclick = () => {
+    issueStore.clear();
+    renderIssues();
+  };
   closeDrawingsPanelBtn.onclick = () => closeDrawingsPanel();
   generateDrawingBtn.onclick = () => void generateDrawing();
   addAnnotationBtn.onclick = () => void annotateActiveDrawing();
@@ -345,9 +370,14 @@ export async function startBimApp() {
     return getProfileCapabilities(workspace.activeProfile).qaQc;
   }
 
+  function canUseIssues() {
+    return getProfileCapabilities(workspace.activeProfile).issues;
+  }
+
   function refreshProfilePanels() {
     if (!canUseDataBrowser()) closeDataPanel();
     if (!canUseChecks()) closeChecksPanel();
+    if (!canUseIssues()) closeIssuesPanel();
     if (!canUseDrawings()) closeDrawingsPanel();
     refreshModelState();
   }
@@ -680,6 +710,8 @@ export async function startBimApp() {
     saveFragmentBtn.hidden = true;
     setActiveShareRecord(null);
     clearDrawings();
+    issueStore.clear();
+    renderIssues();
     resetDataIndex();
     resetChecks();
     fileName.textContent = "-";
@@ -732,7 +764,12 @@ export async function startBimApp() {
     }
 
     checksPanel.hidden = false;
-    renderChecksPanel({ report: workspace.healthReport, output: checksOutput, onSelect: selectDataRecord });
+    renderChecksPanel({
+      report: workspace.healthReport,
+      output: checksOutput,
+      onSelect: selectDataRecord,
+      onCreateIssue: createIssueFromHealthCheck,
+    });
     checksSummary.textContent = formatChecksSummary(workspace.healthReport);
   }
 
@@ -799,12 +836,6 @@ export async function startBimApp() {
     if (!canUseChecks()) return;
     if (fragments.list.size === 0) return;
 
-    if (getLoadedIDSSpecificationCount(components) === 0) {
-      checksSummary.textContent = "Сначала загрузите .ids/.xml";
-      checksOutput.replaceChildren(createMessage("Проверки Sprint 5 выполняются по IDS-файлу, а не по эвристикам."));
-      return;
-    }
-
     runChecksBtn.loading = true;
     try {
       checksPanel.hidden = false;
@@ -812,14 +843,15 @@ export async function startBimApp() {
         checksSummary.textContent = "Сначала индексируем элементы...";
         await rebuildDataIndex();
       }
-      workspace.healthReport = await runIDSValidation({
-        components,
-        modelIds: [...fragments.list.keys()],
-        elementIndex: workspace.elementIndex,
-      });
+      workspace.healthReport = runModelHealthChecks(workspace.elementIndex);
       checksSummary.textContent = formatChecksSummary(workspace.healthReport);
-      renderChecksPanel({ report: workspace.healthReport, output: checksOutput, onSelect: selectDataRecord });
-      statusText.textContent = `IDS report: fail ${workspace.healthReport.summary.fail}, pass ${workspace.healthReport.summary.pass}`;
+      renderChecksPanel({
+        report: workspace.healthReport,
+        output: checksOutput,
+        onSelect: selectDataRecord,
+        onCreateIssue: createIssueFromHealthCheck,
+      });
+      statusText.textContent = `Model Health: ${workspace.healthReport.summary.issueCount} проблем`;
     } catch (error) {
       console.error(error);
       checksSummary.textContent = "Ошибка проверки";
@@ -915,6 +947,121 @@ export async function startBimApp() {
     } finally {
       highlightFilteredBtn.loading = false;
     }
+  }
+
+  function toggleIssuesPanel() {
+    if (issuesPanel.hidden) {
+      openIssuesPanel();
+      return;
+    }
+    closeIssuesPanel();
+  }
+
+  function openIssuesPanel() {
+    if (!canUseIssues()) {
+      issuesPanel.hidden = true;
+      statusText.textContent = "Issues / BCF доступны только в профиле BIM";
+      return;
+    }
+
+    issuesPanel.hidden = false;
+    renderIssues();
+  }
+
+  function closeIssuesPanel() {
+    issuesPanel.hidden = true;
+  }
+
+  function renderIssues() {
+    renderIssuesPanel({
+      issues: issueStore.list(),
+      output: issuesOutput,
+      summary: issuesSummary,
+      onSelect: selectIssue,
+      onStatusChange: (issue, status) => {
+        issueStore.updateStatus(issue.id, status);
+        renderIssues();
+      },
+      onDelete: (issue) => {
+        issueStore.remove(issue.id);
+        renderIssues();
+      },
+    });
+  }
+
+  async function createIssueFromSelection() {
+    if (!canUseIssues()) return;
+    if (isEmptySelection(workspace.activeSelection)) {
+      issuesSummary.textContent = "Сначала выберите элемент";
+      return;
+    }
+
+    if (workspace.elementIndex.length === 0) await rebuildDataIndex();
+    const record = findRecordInSelection();
+    if (!record) {
+      issuesSummary.textContent = "Выбранный элемент не найден в BIM Data Index";
+      return;
+    }
+
+    const issue = issueStore.create({
+      title: `Замечание: ${record.name || record.category}`,
+      description: `${record.category} #${record.localId}`,
+      priority: "medium",
+      source: "manual",
+      record,
+      camera: captureCamera(),
+    });
+    issuesPanel.hidden = false;
+    renderIssues();
+    statusText.textContent = `Issue создан: ${issue.title}`;
+  }
+
+  function createIssueFromHealthCheck(healthIssue: HealthCheckIssue) {
+    const priority = healthIssue.severity === "critical" ? "critical" : healthIssue.severity === "warning" ? "medium" : "low";
+    const issue = issueStore.create({
+      title: healthIssue.title,
+      description: healthIssue.description,
+      priority,
+      source: "health-check",
+      record: healthIssue.record,
+      camera: captureCamera(),
+    });
+    issuesPanel.hidden = false;
+    renderIssues();
+    statusText.textContent = `Issue создан из проверки: ${issue.title}`;
+  }
+
+  async function selectIssue(issue: BimIssue) {
+    const record = workspace.elementIndex.find((item) => item.modelId === issue.modelId && item.localId === issue.localId) ?? {
+      modelId: issue.modelId,
+      localId: issue.localId,
+      name: issue.elementName,
+      category: issue.ifcClass,
+      globalId: issue.globalId,
+      typeName: "",
+      storey: "",
+      number: "",
+      materialName: "",
+      psetCount: 0,
+      searchable: "",
+    };
+    await selectDataRecord(record);
+  }
+
+  function findRecordInSelection() {
+    for (const record of workspace.elementIndex) {
+      if (workspace.activeSelection[record.modelId]?.has(record.localId)) return record;
+    }
+    return null;
+  }
+
+  function captureCamera() {
+    const position = world.camera.three.position;
+    const target = world.camera.controls.getTarget(new THREE.Vector3());
+    return {
+      position: [position.x, position.y, position.z] as [number, number, number],
+      target: [target.x, target.y, target.z] as [number, number, number],
+    };
   }
 
   function toggleDrawingsPanel() {
@@ -1358,12 +1505,16 @@ export async function startBimApp() {
     homeViewBtn.hidden = !hasModels;
     dataBrowserBtn.hidden = !hasModels || !capabilities.dataBrowser;
     checksBtn.hidden = !hasModels || !capabilities.qaQc;
+    issuesBtn.hidden = !hasModels || !capabilities.issues;
     drawingsBtn.hidden = !hasModels || !capabilities.drawings;
     if (!hasModels || !capabilities.dataBrowser) {
       dataPanel.hidden = true;
     }
     if (!hasModels || !capabilities.qaQc) {
       checksPanel.hidden = true;
+    }
+    if (!hasModels || !capabilities.issues) {
+      issuesPanel.hidden = true;
     }
     if (!hasModels || !capabilities.drawings) {
       drawingsPanel.hidden = true;

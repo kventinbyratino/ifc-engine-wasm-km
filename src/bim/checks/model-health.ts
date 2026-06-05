@@ -1,6 +1,7 @@
 import * as OBC from "@thatopen/components";
 import type { BimElementRecord } from "../data/element-index";
-import type { IDSPropertyRequirementDraft, IDSRequirementCheck, IDSValidationReport } from "./check-types";
+import type { IDSPropertyRequirementDraft, IDSRequirementCheck, IDSValidationReport, ModelHealthReport } from "./check-types";
+import { createIssueFromRule, createRuleContext, MODEL_HEALTH_RULES } from "./rules";
 
 export function loadIDSSpecifications(components: OBC.Components, idsXml: string) {
   const ids = components.get(OBC.IDSSpecifications);
@@ -43,6 +44,26 @@ export function exportIDSSpecifications(components: OBC.Components, title: strin
     title: title.trim() || ids.IDSInfo?.title || "BIM IDS",
     date: new Date(),
   });
+}
+
+export function runModelHealthChecks(elementIndex: BimElementRecord[]): ModelHealthReport {
+  const context = createRuleContext(elementIndex);
+  const issues = elementIndex.flatMap((record) =>
+    MODEL_HEALTH_RULES.filter((rule) => rule.applies(record, context)).map((rule) => createIssueFromRule(record, rule, context)),
+  );
+
+  return {
+    title: "Model Health Checks v1",
+    createdAt: new Date().toISOString(),
+    issues,
+    summary: {
+      totalElements: elementIndex.length,
+      critical: issues.filter((issue) => issue.severity === "critical").length,
+      warning: issues.filter((issue) => issue.severity === "warning").length,
+      info: issues.filter((issue) => issue.severity === "info").length,
+      issueCount: issues.length,
+    },
+  };
 }
 
 export async function runIDSValidation(options: {

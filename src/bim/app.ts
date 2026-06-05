@@ -40,6 +40,7 @@ import {
 } from "./drawings/drawing-annotations";
 import { createSheet } from "./sheets/sheet-board";
 import { downloadSheetPng, downloadSheetSvg, openSheetPdfPrint } from "./sheets/pdf-export";
+import { downloadSheetDxfPaperSpace } from "./sheets/dxf-paper-export";
 import type { SheetFormat } from "./sheets/sheet-types";
 import { generateSpecification, specificationToCsv } from "./specs/spec-generator";
 import {
@@ -183,6 +184,7 @@ export async function startBimApp() {
     exportSheetSvgBtn,
     exportSheetPngBtn,
     exportSheetPdfBtn,
+    exportSheetDxfBtn,
     exportSpecsBtn,
     generateDrawingBtn,
     clearDrawingsBtn,
@@ -303,6 +305,7 @@ export async function startBimApp() {
   exportSheetSvgBtn.onclick = () => exportActiveSheetSvg();
   exportSheetPngBtn.onclick = () => void exportActiveSheetPng();
   exportSheetPdfBtn.onclick = () => exportActiveSheetPdf();
+  exportSheetDxfBtn.onclick = () => exportActiveSheetDxf();
   exportSpecsBtn.onclick = () => exportSpecifications();
   clearDrawingsBtn.onclick = () => clearDrawings();
   searchBtn.onclick = () => void searchItems();
@@ -1400,6 +1403,18 @@ export async function startBimApp() {
     try {
       openSheetPdfPrint(sheet);
       drawingsSummary.textContent = `PDF/print открыт: ${sheet.format}`;
+    } catch (error) {
+      console.error(error);
+      drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  function exportActiveSheetDxf() {
+    const sheet = getActiveSheet();
+    if (!sheet) return;
+    try {
+      downloadSheetDxfPaperSpace(components, sheet);
+      drawingsSummary.textContent = `DXF paper-space экспортирован: ${sheet.format}`;
     } catch (error) {
       console.error(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);

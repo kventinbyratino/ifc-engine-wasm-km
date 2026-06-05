@@ -121,6 +121,7 @@ export function getDomElements() {
     exportSheetSvgBtn: requiredElement<HTMLButtonElement>("exportSheetSvgBtn"),
     exportSheetPngBtn: requiredElement<LoadingElement>("exportSheetPngBtn"),
     exportSheetPdfBtn: requiredElement<HTMLButtonElement>("exportSheetPdfBtn"),
+    exportSheetDxfBtn: requiredElement<HTMLButtonElement>("exportSheetDxfBtn"),
     exportSpecsBtn: requiredElement<HTMLButtonElement>("exportSpecsBtn"),
     generateDrawingBtn: requiredElement<LoadingElement>("generateDrawingBtn"),
     clearDrawingsBtn: requiredElement<HTMLButtonElement>("clearDrawingsBtn"),

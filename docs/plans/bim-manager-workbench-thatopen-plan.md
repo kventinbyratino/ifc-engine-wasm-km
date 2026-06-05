@@ -446,7 +446,8 @@ Acceptance:
 3. Размещение drawing viewport на листе.
 4. Ведомость помещений/дверей/окон.
 5. Экспорт PNG/PDF.
-6. Позже — DXF paper-space export через `DxfPaperOptions`.
+6. DXF paper-space export через `DxfPaperOptions`.
+   - Статус: MVP реализован в `src/bim/sheets/dxf-paper-export.ts`.
 
 Acceptance:
 

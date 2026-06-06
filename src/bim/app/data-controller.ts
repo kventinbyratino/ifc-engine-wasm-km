@@ -79,12 +79,15 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
 
     dataSummary.textContent = "Индексация элементов...";
     dataTableOutput.replaceChildren(createMessage("Сбор IFC атрибутов..."));
+    const signal = ctx.startOperation("Индексация элементов");
 
     try {
       workspace.elementIndex = await buildElementIndex({
         fragments,
+        signal,
         onProgress: (processed, total) => {
           dataSummary.textContent = `Индексация: ${processed}/${total}`;
+          ctx.setProgress(total > 0 ? processed / total : 0);
         },
       });
       fillSelectOptions(dataCategoryFilter, getUniqueValues(workspace.elementIndex, "category"), "Все IFC Class");
@@ -93,10 +96,18 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
       hooks.refreshClashSelectors();
     } catch (error) {
       console.error(error);
+      if (isAbortError(error)) {
+        dataSummary.textContent = "Индексация отменена";
+        dataTableOutput.replaceChildren(createMessage("Операция отменена."));
+        ctx.setStatus("Индексация отменена");
+        return;
+      }
       dataSummary.textContent = "Ошибка индексации";
       dataTableOutput.replaceChildren(
         createMessage(error instanceof Error ? error.message : String(error)),
       );
+    } finally {
+      ctx.finishOperation(signal);
     }
   }
 
@@ -162,4 +173,8 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     exportElementsCsv,
     exportElementsJson,
   };
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === "AbortError";
 }

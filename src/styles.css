@@ -248,7 +248,7 @@ body {
   z-index: 7;
   display: grid;
   place-items: center;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .loading-card {
@@ -279,7 +279,7 @@ body {
   letter-spacing: -0.02em;
 }
 
-.loading-card span:last-child {
+#loadingStatus {
   max-width: min(280px, calc(100vw - 80px));
   overflow: hidden;
   color: #65737e;
@@ -287,6 +287,21 @@ body {
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.loading-cancel {
+  border: 1px solid rgba(20, 26, 32, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #24313b;
+  cursor: pointer;
+  font: inherit;
+  padding: 7px 14px;
+}
+
+.loading-cancel:hover {
+  border-color: rgba(20, 26, 32, 0.28);
+  background: #fff;
 }
 
 @keyframes model-loading-spin {

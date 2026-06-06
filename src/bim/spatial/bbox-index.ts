@@ -70,11 +70,13 @@ export async function getCachedElementBoxes(options: {
   fragments: BBoxIndexProvider;
   records: BimElementRecord[];
   batchSize?: number;
+  signal?: AbortSignal;
 }) {
   const batchSize = options.batchSize ?? 25;
   const boxes: Array<{ record: BimElementRecord; box: THREE.Box3 }> = [];
 
   for (let start = 0; start < options.records.length; start += batchSize) {
+    assertNotAborted(options.signal);
     const batch = options.records.slice(start, start + batchSize);
     const batchBoxes = await Promise.all(
       batch.map(async (record) => ({
@@ -86,9 +88,14 @@ export async function getCachedElementBoxes(options: {
     for (const item of batchBoxes) {
       if (!item.box.isEmpty()) boxes.push(item);
     }
+    assertNotAborted(options.signal);
   }
 
   return boxes;
+}
+
+export function assertNotAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw new DOMException("Операция отменена", "AbortError");
 }
 
 function unionBoxes(boxes: THREE.Box3[]) {

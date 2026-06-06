@@ -22,6 +22,7 @@ export type ClashDetectionInput = {
   tolerance: number;
   limit: number;
   bboxIndex?: BBoxIndex;
+  signal?: AbortSignal;
 };
 
 export type ClashDetectionResult = {

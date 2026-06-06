@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { BimElementRecord } from "../data/element-index";
-import { BBoxIndex, getCachedElementBoxes } from "../spatial/bbox-index";
+import { assertNotAborted, BBoxIndex, getCachedElementBoxes } from "../spatial/bbox-index";
 import type { ModelIdMap } from "../types";
 import type { ClashDetectionInput, ClashDetectionResult, ClashRecord, ElementBox } from "./clash-types";
 
@@ -15,13 +15,15 @@ export async function detectHardClashes(
   const groupA = input.groupA.slice(0, input.limit);
   const groupB = input.groupB.slice(0, input.limit);
   const bboxIndex = input.bboxIndex ?? new BBoxIndex();
-  const boxesA = await getElementBoxes(fragments, groupA, bboxIndex);
-  const boxesB = await getElementBoxes(fragments, groupB, bboxIndex);
+  assertNotAborted(input.signal);
+  const boxesA = await getElementBoxes(fragments, groupA, bboxIndex, input.signal);
+  const boxesB = await getElementBoxes(fragments, groupB, bboxIndex, input.signal);
   const clashes: ClashRecord[] = [];
   let checkedPairs = 0;
   let skippedPairs = 0;
 
   for (const [itemA, itemB] of getCandidatePairs(boxesA, boxesB, input.tolerance)) {
+    assertNotAborted(input.signal);
     if (isSameElement(itemA.record, itemB.record)) {
       skippedPairs++;
       continue;
@@ -44,8 +46,9 @@ async function getElementBoxes(
   fragments: FragmentsBBoxProvider,
   records: BimElementRecord[],
   bboxIndex: BBoxIndex,
+  signal?: AbortSignal,
 ): Promise<ElementBox[]> {
-  return getCachedElementBoxes({ index: bboxIndex, fragments, records });
+  return getCachedElementBoxes({ index: bboxIndex, fragments, records, signal });
 }
 
 function getOverlapBox(a: THREE.Box3, b: THREE.Box3, tolerance: number) {

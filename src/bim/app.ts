@@ -34,6 +34,7 @@ export async function startBimApp() {
     statusText,
     loadingOverlay,
     loadingStatus,
+    loadingCancelBtn,
     fileName,
     modelCount,
     selectionCount,
@@ -161,6 +162,7 @@ export async function startBimApp() {
 
   const workspace = createWorkspaceState();
   const issueStore = createIssueStore();
+  let activeOperation: AbortController | null = null;
   const ctx: BimAppContext = {
     dom: getDomElements(),
     viewer: { components, world, fragments, ifcLoader, highlighter, hider },
@@ -172,6 +174,8 @@ export async function startBimApp() {
     },
     setBusy,
     setProgress,
+    startOperation,
+    finishOperation,
     showError,
   };
   void ctx;
@@ -507,6 +511,7 @@ export async function startBimApp() {
   shareModelBtn.onclick = () => openShareModal();
   closeShareBtn.onclick = () => closeShareModal();
   copyShareBtn.onclick = () => void copyShareLink();
+  loadingCancelBtn.onclick = () => cancelActiveOperation();
   topBackBtn.onclick = () => navigateToProfile("pending");
 
   ifcInput.onchange = () => {
@@ -559,11 +564,33 @@ export async function startBimApp() {
     loadFragBtn.loading = isBusy;
     loadingOverlay.hidden = !isBusy;
     progress.hidden = !isBusy;
+    if (!isBusy) loadingCancelBtn.hidden = true;
     if (isBusy) setProgress(0);
     if (message) {
       statusText.textContent = message;
       loadingStatus.textContent = message;
     }
+  }
+
+  function startOperation(message: string) {
+    activeOperation?.abort();
+    activeOperation = new AbortController();
+    setBusy(true, message);
+    loadingCancelBtn.hidden = false;
+    return activeOperation.signal;
+  }
+
+  function finishOperation(signal: AbortSignal) {
+    if (activeOperation?.signal !== signal) return;
+    activeOperation = null;
+    setBusy(false);
+  }
+
+  function cancelActiveOperation() {
+    if (!activeOperation) return;
+    activeOperation.abort();
+    statusText.textContent = "Операция отменяется...";
+    loadingStatus.textContent = "Операция отменяется...";
   }
 
   function setProgress(value: number) {

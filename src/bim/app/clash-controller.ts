@@ -84,6 +84,7 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
     if (fragments.list.size === 0) return;
 
     runClashBtn.loading = true;
+    let signal: AbortSignal | null = null;
     try {
       clashPanel.hidden = false;
       if (workspace.elementIndex.length === 0) {
@@ -91,6 +92,8 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
         await hooks.rebuildDataIndex();
       }
 
+      const activeSignal = ctx.startOperation("Clash detection");
+      signal = activeSignal;
       const groupA = selectClashGroup(workspace.elementIndex, clashGroupASelect.value);
       const groupB = selectClashGroup(workspace.elementIndex, clashGroupBSelect.value);
       const tolerance = Math.max(0, Number(clashToleranceInput.value) || 0);
@@ -102,16 +105,24 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
         tolerance,
         limit: 250,
         bboxIndex,
+        signal: activeSignal,
       });
       workspace.clashes = result.clashes;
       renderClash();
       ctx.setStatus(`Clash detection: ${result.clashes.length} найдено, ${result.checkedPairs} пар`);
     } catch (error) {
       console.error(error);
+      if (isAbortError(error)) {
+        clashSummary.textContent = "Clash detection отменён";
+        clashOutput.replaceChildren(createMessage("Операция отменена."));
+        ctx.setStatus("Clash detection отменён");
+        return;
+      }
       clashSummary.textContent = "Ошибка clash detection";
       clashOutput.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
     } finally {
       runClashBtn.loading = false;
+      if (signal) ctx.finishOperation(signal);
     }
   }
 
@@ -145,4 +156,8 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
     runClashDetection,
     clearBBoxIndex: () => bboxIndex.clear(),
   };
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === "AbortError";
 }

@@ -19,5 +19,7 @@ export interface BimAppContext {
   setStatus: (message: string) => void;
   setBusy: (isBusy: boolean, message?: string) => void;
   setProgress: (value: number) => void;
+  startOperation: (message: string) => AbortSignal;
+  finishOperation: (signal: AbortSignal) => void;
   showError: (error: unknown) => void;
-}
+};

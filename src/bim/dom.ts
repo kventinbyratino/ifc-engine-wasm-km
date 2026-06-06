@@ -18,6 +18,7 @@ export function getDomElements() {
     statusText: requiredElement<HTMLSpanElement>("statusText"),
     loadingOverlay: requiredElement<HTMLDivElement>("loadingOverlay"),
     loadingStatus: requiredElement<HTMLSpanElement>("loadingStatus"),
+    loadingCancelBtn: requiredElement<HTMLButtonElement>("loadingCancelBtn"),
     fileName: requiredElement<HTMLElement>("fileName"),
     modelCount: requiredElement<HTMLElement>("modelCount"),
     selectionCount: requiredElement<HTMLElement>("selectionCount"),

@@ -20,7 +20,7 @@
             </button>
             <button id="profileBimBtn" class="profile-option" type="button">
               <strong>BIM</strong>
-              <span>IFC/BIM Viewer</span>
+              <span>BIM-рабочий стол</span>
             </button>
           </div>
         </div>
@@ -63,7 +63,7 @@
             <div class="empty-bim-actions">
               <button id="emptyLoadIfcBtn" type="button">Загрузить IFC</button>
               <button id="emptyExampleBtn" type="button">Открыть пример</button>
-              <button id="emptyLibraryBtn" type="button">Библиотека fragments</button>
+              <button id="emptyLibraryBtn" type="button">Библиотека моделей</button>
             </div>
           </div>
         </section>
@@ -96,7 +96,7 @@
               </button>
               <button id="chooseFragmentBtn" class="library-action" type="button">
                 <strong>Выбрать загруженную модель</strong>
-                <span>Загрузить сохранённый fragment на сцену</span>
+                <span>Загрузить сохранённую модель на сцену</span>
               </button>
               <div id="exampleList" class="example-list" aria-label="Открыть пример"></div>
             </div>
@@ -124,7 +124,7 @@
         </section>
 
         <div class="action-rail" aria-label="Действия модели">
-          <button id="saveFragmentBtn" class="action-button save-fragment" type="button" aria-label="Сохранить fragment" hidden>
+          <button id="saveFragmentBtn" class="action-button save-fragment" type="button" aria-label="Сохранить модель" hidden>
             <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M5 4h11l3 3v13H5z" />
               <path d="M8 4v6h8V4" />
@@ -177,13 +177,13 @@
             <span class="action-label">Замеч/BCF</span>
           </button>
 
-          <button id="clashBtn" class="action-button clash-button" type="button" aria-label="Federation / Clash" hidden>
+          <button id="clashBtn" class="action-button clash-button" type="button" aria-label="Коллизии" hidden>
             <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M8 4l8 8-8 8" />
               <path d="M16 4L8 12l8 8" />
               <path d="M4 12h16" />
             </svg>
-            <span class="action-label">Clash</span>
+            <span class="action-label">Коллизии</span>
           </button>
 
           <button id="drawingsBtn" class="action-button drawings-button" type="button" aria-label="Чертежи и DXF" hidden>
@@ -200,16 +200,16 @@
         <section id="dataPanel" class="data-panel" hidden>
           <div class="data-panel-header">
             <div>
-              <strong>BIM Data Browser</strong>
+              <strong>Данные модели</strong>
               <span id="dataSummary">Загрузите модель</span>
             </div>
-            <button id="closeDataPanelBtn" class="plain-button" type="button" aria-label="Закрыть BIM Data Browser">×</button>
+            <button id="closeDataPanelBtn" class="plain-button" type="button" aria-label="Закрыть данные модели">×</button>
           </div>
 
           <div class="data-toolbar">
             <input id="dataSearchInput" class="data-search-input" type="search" placeholder="Поиск: класс, имя, GUID, параметр" />
-            <select id="dataCategoryFilter" class="data-select" aria-label="Фильтр IFC Class"></select>
-            <select id="dataStoreyFilter" class="data-select" aria-label="Фильтр Storey"></select>
+            <select id="dataCategoryFilter" class="data-select" aria-label="Фильтр IFC-класса"></select>
+            <select id="dataStoreyFilter" class="data-select" aria-label="Фильтр этажа"></select>
           </div>
 
           <div class="data-actions">
@@ -219,25 +219,25 @@
           </div>
 
           <div id="dataTableOutput" class="data-table-output">
-            <span class="empty-state">Загрузите IFC или fragment.</span>
+            <span class="empty-state">Загрузите IFC или сохранённую модель.</span>
           </div>
         </section>
 
         <section id="checksPanel" class="checks-panel" hidden>
           <div class="data-panel-header">
             <div>
-              <strong>Model Health Checks</strong>
+              <strong>Проверки модели</strong>
               <span id="checksSummary">Проверка не выполнена</span>
             </div>
             <button id="closeChecksPanelBtn" class="plain-button" type="button" aria-label="Закрыть проверки модели">×</button>
           </div>
 
-          <div class="ids-builder" aria-label="IDS builder">
-            <input id="idsTitleInput" class="data-search-input" type="text" value="BIM IDS" aria-label="IDS title" placeholder="IDS title" />
-            <input id="idsSpecNameInput" class="data-search-input" type="text" value="Doors must have FireRating" aria-label="IDS specification name" placeholder="Spec name" />
-            <input id="idsEntityInput" class="data-search-input" type="text" value="IFCDOOR" aria-label="IDS entity" placeholder="IFC entity" />
-            <input id="idsPsetInput" class="data-search-input" type="text" value="Pset_DoorCommon" aria-label="IDS property set" placeholder="Property set" />
-            <input id="idsPropertyInput" class="data-search-input" type="text" value="FireRating" aria-label="IDS property" placeholder="Property" />
+          <div class="ids-builder" aria-label="Конструктор IDS">
+            <input id="idsTitleInput" class="data-search-input" type="text" value="BIM IDS" aria-label="Название IDS" placeholder="Название IDS" />
+            <input id="idsSpecNameInput" class="data-search-input" type="text" value="Doors must have FireRating" aria-label="Название требования IDS" placeholder="Требование" />
+            <input id="idsEntityInput" class="data-search-input" type="text" value="IFCDOOR" aria-label="IFC-сущность IDS" placeholder="IFC-сущность" />
+            <input id="idsPsetInput" class="data-search-input" type="text" value="Pset_DoorCommon" aria-label="Набор свойств IDS" placeholder="Набор свойств" />
+            <input id="idsPropertyInput" class="data-search-input" type="text" value="FireRating" aria-label="Свойство IDS" placeholder="Свойство" />
           </div>
 
           <div class="data-actions">
@@ -260,14 +260,14 @@
         <section id="issuesPanel" class="issues-panel" hidden>
           <div class="data-panel-header">
             <div>
-              <strong>Issues / BCF</strong>
+              <strong>Замечания / BCF</strong>
               <span id="issuesSummary">Замечаний пока нет</span>
             </div>
-            <button id="closeIssuesPanelBtn" class="plain-button" type="button" aria-label="Закрыть Issues">×</button>
+            <button id="closeIssuesPanelBtn" class="plain-button" type="button" aria-label="Закрыть замечания">×</button>
           </div>
 
           <div class="data-actions">
-            <button id="createIssueBtn" class="data-action" type="button">Issue из выбранного</button>
+            <button id="createIssueBtn" class="data-action" type="button">Замечание из выбранного</button>
             <button id="exportIssuesJsonBtn" class="data-action" type="button">JSON</button>
             <button id="exportIssuesBcfBtn" class="data-action" type="button">BCF JSON</button>
             <button id="clearIssuesBtn" class="data-action data-action-secondary" type="button">Очистить</button>
@@ -281,20 +281,20 @@
         <section id="clashPanel" class="clash-panel" hidden>
           <div class="data-panel-header">
             <div>
-              <strong>Federation / Clash</strong>
+              <strong>Коллизии</strong>
               <span id="clashSummary">Загрузите модель</span>
             </div>
-            <button id="closeClashPanelBtn" class="plain-button" type="button" aria-label="Закрыть Clash">×</button>
+            <button id="closeClashPanelBtn" class="plain-button" type="button" aria-label="Закрыть коллизии">×</button>
           </div>
 
           <div class="clash-toolbar">
             <select id="clashGroupASelect" class="data-select" aria-label="Группа A"></select>
             <select id="clashGroupBSelect" class="data-select" aria-label="Группа B"></select>
-            <input id="clashToleranceInput" class="data-search-input" type="number" min="0" step="0.01" value="0.01" aria-label="Tolerance" />
+            <input id="clashToleranceInput" class="data-search-input" type="number" min="0" step="0.01" value="0.01" aria-label="Допуск коллизии" />
           </div>
 
           <div class="data-actions">
-            <button id="runClashBtn" class="data-action" type="button">Найти clash</button>
+            <button id="runClashBtn" class="data-action" type="button">Найти коллизии</button>
             <button id="clearClashBtn" class="data-action data-action-secondary" type="button">Очистить</button>
           </div>
 
@@ -306,10 +306,10 @@
         <section id="drawingsPanel" class="drawings-panel" hidden>
           <div class="data-panel-header">
             <div>
-              <strong>Drawings / DXF</strong>
+              <strong>Чертежи / DXF</strong>
               <span id="drawingsSummary">Загрузите модель</span>
             </div>
-            <button id="closeDrawingsPanelBtn" class="plain-button" type="button" aria-label="Закрыть Drawings">×</button>
+            <button id="closeDrawingsPanelBtn" class="plain-button" type="button" aria-label="Закрыть чертежи">×</button>
           </div>
 
           <div class="drawings-toolbar">
@@ -338,7 +338,7 @@
               <option value="A0">A0</option>
             </select>
             <button id="createSheetBtn" class="data-action" type="button">Создать лист</button>
-            <button id="exportSpecsBtn" class="data-action" type="button">Спеки CSV</button>
+            <button id="exportSpecsBtn" class="data-action" type="button">Спецификация CSV</button>
           </div>
 
           <div class="annotation-toolbar" aria-label="Аннотации чертежа">

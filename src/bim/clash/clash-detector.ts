@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { BimElementRecord } from "../data/element-index";
-import { BBoxIndex, getCachedElementBox } from "../spatial/bbox-index";
+import { BBoxIndex, getCachedElementBoxes } from "../spatial/bbox-index";
 import type { ModelIdMap } from "../types";
 import type { ClashDetectionInput, ClashDetectionResult, ClashRecord, ElementBox } from "./clash-types";
 
@@ -47,14 +47,7 @@ async function getElementBoxes(
   records: BimElementRecord[],
   bboxIndex: BBoxIndex,
 ): Promise<ElementBox[]> {
-  const result: ElementBox[] = [];
-
-  for (const record of records) {
-    const box = await getCachedElementBox(bboxIndex, fragments, record);
-    if (!box.isEmpty()) result.push({ record, box });
-  }
-
-  return result;
+  return getCachedElementBoxes({ index: bboxIndex, fragments, records });
 }
 
 function getOverlapBox(a: THREE.Box3, b: THREE.Box3, tolerance: number) {

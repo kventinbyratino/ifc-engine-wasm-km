@@ -65,6 +65,32 @@ export async function getCachedElementBox(
   return box;
 }
 
+export async function getCachedElementBoxes(options: {
+  index: BBoxIndex;
+  fragments: BBoxIndexProvider;
+  records: BimElementRecord[];
+  batchSize?: number;
+}) {
+  const batchSize = options.batchSize ?? 25;
+  const boxes: Array<{ record: BimElementRecord; box: THREE.Box3 }> = [];
+
+  for (let start = 0; start < options.records.length; start += batchSize) {
+    const batch = options.records.slice(start, start + batchSize);
+    const batchBoxes = await Promise.all(
+      batch.map(async (record) => ({
+        record,
+        box: await getCachedElementBox(options.index, options.fragments, record),
+      })),
+    );
+
+    for (const item of batchBoxes) {
+      if (!item.box.isEmpty()) boxes.push(item);
+    }
+  }
+
+  return boxes;
+}
+
 function unionBoxes(boxes: THREE.Box3[]) {
   const result = new THREE.Box3();
   for (const box of boxes) result.union(box);

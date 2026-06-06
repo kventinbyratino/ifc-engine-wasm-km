@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 
@@ -19,6 +19,7 @@ def create_app(
     db_path: str | Path | None = None,
     storage_dir: str | Path | None = None,
     max_fragment_bytes: int | None = None,
+    admin_token: str | None = None,
 ) -> FastAPI:
     db = Path(db_path or os.getenv("IFC_FRAGMENTS_DB", "./data/fragments.sqlite3"))
     storage = Path(storage_dir or os.getenv("IFC_FRAGMENTS_DIR", "./data/fragments"))
@@ -26,6 +27,13 @@ def create_app(
     db.parent.mkdir(parents=True, exist_ok=True)
     storage.mkdir(parents=True, exist_ok=True)
     init_db(db)
+    configured_admin_token = admin_token if admin_token is not None else os.getenv("IFC_ADMIN_TOKEN")
+
+    def require_admin_token(authorization: str | None = Header(default=None)) -> None:
+        if not configured_admin_token:
+            raise HTTPException(status_code=500, detail="IFC_ADMIN_TOKEN is not configured")
+        if authorization != f"Bearer {configured_admin_token}":
+            raise HTTPException(status_code=401, detail="Unauthorized")
 
     app = FastAPI(title="IFC Engine WASM fragments API")
     app.add_middleware(
@@ -52,7 +60,7 @@ def create_app(
             ).fetchall()
         return [serialize_row(row) for row in rows]
 
-    @app.post("/api/fragments", status_code=201)
+    @app.post("/api/fragments", status_code=201, dependencies=[Depends(require_admin_token)])
     async def upload_fragment(
         name: Annotated[str, Form()],
         file: Annotated[UploadFile, File()],
@@ -108,7 +116,7 @@ def create_app(
         download_name = f"{row['name']}.frag" if not str(row["name"]).lower().endswith(".frag") else str(row["name"])
         return FileResponse(path, media_type="application/octet-stream", filename=download_name)
 
-    @app.delete("/api/fragments/{fragment_id}", status_code=204)
+    @app.delete("/api/fragments/{fragment_id}", status_code=204, dependencies=[Depends(require_admin_token)])
     def delete_fragment(fragment_id: str) -> Response:
         row = get_fragment(db, fragment_id)
         path = storage / str(row["filename"])

@@ -67,6 +67,9 @@ export async function startBimApp() {
     ifcInput,
     fragInput,
     loadIfcBtn,
+    emptyLoadIfcBtn,
+    emptyExampleBtn,
+    emptyLibraryBtn,
     loadFragBtn,
     fitBtn,
     clearBtn,
@@ -438,6 +441,15 @@ export async function startBimApp() {
   });
 
   loadIfcBtn.onclick = () => openLibraryModal();
+  emptyLoadIfcBtn.onclick = () => ifcInput.click();
+  emptyExampleBtn.onclick = () => {
+    openLibraryModal();
+    showLibraryStart();
+  };
+  emptyLibraryBtn.onclick = () => {
+    openLibraryModal();
+    void showFragmentLibrary();
+  };
   loadFragBtn.onclick = () => fragInput.click();
   fitBtn.onclick = () => void fitToModels();
   clearBtn.onclick = () => void clearModels();

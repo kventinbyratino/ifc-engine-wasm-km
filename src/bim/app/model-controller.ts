@@ -39,6 +39,7 @@ export function createModelController({
     saveFragmentBtn,
     modelCount,
     loadIfcBtn,
+    emptyBimState,
     searchToggleBtn,
     homeViewBtn,
     dataBrowserBtn,
@@ -192,8 +193,10 @@ export function createModelController({
   function refreshModelState() {
     const hasModels = fragments.list.size > 0;
     const capabilities = ctx.getCapabilities();
+    const showBimEmptyState = !hasModels && workspace.activeProfile === "bim";
     modelCount.textContent = String(fragments.list.size);
-    loadIfcBtn.hidden = hasModels;
+    emptyBimState.hidden = !showBimEmptyState;
+    loadIfcBtn.hidden = hasModels || showBimEmptyState;
     searchToggleBtn.hidden = !hasModels;
     homeViewBtn.hidden = !hasModels;
     dataBrowserBtn.hidden = !hasModels || !capabilities.dataBrowser;

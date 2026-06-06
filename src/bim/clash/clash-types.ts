@@ -1,5 +1,6 @@
 import type { Box3 } from "three";
 import type { BimElementRecord } from "../data/element-index";
+import type { BBoxIndex } from "../spatial/bbox-index";
 import type { ModelIdMap } from "../types";
 
 export type ClashSeverity = "critical" | "warning" | "info";
@@ -20,6 +21,7 @@ export type ClashDetectionInput = {
   groupB: BimElementRecord[];
   tolerance: number;
   limit: number;
+  bboxIndex?: BBoxIndex;
 };
 
 export type ClashDetectionResult = {

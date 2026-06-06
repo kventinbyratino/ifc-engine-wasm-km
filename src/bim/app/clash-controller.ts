@@ -2,6 +2,7 @@ import { countSelection } from "../selection/selection";
 import { detectHardClashes } from "../clash/clash-detector";
 import type { ClashRecord } from "../clash/clash-types";
 import { getClashGroupOptions, selectClashGroup, summarizeFederatedModels } from "../federation/federation";
+import { BBoxIndex } from "../spatial/bbox-index";
 import { fillClashGroupSelect, renderClashPanel } from "../ui/clash-panel";
 import { createMessage } from "../ui/dom-utils";
 import type { ModelIdMap } from "../types";
@@ -19,6 +20,7 @@ export interface ClashControllerHooks {
 export function createClashController(ctx: BimAppContext, hooks: ClashControllerHooks) {
   const { workspace, issueStore } = ctx;
   const { fragments } = ctx.viewer;
+  const bboxIndex = new BBoxIndex();
   const {
     selectionCount,
     issuesPanel,
@@ -99,6 +101,7 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
         groupB,
         tolerance,
         limit: 250,
+        bboxIndex,
       });
       workspace.clashes = result.clashes;
       renderClash();
@@ -140,5 +143,6 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
     refreshClashSelectors,
     renderClash,
     runClashDetection,
+    clearBBoxIndex: () => bboxIndex.clear(),
   };
 }

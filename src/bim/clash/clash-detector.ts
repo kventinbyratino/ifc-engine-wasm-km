@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { BimElementRecord } from "../data/element-index";
+import { BBoxIndex, getCachedElementBox } from "../spatial/bbox-index";
 import type { ModelIdMap } from "../types";
 import type { ClashDetectionInput, ClashDetectionResult, ClashRecord, ElementBox } from "./clash-types";
 
@@ -13,8 +14,9 @@ export async function detectHardClashes(
 ): Promise<ClashDetectionResult> {
   const groupA = input.groupA.slice(0, input.limit);
   const groupB = input.groupB.slice(0, input.limit);
-  const boxesA = await getElementBoxes(fragments, groupA);
-  const boxesB = await getElementBoxes(fragments, groupB);
+  const bboxIndex = input.bboxIndex ?? new BBoxIndex();
+  const boxesA = await getElementBoxes(fragments, groupA, bboxIndex);
+  const boxesB = await getElementBoxes(fragments, groupB, bboxIndex);
   const clashes: ClashRecord[] = [];
   let checkedPairs = 0;
   let skippedPairs = 0;
@@ -40,21 +42,18 @@ export async function detectHardClashes(
   return { clashes, checkedPairs, skippedPairs };
 }
 
-async function getElementBoxes(fragments: FragmentsBBoxProvider, records: BimElementRecord[]): Promise<ElementBox[]> {
+async function getElementBoxes(
+  fragments: FragmentsBBoxProvider,
+  records: BimElementRecord[],
+  bboxIndex: BBoxIndex,
+): Promise<ElementBox[]> {
   const result: ElementBox[] = [];
 
   for (const record of records) {
-    const boxes = await fragments.getBBoxes({ [record.modelId]: new Set([record.localId]) });
-    const box = unionBoxes(boxes);
+    const box = await getCachedElementBox(bboxIndex, fragments, record);
     if (!box.isEmpty()) result.push({ record, box });
   }
 
-  return result;
-}
-
-function unionBoxes(boxes: THREE.Box3[]) {
-  const result = new THREE.Box3();
-  for (const box of boxes) result.union(box);
   return result;
 }
 

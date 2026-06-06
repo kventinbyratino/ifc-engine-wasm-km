@@ -215,6 +215,7 @@ export async function startBimApp() {
   let closeDrawingsPanel = () => {};
   let refreshClashSelectors = () => {};
   let renderClash = () => {};
+  let clearBBoxIndex = () => {};
   let renderIssues = () => {};
   let clearDrawings = () => {};
   let resetDataIndex = () => {};
@@ -300,6 +301,7 @@ export async function startBimApp() {
   closeClashPanel = clashController.closeClashPanel;
   refreshClashSelectors = clashController.refreshClashSelectors;
   renderClash = clashController.renderClash;
+  clearBBoxIndex = clashController.clearBBoxIndex;
 
   const drawingsController = createDrawingsController(ctx, {
     canUseDrawings: () => canUseDrawings(),
@@ -329,6 +331,7 @@ export async function startBimApp() {
     clearDrawings: () => clearDrawings(),
     renderIssues: () => renderIssues(),
     renderClash: () => renderClash(),
+    clearBBoxIndex: () => clearBBoxIndex(),
     resetDataIndex: () => resetDataIndex(),
     resetChecks: () => resetChecks(),
     setActiveShareRecord,

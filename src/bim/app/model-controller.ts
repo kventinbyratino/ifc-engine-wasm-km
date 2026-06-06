@@ -12,6 +12,7 @@ export interface BimModelControllerOptions {
   renderClash: () => void;
   resetDataIndex: () => void;
   resetChecks: () => void;
+  clearBBoxIndex: () => void;
   setActiveShareRecord: (record: null) => void;
   closeLibraryModal: () => void;
 }
@@ -24,6 +25,7 @@ export function createModelController({
   renderClash,
   resetDataIndex,
   resetChecks,
+  clearBBoxIndex,
   setActiveShareRecord,
   closeLibraryModal,
 }: BimModelControllerOptions) {
@@ -140,6 +142,7 @@ export function createModelController({
     renderIssues();
     workspace.clashes = [];
     renderClash();
+    clearBBoxIndex();
     resetDataIndex();
     resetChecks();
     fileName.textContent = "-";

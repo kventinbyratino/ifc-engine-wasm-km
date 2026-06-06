@@ -38,7 +38,7 @@ def create_app(
     app = FastAPI(title="IFC Engine WASM fragments API")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=os.getenv("IFC_ALLOWED_ORIGINS", "*").split(","),
+        allow_origins=parse_allowed_origins(),
         allow_credentials=False,
         allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
         allow_headers=["*"],
@@ -149,6 +149,12 @@ def init_db(db_path: Path) -> None:
             """
         )
         conn.commit()
+
+
+def parse_allowed_origins() -> list[str]:
+    raw = os.getenv("IFC_ALLOWED_ORIGINS", "")
+    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return origins or ["http://127.0.0.1:5173", "http://localhost:5173"]
 
 
 def get_fragment(db_path: Path, fragment_id: str) -> sqlite3.Row:

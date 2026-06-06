@@ -105,3 +105,50 @@ def test_fragment_delete_requires_admin_token(tmp_path: Path):
 
     assert response.status_code == 401
     assert client.get(f"/api/fragments/{created['id']}/download").status_code == 200
+
+
+def test_cors_does_not_allow_unknown_origin(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("IFC_ALLOWED_ORIGINS", "https://dev.lab-tim.ru")
+    client = make_client(tmp_path)
+
+    response = client.options(
+        "/api/fragments",
+        headers={
+            "Origin": "https://evil.example",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.headers.get("access-control-allow-origin") != "*"
+    assert response.headers.get("access-control-allow-origin") != "https://evil.example"
+
+
+def test_cors_default_does_not_use_wildcard_origin(tmp_path: Path, monkeypatch):
+    monkeypatch.delenv("IFC_ALLOWED_ORIGINS", raising=False)
+    client = make_client(tmp_path)
+
+    response = client.options(
+        "/api/fragments",
+        headers={
+            "Origin": "https://evil.example",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.headers.get("access-control-allow-origin") != "*"
+    assert response.headers.get("access-control-allow-origin") != "https://evil.example"
+
+
+def test_cors_allows_configured_origin(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("IFC_ALLOWED_ORIGINS", "https://dev.lab-tim.ru")
+    client = make_client(tmp_path)
+
+    response = client.options(
+        "/api/fragments",
+        headers={
+            "Origin": "https://dev.lab-tim.ru",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.headers.get("access-control-allow-origin") == "https://dev.lab-tim.ru"

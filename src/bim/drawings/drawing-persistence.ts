@@ -16,6 +16,13 @@ export type StoredDrawingRecord = {
   view: DrawingView;
   source: DrawingSource;
   far: number;
+  itemCount: number;
+  lineCount: number;
+  projection: {
+    far: number;
+    scale: number;
+    bounds: OBC.DrawingViewportConfig;
+  };
   createdAt: string;
   annotations: StoredDrawingAnnotation[];
 };
@@ -142,6 +149,13 @@ function serializeDrawing(record: DrawingRecord, components: OBC.Components): St
     view: record.view,
     source: record.source,
     far: record.projection.far,
+    itemCount: record.itemCount,
+    lineCount: record.lineCount,
+    projection: {
+      far: record.projection.far,
+      scale: record.projection.scale,
+      bounds: { ...record.projection.bounds },
+    },
     createdAt: record.createdAt.toISOString(),
     annotations,
   };

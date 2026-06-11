@@ -61,6 +61,35 @@ export function clearDrawingAnnotations(record: DrawingRecord, components: OBC.C
   record.annotations = [];
 }
 
+export function deleteDrawingAnnotation(record: DrawingRecord, components: OBC.Components, annotationId: string) {
+  const techDrawings = components.get(OBC.TechnicalDrawings);
+  const linear = techDrawings.use(OBC.LinearAnnotations);
+  const leader = techDrawings.use(OBC.LeaderAnnotations);
+  const callout = techDrawings.use(OBC.CalloutAnnotations);
+
+  if (record.drawing.annotations.getBySystem(linear).has(annotationId)) linear.delete(record.drawing, [annotationId]);
+  else if (record.drawing.annotations.getBySystem(leader).has(annotationId)) leader.delete(record.drawing, [annotationId]);
+  else if (record.drawing.annotations.getBySystem(callout).has(annotationId)) callout.delete(record.drawing, [annotationId]);
+  else throw new Error("Аннотация не найдена");
+
+  return syncDrawingAnnotations(components, record);
+}
+
+export function updateDrawingAnnotationText(record: DrawingRecord, components: OBC.Components, annotationId: string, text: string) {
+  const value = text.trim();
+  if (!value) throw new Error("Текст аннотации пустой");
+
+  const techDrawings = components.get(OBC.TechnicalDrawings);
+  const leader = techDrawings.use(OBC.LeaderAnnotations);
+  const callout = techDrawings.use(OBC.CalloutAnnotations);
+
+  if (record.drawing.annotations.getBySystem(leader).has(annotationId)) leader.update(record.drawing, [annotationId], { text: value });
+  else if (record.drawing.annotations.getBySystem(callout).has(annotationId)) callout.update(record.drawing, [annotationId], { text: value });
+  else throw new Error("Текст можно редактировать только у выносок, маркеров и подписей");
+
+  return syncDrawingAnnotations(components, record);
+}
+
 export function syncDrawingAnnotations(components: OBC.Components, record: DrawingRecord) {
   const techDrawings = components.get(OBC.TechnicalDrawings);
   const linear = techDrawings.use(OBC.LinearAnnotations);

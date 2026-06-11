@@ -66,6 +66,8 @@ export function renderDrawingList(options: {
   onSelect: (record: DrawingRecord) => void;
   onExport: (record: DrawingRecord) => void;
   onAnnotate: (record: DrawingRecord) => void;
+  onEditAnnotation: (record: DrawingRecord, annotation: DrawingAnnotation) => void;
+  onDeleteAnnotation: (record: DrawingRecord, annotation: DrawingAnnotation) => void;
   onDelete: (record: DrawingRecord) => void;
 }) {
   if (options.records.length === 0) {
@@ -113,10 +115,49 @@ export function renderDrawingList(options: {
 
     actions.append(select, annotate, exportButton, remove);
     card.append(actions);
+    if (record.annotations.length > 0) card.append(createAnnotationList(record, options));
     list.append(card);
   }
 
   options.output.replaceChildren(list);
+}
+
+function createAnnotationList(record: DrawingRecord, options: {
+  onEditAnnotation: (record: DrawingRecord, annotation: DrawingAnnotation) => void;
+  onDeleteAnnotation: (record: DrawingRecord, annotation: DrawingAnnotation) => void;
+}) {
+  const list = document.createElement("div");
+  list.className = "drawing-annotation-list";
+  for (const annotation of record.annotations) {
+    const row = document.createElement("div");
+    row.className = "drawing-annotation-row";
+    row.innerHTML = `<span>${escapeHtml(getAnnotationTypeLabel(annotation.type))}: ${escapeHtml(annotation.text)}</span>`;
+
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.textContent = "Текст";
+    edit.onclick = () => options.onEditAnnotation(record, annotation);
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "drawing-danger";
+    remove.textContent = "×";
+    remove.onclick = () => options.onDeleteAnnotation(record, annotation);
+
+    row.append(edit, remove);
+    list.append(row);
+  }
+  return list;
+}
+
+function getAnnotationTypeLabel(type: DrawingAnnotation["type"]) {
+  const labels: Record<DrawingAnnotation["type"], string> = {
+    linear: "Размер",
+    leader: "Выноска",
+    callout: "Маркер",
+    label: "Подпись",
+  };
+  return labels[type];
 }
 
 export function downloadDrawingDxf(record: DrawingRecord) {

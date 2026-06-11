@@ -21,7 +21,7 @@ export function generateSpecification(records: BimElementRecord[]) {
 
 export function specificationToCsv(rows: SpecificationRow[]) {
   const escape = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
-  return [["IFC Class", "Storey", "Count"], ...rows.map((row) => [row.category, row.storey, row.count])]
+  return [["IFC-класс", "Этаж", "Количество"], ...rows.map((row) => [row.category, row.storey, row.count])]
     .map((row) => row.map(escape).join(","))
     .join("\n");
 }

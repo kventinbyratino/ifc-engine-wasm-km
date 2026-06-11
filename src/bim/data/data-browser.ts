@@ -26,7 +26,7 @@ export function renderElementTable(options: {
         <th>IFC Class</th>
         <th>Name</th>
         <th>GlobalId</th>
-        <th>Storey</th>
+        <th>Этаж</th>
         <th>Psets</th>
       </tr>
     </thead>

@@ -25,6 +25,7 @@ type RawItem = Record<string, unknown>;
 export async function buildElementIndex(options: {
   fragments: { list: Map<string, unknown> };
   onProgress?: (processed: number, total: number) => void;
+  signal?: AbortSignal;
 }) {
   const records: BimElementRecord[] = [];
   const modelEntries = [...options.fragments.list] as Array<[string, any]>;
@@ -32,6 +33,7 @@ export async function buildElementIndex(options: {
   let total = 0;
 
   for (const [modelId, model] of modelEntries) {
+    assertNotAborted(options.signal);
     const ids = [...(await model.getItemsIdsWithGeometry())] as number[];
     total += ids.length;
     modelItems.push({ modelId, model, ids });
@@ -42,6 +44,7 @@ export async function buildElementIndex(options: {
 
   for (const { modelId, model, ids } of modelItems) {
     for (let index = 0; index < ids.length; index += chunkSize) {
+      assertNotAborted(options.signal);
       const chunk = ids.slice(index, index + chunkSize);
       const items = await model.getItemsData(chunk, {
         attributesDefault: true,
@@ -61,10 +64,15 @@ export async function buildElementIndex(options: {
 
       processed += chunk.length;
       options.onProgress?.(processed, total);
+      assertNotAborted(options.signal);
     }
   }
 
   return records;
+}
+
+function assertNotAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw new DOMException("Операция отменена", "AbortError");
 }
 
 export function filterElementIndex(records: BimElementRecord[], filters: ElementIndexFilters) {

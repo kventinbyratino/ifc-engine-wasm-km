@@ -32,6 +32,7 @@ import { downloadSheetPng, downloadSheetSvg, openSheetPdfPrint } from "../sheets
 import { downloadSheetDxfPaperSpace } from "../sheets/dxf-paper-export";
 import type { SheetFormat } from "../sheets/sheet-types";
 import { generateSpecification, specificationToCsv } from "../specs/spec-generator";
+import { getActiveDrawing, getDrawingStats } from "../state/workspace-state";
 import type { ModelIdMap } from "../types";
 import type { BimAppContext } from "./app-context";
 
@@ -116,7 +117,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
         syncDrawingAnnotations(components, record);
       }
 
-      workspace.drawings.unshift(record);
+      workspace.drawings.drawings.unshift(record);
       restoreStoredSheetsForDrawing(record, stored, storedDrawing?.id);
       persistDrawings();
       renderDrawingsPanel();
@@ -134,29 +135,28 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
 
   async function getDrawingSourceMap(source: DrawingSource) {
     if (source === "selection") {
-      if (isEmptySelection(workspace.activeSelection)) throw new Error("Нет текущей выборки");
-      return workspace.activeSelection;
+      if (isEmptySelection(workspace.viewer.activeSelection)) throw new Error("Нет текущей выборки");
+      return workspace.viewer.activeSelection;
     }
 
     if (source === "filtered") {
-      if (workspace.filteredElements.length === 0) throw new Error("Нет элементов в фильтре Data Browser");
-      return recordsToModelIdMap(workspace.filteredElements);
+      if (workspace.data.filteredElements.length === 0) throw new Error("Нет элементов в фильтре Data Browser");
+      return recordsToModelIdMap(workspace.data.filteredElements);
     }
 
     return hooks.getGeometryItemsMap();
   }
 
   function renderDrawingsPanel() {
-    const totalLines = workspace.drawings.reduce((sum, record) => sum + record.lineCount, 0);
-    const totalAnnotations = workspace.drawings.reduce((sum, record) => sum + record.annotations.length, 0);
-    drawingsSummary.textContent = workspace.drawings.length
-      ? `${workspace.drawings.length} черт. · ${workspace.sheets.length} лист. · ${totalLines} линий · ${totalAnnotations} анн.`
+    const stats = getDrawingStats(workspace.drawings);
+    drawingsSummary.textContent = stats.drawingCount
+      ? `${stats.drawingCount} черт. · ${stats.sheetCount} лист. · ${stats.totalLines} линий · ${stats.totalAnnotations} анн.`
       : fragments.list.size > 0
         ? "Можно генерировать план/фасады"
         : "Загрузите модель";
 
     renderDrawingList({
-      records: workspace.drawings,
+      records: workspace.drawings.drawings,
       output: drawingsOutput,
       onSelect: (record) => void fitCameraToDrawing(world, record),
       onExport: downloadDrawingDxf,
@@ -165,8 +165,8 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       onDeleteAnnotation: deleteAnnotation,
       onDelete: (record) => {
         disposeDrawing(record);
-        workspace.drawings = workspace.drawings.filter((item) => item.id !== record.id);
-        workspace.sheets = workspace.sheets.filter((sheet) => sheet.drawing.id !== record.id);
+        workspace.drawings.drawings = workspace.drawings.drawings.filter((item) => item.id !== record.id);
+        workspace.drawings.sheets = workspace.drawings.sheets.filter((sheet) => sheet.drawing.id !== record.id);
         persistDrawings();
         renderDrawingsPanel();
       },
@@ -202,7 +202,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
   }
 
   async function annotateActiveDrawing() {
-    const record = workspace.drawings[0];
+    const record = getActiveDrawing(workspace.drawings);
     if (!record) {
       drawingsSummary.textContent = "Сначала сгенерируйте чертёж";
       return;
@@ -237,7 +237,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
   }
 
   function clearActiveDrawingAnnotations() {
-    const record = workspace.drawings[0];
+    const record = getActiveDrawing(workspace.drawings);
     if (!record) {
       drawingsSummary.textContent = "Сначала сгенерируйте чертёж";
       return;
@@ -250,7 +250,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
   }
 
   function createSheetFromActiveDrawing() {
-    const record = workspace.drawings[0];
+    const record = getActiveDrawing(workspace.drawings);
     if (!record) {
       drawingsSummary.textContent = "Сначала сгенерируйте чертёж";
       return;
@@ -261,7 +261,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       title: record.name,
       projectName: getProjectName(),
     });
-    workspace.sheets.unshift(sheet);
+    workspace.drawings.sheets.unshift(sheet);
     persistDrawings();
     renderDrawingsPanel();
     drawingsSummary.textContent = `Лист создан: ${sheet.format} · ${sheet.title}`;
@@ -269,8 +269,8 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
   }
 
   function getActiveSheet() {
-    if (!workspace.sheets[0]) createSheetFromActiveDrawing();
-    return workspace.sheets[0] ?? null;
+    if (!workspace.drawings.sheets[0]) createSheetFromActiveDrawing();
+    return workspace.drawings.sheets[0] ?? null;
   }
 
   function getProjectName() {
@@ -280,7 +280,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
   function persistDrawings() {
     if (typeof localStorage === "undefined") return null;
     try {
-      return saveDrawingWorkspace(getProjectName(), workspace.drawings, workspace.sheets, components);
+      return saveDrawingWorkspace(getProjectName(), workspace.drawings.drawings, workspace.drawings.sheets, components);
     } catch (error) {
       console.warn("Drawing persistence failed", error);
       return null;
@@ -298,7 +298,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
 
   function restoreStoredSheetsForDrawing(record: DrawingRecord, stored: StoredDrawingWorkspace | null | undefined, storedDrawingId: string | undefined) {
     if (!storedDrawingId) return;
-    const existingSheetIds = new Set(workspace.sheets.map((sheet) => sheet.id));
+    const existingSheetIds = new Set(workspace.drawings.sheets.map((sheet) => sheet.id));
     const restoredSheets = stored?.sheets
       .filter((sheet) => sheet.drawingId === storedDrawingId && !existingSheetIds.has(sheet.id))
       .map((sheet) => ({
@@ -311,7 +311,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
         id: sheet.id,
         createdAt: new Date(sheet.createdAt),
       })) ?? [];
-    workspace.sheets.unshift(...restoredSheets);
+    workspace.drawings.sheets.unshift(...restoredSheets);
   }
 
   function exportActiveSheetSvg() {
@@ -368,7 +368,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
   }
 
   function exportSpecifications() {
-    const source = workspace.filteredElements.length > 0 ? workspace.filteredElements : workspace.elementIndex;
+    const source = workspace.data.filteredElements.length > 0 ? workspace.data.filteredElements : workspace.data.elementIndex;
     if (source.length === 0) {
       drawingsSummary.textContent = "Нет элементов для спецификации";
       return;
@@ -380,9 +380,9 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
   }
 
   function clearDrawings() {
-    for (const record of workspace.drawings) disposeDrawing(record);
-    workspace.drawings = [];
-    workspace.sheets = [];
+    for (const record of workspace.drawings.drawings) disposeDrawing(record);
+    workspace.drawings.drawings = [];
+    workspace.drawings.sheets = [];
     clearStoredDrawingWorkspace();
     renderDrawingsPanel();
   }

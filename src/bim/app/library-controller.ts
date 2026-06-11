@@ -152,7 +152,7 @@ export function createLibraryController({
     const fragmentId = new URLSearchParams(window.location.search).get("fragment")?.trim();
     if (!fragmentId) return;
 
-    if (workspace.activeProfile === "pending") {
+    if (workspace.viewer.activeProfile === "pending") {
       selectProfile("km");
     }
     ctx.setBusy(true, "Загрузка модели по ссылке");
@@ -198,9 +198,9 @@ export function createLibraryController({
   }
 
   async function saveCurrentFragment() {
-    if (!workspace.lastConvertedModelId || !workspace.lastSourceIfcName) return;
+    if (!workspace.viewer.lastConvertedModelId || !workspace.viewer.lastSourceIfcName) return;
 
-    const model = fragments.list.get(workspace.lastConvertedModelId);
+    const model = fragments.list.get(workspace.viewer.lastConvertedModelId);
     if (!model) {
       ctx.setStatus("Нет модели для сохранения");
       ctx.showToast("Нет модели для сохранения", "error");
@@ -218,8 +218,8 @@ export function createLibraryController({
       }
 
       const form = new FormData();
-      form.set("name", workspace.lastSourceIfcName);
-      form.set("file", new File([fragsBuffer], `${workspace.lastSourceIfcName}.frag`, { type: "application/octet-stream" }));
+      form.set("name", workspace.viewer.lastSourceIfcName);
+      form.set("file", new File([fragsBuffer], `${workspace.viewer.lastSourceIfcName}.frag`, { type: "application/octet-stream" }));
 
       const response = await fetch(apiUrl("/fragments"), { method: "POST", body: form });
       if (!response.ok) throw new Error(await response.text());

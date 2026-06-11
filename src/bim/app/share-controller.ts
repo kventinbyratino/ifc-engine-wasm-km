@@ -7,9 +7,9 @@ export function createShareController(ctx: BimAppContext) {
   const { shareLinkInput, shareModelName, shareCopyStatus, shareModal, shareModelBtn } = ctx.dom;
 
   function openShareModal() {
-    if (!workspace.activeShareRecord) return;
-    shareLinkInput.value = createShareLink(workspace.activeShareRecord.id);
-    shareModelName.textContent = workspace.activeShareRecord.name;
+    if (!workspace.viewer.activeShareRecord) return;
+    shareLinkInput.value = createShareLink(workspace.viewer.activeShareRecord.id);
+    shareModelName.textContent = workspace.viewer.activeShareRecord.name;
     shareCopyStatus.textContent = "";
     shareModal.hidden = false;
     shareLinkInput.focus();
@@ -42,13 +42,13 @@ export function createShareController(ctx: BimAppContext) {
   }
 
   function setActiveShareRecord(record: FragmentRecord | null) {
-    workspace.activeShareRecord = record;
+    workspace.viewer.activeShareRecord = record;
     shareModelBtn.hidden = !record;
     if (!record) closeShareModal();
   }
 
   function createShareLink(fragmentId: string) {
-    const profileSegment = workspace.activeProfile === "bim" ? "bim" : "viewer";
+    const profileSegment = workspace.viewer.activeProfile === "bim" ? "bim" : "viewer";
     const url = new URL(`${APP_BASE || ""}/${profileSegment}/`, window.location.origin);
     url.searchParams.set("fragment", fragmentId);
     return url.toString();

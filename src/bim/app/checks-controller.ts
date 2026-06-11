@@ -15,6 +15,7 @@ import {
 } from "../ui/checks-panel";
 import { createMessage } from "../ui/dom-utils";
 import type { BimElementRecord } from "../data/element-index";
+import { getHealthIssueCount } from "../state/workspace-state";
 import type { BimAppContext } from "./app-context";
 
 export interface ChecksControllerHooks {
@@ -60,12 +61,12 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
 
     checksPanel.hidden = false;
     renderChecksPanel({
-      report: workspace.healthReport,
+      report: workspace.checks.healthReport,
       output: checksOutput,
       onSelect: hooks.selectDataRecord,
       onCreateIssue: hooks.createIssueFromHealthCheck,
     });
-    checksSummary.textContent = formatChecksSummary(workspace.healthReport);
+    checksSummary.textContent = formatChecksSummary(workspace.checks.healthReport);
   }
 
   function closeChecksPanel() {
@@ -80,7 +81,7 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
       const specs = loadIDSSpecifications(components, xml);
       const loadedTitle = getIDSTitle(components);
       if (loadedTitle) idsTitleInput.value = loadedTitle;
-      workspace.healthReport = null;
+      workspace.checks.healthReport = null;
       checksSummary.textContent = `IDS загружен: ${specs.length} specs`;
       checksOutput.replaceChildren(createMessage(`Файл ${file.name}. Запустите проверку по IDS.`));
       ctx.showToast(`IDS загружен: ${specs.length} specs`, "success");
@@ -112,7 +113,7 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
       propertySet,
       propertyName,
     });
-    workspace.healthReport = null;
+    workspace.checks.healthReport = null;
     checksSummary.textContent = `IDS spec добавлен: ${spec.name}`;
     ctx.showToast(`IDS spec добавлен: ${spec.name}`, "success");
     checksOutput.replaceChildren(
@@ -140,20 +141,21 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
     runChecksBtn.loading = true;
     try {
       checksPanel.hidden = false;
-      if (workspace.elementIndex.length === 0) {
+      if (workspace.data.elementIndex.length === 0) {
         checksSummary.textContent = "Сначала индексируем элементы...";
         await hooks.rebuildDataIndex();
       }
-      workspace.healthReport = runModelHealthChecks(workspace.elementIndex);
-      checksSummary.textContent = formatChecksSummary(workspace.healthReport);
+      workspace.checks.healthReport = runModelHealthChecks(workspace.data.elementIndex);
+      checksSummary.textContent = formatChecksSummary(workspace.checks.healthReport);
       renderChecksPanel({
-        report: workspace.healthReport,
+        report: workspace.checks.healthReport,
         output: checksOutput,
         onSelect: hooks.selectDataRecord,
         onCreateIssue: hooks.createIssueFromHealthCheck,
       });
-      ctx.setStatus(`Model Health: ${workspace.healthReport.summary.issueCount} проблем`);
-      ctx.showToast(`Model Health: ${workspace.healthReport.summary.issueCount} проблем`, "success");
+      const issueCount = getHealthIssueCount(workspace.checks);
+      ctx.setStatus(`Model Health: ${issueCount} проблем`);
+      ctx.showToast(`Model Health: ${issueCount} проблем`, "success");
     } catch (error) {
       console.error(error);
       checksSummary.textContent = "Ошибка проверки";
@@ -165,7 +167,7 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
   }
 
   function resetChecks() {
-    workspace.healthReport = null;
+    workspace.checks.healthReport = null;
     checksSummary.textContent = "Проверка не выполнена";
     checksOutput.replaceChildren(createMessage("Загрузите модель и запустите проверку."));
   }

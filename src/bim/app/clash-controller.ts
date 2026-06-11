@@ -50,7 +50,7 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
     }
 
     clashPanel.hidden = false;
-    if (workspace.elementIndex.length === 0 && fragments.list.size > 0) {
+    if (workspace.data.elementIndex.length === 0 && fragments.list.size > 0) {
       void hooks.rebuildDataIndex().then(() => renderClash());
       return;
     }
@@ -63,16 +63,16 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
   }
 
   function refreshClashSelectors() {
-    const models = summarizeFederatedModels(workspace.elementIndex);
-    const groups = getClashGroupOptions(workspace.elementIndex);
+    const models = summarizeFederatedModels(workspace.data.elementIndex);
+    const groups = getClashGroupOptions(workspace.data.elementIndex);
     fillClashGroupSelect(clashGroupASelect, { models, ...groups });
     fillClashGroupSelect(clashGroupBSelect, { models, ...groups });
   }
 
   function renderClash() {
     renderClashPanel({
-      models: summarizeFederatedModels(workspace.elementIndex),
-      clashes: workspace.clashes,
+      models: summarizeFederatedModels(workspace.data.elementIndex),
+      clashes: workspace.clash.clashes,
       output: clashOutput,
       summary: clashSummary,
       onSelect: (clash) => void selectClash(clash),
@@ -88,15 +88,15 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
     let signal: AbortSignal | null = null;
     try {
       clashPanel.hidden = false;
-      if (workspace.elementIndex.length === 0) {
+      if (workspace.data.elementIndex.length === 0) {
         clashSummary.textContent = "Сначала индексируем элементы...";
         await hooks.rebuildDataIndex();
       }
 
       const activeSignal = ctx.startOperation("Clash detection");
       signal = activeSignal;
-      const groupA = selectClashGroup(workspace.elementIndex, clashGroupASelect.value);
-      const groupB = selectClashGroup(workspace.elementIndex, clashGroupBSelect.value);
+      const groupA = selectClashGroup(workspace.data.elementIndex, clashGroupASelect.value);
+      const groupB = selectClashGroup(workspace.data.elementIndex, clashGroupBSelect.value);
       const tolerance = Math.max(0, Number(clashToleranceInput.value) || 0);
       clashSummary.textContent = `Проверка пар: ${Math.min(groupA.length, 250)} × ${Math.min(groupB.length, 250)}`;
 
@@ -108,7 +108,7 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
         bboxIndex,
         signal: activeSignal,
       });
-      workspace.clashes = result.clashes;
+      workspace.clash.clashes = result.clashes;
       renderClash();
       ctx.setStatus(`Clash detection: ${result.clashes.length} найдено, ${result.checkedPairs} пар`);
       ctx.showToast(`Clash detection: ${result.clashes.length} найдено`, "success");
@@ -133,7 +133,7 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
   async function selectClash(clash: ClashRecord) {
     await hooks.applySearchHighlight(clash.modelIdMap);
     await hooks.fitToItems(clash.modelIdMap);
-    workspace.activeSelection = clash.modelIdMap;
+    workspace.viewer.activeSelection = clash.modelIdMap;
     selectionCount.textContent = String(countSelection(clash.modelIdMap));
   }
 

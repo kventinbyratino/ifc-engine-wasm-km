@@ -173,7 +173,7 @@ export async function startBimApp() {
     viewer: { components, world, fragments, ifcLoader, highlighter, hider },
     workspace,
     issueStore,
-    getCapabilities: () => getProfileCapabilities(workspace.activeProfile),
+    getCapabilities: () => getProfileCapabilities(workspace.viewer.activeProfile),
     setStatus: (message) => {
       statusText.textContent = message;
     },
@@ -189,7 +189,7 @@ export async function startBimApp() {
     viewport,
     world,
     components,
-    getActiveDrawing: () => workspace.drawings[0] ?? null,
+    getActiveDrawing: () => workspace.drawings.drawings[0] ?? null,
     getAnnotationType: () => annotationTypeSelect.value as DrawingAnnotationType,
     getAnnotationText: () => annotationTextInput.value,
     onAnnotationAdded: (record) => {
@@ -447,7 +447,7 @@ export async function startBimApp() {
   });
 
   highlighter.events.select.onHighlight.add(async (modelIdMap) => {
-    workspace.activeSelection = modelIdMap;
+    workspace.viewer.activeSelection = modelIdMap;
     selectionCount.textContent = String(countSelection(modelIdMap));
     await renderSelectedProperties({ components, modelIdMap, output: propertiesOutput });
   });
@@ -485,15 +485,15 @@ export async function startBimApp() {
   dataCategoryFilter.onchange = () => applyDataFilters();
   dataStoreyFilter.onchange = () => applyDataFilters();
   highlightFilteredBtn.onclick = () => void highlightFilteredElements();
-  exportCsvBtn.onclick = () => exportElementsCsv(workspace.filteredElements);
-  exportJsonBtn.onclick = () => exportElementsJson(workspace.filteredElements);
+  exportCsvBtn.onclick = () => exportElementsCsv(workspace.data.filteredElements);
+  exportJsonBtn.onclick = () => exportElementsJson(workspace.data.filteredElements);
   closeChecksPanelBtn.onclick = () => closeChecksPanel();
   idsFileInput.onchange = () => void loadIDSFile();
   addIdsRequirementBtn.onclick = () => addIDSRequirementFromForm();
   saveIdsBtn.onclick = () => saveIDSFile();
   runChecksBtn.onclick = () => void runChecks();
-  exportChecksCsvBtn.onclick = () => exportChecksCsv(workspace.healthReport);
-  exportChecksJsonBtn.onclick = () => exportChecksJson(workspace.healthReport);
+  exportChecksCsvBtn.onclick = () => exportChecksCsv(workspace.checks.healthReport);
+  exportChecksJsonBtn.onclick = () => exportChecksJson(workspace.checks.healthReport);
   closeIssuesPanelBtn.onclick = () => closeIssuesPanel();
   createIssueBtn.onclick = () => void createIssueFromSelection();
   exportIssuesJsonBtn.onclick = () => exportIssuesJson(issueStore.list());
@@ -505,7 +505,7 @@ export async function startBimApp() {
   closeClashPanelBtn.onclick = () => closeClashPanel();
   runClashBtn.onclick = () => void runClashDetection();
   clearClashBtn.onclick = () => {
-    workspace.clashes = [];
+    workspace.clash.clashes = [];
     renderClash();
   };
   closeDrawingsPanelBtn.onclick = () => closeDrawingsPanel();
@@ -582,7 +582,7 @@ export async function startBimApp() {
   }
 
   function clearSelectionInfo() {
-    workspace.activeSelection = {};
+    workspace.viewer.activeSelection = {};
     selectionCount.textContent = "0";
     propertiesOutput.replaceChildren(createMessage("Выберите элемент модели."));
   }

@@ -14,6 +14,7 @@ import {
 } from "../data/data-browser";
 import { createMessage } from "../ui/dom-utils";
 import type { ModelIdMap } from "../types";
+import { getFilteredElementCount, getIndexedElementCount } from "../state/workspace-state";
 import type { BimAppContext } from "./app-context";
 
 export interface DataControllerHooks {
@@ -56,7 +57,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     }
 
     dataPanel.hidden = false;
-    if (workspace.elementIndex.length === 0 && fragments.list.size > 0) {
+    if (getIndexedElementCount(workspace.data) === 0 && fragments.list.size > 0) {
       void rebuildDataIndex();
       return;
     }
@@ -83,7 +84,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     const signal = ctx.startOperation("Индексация элементов");
 
     try {
-      workspace.elementIndex = await buildElementIndex({
+      workspace.data.elementIndex = await buildElementIndex({
         fragments,
         signal,
         onProgress: (processed, total) => {
@@ -91,11 +92,11 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
           ctx.setProgress(total > 0 ? processed / total : 0);
         },
       });
-      fillSelectOptions(dataCategoryFilter, getUniqueValues(workspace.elementIndex, "category"), "Все IFC Class");
-      fillSelectOptions(dataStoreyFilter, getUniqueValues(workspace.elementIndex, "storey"), "Все этажи");
+      fillSelectOptions(dataCategoryFilter, getUniqueValues(workspace.data.elementIndex, "category"), "Все IFC Class");
+      fillSelectOptions(dataStoreyFilter, getUniqueValues(workspace.data.elementIndex, "storey"), "Все этажи");
       applyDataFilters();
       hooks.refreshClashSelectors();
-      ctx.showToast(`BIM Data Index: ${workspace.elementIndex.length} элементов`, "success");
+      ctx.showToast(`BIM Data Index: ${getIndexedElementCount(workspace.data)} элементов`, "success");
     } catch (error) {
       console.error(error);
       if (isAbortError(error)) {
@@ -115,8 +116,8 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
   }
 
   function resetDataIndex() {
-    workspace.elementIndex = [];
-    workspace.filteredElements = [];
+    workspace.data.elementIndex = [];
+    workspace.data.filteredElements = [];
     dataSummary.textContent = "Загрузите модель";
     dataSearchInput.value = "";
     fillSelectOptions(dataCategoryFilter, [], "Все IFC Class");
@@ -126,16 +127,16 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
   }
 
   function applyDataFilters() {
-    workspace.filteredElements = filterElementIndex(workspace.elementIndex, {
+    workspace.data.filteredElements = filterElementIndex(workspace.data.elementIndex, {
       query: dataSearchInput.value,
       category: dataCategoryFilter.value,
       storey: dataStoreyFilter.value,
     });
 
-    dataSummary.textContent = `${workspace.filteredElements.length} из ${workspace.elementIndex.length} элементов`;
+    dataSummary.textContent = `${getFilteredElementCount(workspace.data)} из ${getIndexedElementCount(workspace.data)} элементов`;
     renderElementTable({
-      records: workspace.filteredElements,
-      totalCount: workspace.filteredElements.length,
+      records: workspace.data.filteredElements,
+      totalCount: workspace.data.filteredElements.length,
       output: dataTableOutput,
       onSelect: selectDataRecord,
     });
@@ -146,15 +147,15 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     await hooks.applySearchHighlight(modelIdMap);
     await hooks.fitToItems(modelIdMap);
     await renderSelectedProperties({ components, modelIdMap, output: propertiesOutput });
-    workspace.activeSelection = modelIdMap;
+    workspace.viewer.activeSelection = modelIdMap;
     selectionCount.textContent = "1";
   }
 
   async function highlightFilteredElements() {
-    if (workspace.filteredElements.length === 0) return;
+    if (getFilteredElementCount(workspace.data) === 0) return;
     highlightFilteredBtn.loading = true;
     try {
-      const limitedRecords = workspace.filteredElements.slice(0, 1500);
+      const limitedRecords = workspace.data.filteredElements.slice(0, 1500);
       const modelIdMap = recordsToModelIdMap(limitedRecords);
       await hooks.applySearchHighlight(modelIdMap);
       await hooks.fitToItems(modelIdMap);

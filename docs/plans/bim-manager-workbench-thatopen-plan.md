@@ -724,6 +724,8 @@ npm run build
 - Состояние читается и обновляется по доменам.
 - Нет единого файла/типа, в который складывается всё подряд.
 
+Статус: выполнено — `WorkspaceState` разнесён на `viewer/data/checks/issues/clash/drawings` с selector-слоем для derived state.
+
 ---
 
 ### Phase 11 — DOM segmentation and UI module split

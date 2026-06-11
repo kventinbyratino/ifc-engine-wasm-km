@@ -76,8 +76,8 @@ export function createModelController({
         },
       });
 
-      workspace.lastConvertedModelId = modelId;
-      workspace.lastSourceIfcName = sourceName;
+      workspace.viewer.lastConvertedModelId = modelId;
+      workspace.viewer.lastSourceIfcName = sourceName;
       saveFragmentBtn.hidden = false;
       closeLibraryModal();
       ctx.setStatus("IFC загружен и преобразован. Можно сохранить fragment");
@@ -122,14 +122,14 @@ export function createModelController({
   }
 
   async function hideSelected() {
-    if (isEmptySelection(workspace.activeSelection)) return;
-    await hider.set(false, workspace.activeSelection);
+    if (isEmptySelection(workspace.viewer.activeSelection)) return;
+    await hider.set(false, workspace.viewer.activeSelection);
     await highlighter.clear("select");
   }
 
   async function isolateSelected() {
-    if (isEmptySelection(workspace.activeSelection)) return;
-    await hider.isolate(workspace.activeSelection);
+    if (isEmptySelection(workspace.viewer.activeSelection)) return;
+    await hider.isolate(workspace.viewer.activeSelection);
   }
 
   async function clearModels(options: { keepStatus?: boolean } = {}) {
@@ -144,7 +144,7 @@ export function createModelController({
     clearDrawings();
     issueStore.clear();
     renderIssues();
-    workspace.clashes = [];
+    workspace.clash.clashes = [];
     renderClash();
     clearBBoxIndex();
     resetDataIndex();
@@ -196,7 +196,7 @@ export function createModelController({
   function refreshModelState() {
     const hasModels = fragments.list.size > 0;
     const capabilities = ctx.getCapabilities();
-    const showBimEmptyState = !hasModels && workspace.activeProfile === "bim";
+    const showBimEmptyState = !hasModels && workspace.viewer.activeProfile === "bim";
     modelCount.textContent = String(fragments.list.size);
     emptyBimState.hidden = !showBimEmptyState;
     loadIfcBtn.hidden = hasModels || showBimEmptyState;

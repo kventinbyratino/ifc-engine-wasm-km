@@ -49,7 +49,7 @@ export function createProfileRouter({
   }
 
   function selectProfile(profile: Profile) {
-    ctx.workspace.activeProfile = profile;
+    ctx.workspace.viewer.activeProfile = profile;
     app.classList.remove("profile-pending", "profile-km", "profile-bim");
     bimStub.hidden = true;
 

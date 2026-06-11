@@ -63,13 +63,13 @@ export function createIssuesController(ctx: BimAppContext, hooks: IssuesControll
 
   async function createIssueFromSelection() {
     if (!hooks.canUseIssues()) return;
-    if (isEmptySelection(workspace.activeSelection)) {
+    if (isEmptySelection(workspace.viewer.activeSelection)) {
       issuesSummary.textContent = "Сначала выберите элемент";
       ctx.showToast("Сначала выберите элемент", "error");
       return;
     }
 
-    if (workspace.elementIndex.length === 0) await hooks.rebuildDataIndex();
+    if (workspace.data.elementIndex.length === 0) await hooks.rebuildDataIndex();
     const record = findRecordInSelection();
     if (!record) {
       issuesSummary.textContent = "Выбранный элемент не найден в BIM Data Index";
@@ -108,7 +108,7 @@ export function createIssuesController(ctx: BimAppContext, hooks: IssuesControll
   }
 
   async function selectIssue(issue: BimIssue) {
-    const record = workspace.elementIndex.find((item) => item.modelId === issue.modelId && item.localId === issue.localId) ?? {
+    const record = workspace.data.elementIndex.find((item) => item.modelId === issue.modelId && item.localId === issue.localId) ?? {
       modelId: issue.modelId,
       localId: issue.localId,
       name: issue.elementName,
@@ -125,8 +125,8 @@ export function createIssuesController(ctx: BimAppContext, hooks: IssuesControll
   }
 
   function findRecordInSelection() {
-    for (const record of workspace.elementIndex) {
-      if (workspace.activeSelection[record.modelId]?.has(record.localId)) return record;
+    for (const record of workspace.data.elementIndex) {
+      if (workspace.viewer.activeSelection[record.modelId]?.has(record.localId)) return record;
     }
     return null;
   }

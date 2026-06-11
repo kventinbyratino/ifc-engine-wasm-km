@@ -631,3 +631,444 @@ Production не трогать без явного подтверждения.
 - `git diff --check` проходит;
 - dev URL отдаёт новую сборку;
 - browser console без критических ошибок.
+
+---
+
+## 9. Refactor roadmap continuation
+
+> This section extends the main plan with implementation-ready refactor phases. The goal is not to add new BIM features first, but to make the existing workbench maintainable, testable, and easier to extend.
+
+### Phase 9 — App bootstrap and controller orchestration
+
+**Цель:** убрать центральную точку сборки из `src/bim/app.ts` и сделать запуск приложения явным.
+
+**Файлы:**
+
+- Modify: `src/bim/app.ts`
+- Create: `src/bim/app/bootstrap.ts`
+- Create: `src/bim/app/controller-registry.ts`
+- Create: `src/bim/app/event-bus.ts` *(если понадобится)*
+
+**Task 9.1 — Bootstrap extraction**
+
+- Вынести `createBimViewer`, DOM lookup, workspace/issue store и профильный роутинг в отдельный bootstrap-слой.
+- Оставить `app.ts` только как точку входа.
+- Проверить, что начальная инициализация не меняет поведение.
+
+**Task 9.2 — Controller registry**
+
+- Завести единый registry для `open/close/render/reset` API контроллеров.
+- Убрать `let closeX = () => {}` и похожие «заглушки».
+- Подключать новые панели через единый реестр, а не через каскад локальных переменных.
+
+**Task 9.3 — Event wiring cleanup**
+
+- Собрать все обработчики кнопок, hotkeys и panel actions в один слой.
+- Выделить общие helper-ы для loading/busy/status/progress.
+- Убедиться, что UX, routes и console behavior не изменились.
+
+**Verification:**
+
+```bash
+npx tsc --noEmit
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+
+- `src/bim/app.ts` превращается в тонкий entrypoint.
+- Все панели и кнопки продолжают работать.
+- Новые контроллеры можно подключать без правок в десятке мест.
+
+---
+
+### Phase 10 — Workspace state decomposition
+
+**Цель:** разнести `WorkspaceState` по доменным срезам и убрать общий мешок данных.
+
+**Файлы:**
+
+- Modify: `src/bim/state/workspace-state.ts`
+- Create: `src/bim/state/viewer-state.ts`
+- Create: `src/bim/state/data-state.ts`
+- Create: `src/bim/state/checks-state.ts`
+- Create: `src/bim/state/issues-state.ts`
+- Create: `src/bim/state/clash-state.ts`
+- Create: `src/bim/state/drawings-state.ts`
+
+**Task 10.1 — Domain split**
+
+- Разделить state-модели на viewer/data/checks/issues/clash/drawings.
+- Перенести поля по доменам, не ломая текущие потребители.
+
+**Task 10.2 — Derived selectors**
+
+- Добавить selectors для derived state вместо прямого доступа к массивам.
+- Упростить вычисление filtered/selected/active сущностей.
+
+**Task 10.3 — Runtime vs domain data**
+
+- Отделить UI/runtime flags от domain data.
+- Свести к минимуму cross-domain mutation из одного объекта состояния.
+
+**Verification:**
+
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+**Acceptance:**
+
+- Состояние читается и обновляется по доменам.
+- Нет единого файла/типа, в который складывается всё подряд.
+
+---
+
+### Phase 11 — DOM segmentation and UI module split
+
+**Цель:** сделать DOM-слой менее монолитным и проще для тестирования.
+
+**Файлы:**
+
+- Modify: `src/bim/dom.ts`
+- Create: `src/bim/dom/viewer-dom.ts`
+- Create: `src/bim/dom/data-dom.ts`
+- Create: `src/bim/dom/checks-dom.ts`
+- Create: `src/bim/dom/issues-dom.ts`
+- Create: `src/bim/dom/clash-dom.ts`
+- Create: `src/bim/dom/drawings-dom.ts`
+
+**Task 11.1 — UI section grouping**
+
+- Разбить `getDomElements()` по фичам или секциям UI.
+- Вернуть сгруппированные объекты DOM вместо одного огромного списка.
+
+**Task 11.2 — Validation helpers**
+
+- Упростить проверку обязательных элементов через helper-ы.
+- Сделать ошибки DOM более локальными и понятными.
+
+**Task 11.3 — Markup/controller contract**
+
+- Снизить связность между HTML и feature controllers.
+- Сделать contract между разметкой и JS более явным.
+
+**Verification:**
+
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+**Acceptance:**
+
+- DOM-слой отражает UI-модули, а не весь экран целиком.
+- Добавление новой панели не требует расширять один мегасписок на сотни строк.
+
+---
+
+### Phase 12 — Element index extraction and data layer cleanup
+
+**Цель:** сделать индекс элементов модели более чистым, переиспользуемым и тестируемым.
+
+**Файлы:**
+
+- Modify: `src/bim/data/element-index.ts`
+- Create: `src/bim/data/extractors.ts`
+- Create: `src/bim/data/search-index.ts`
+- Create: `src/bim/data/property-sets.ts`
+- Create: `src/bim/data/model-reader.ts`
+
+**Task 12.1 — Pure extractors**
+
+- Вынести извлечение `storey`, `material`, `psets`, searchable string в отдельные pure helpers.
+- Сделать helper-ы независимыми от UI и controller-слоя.
+
+**Task 12.2 — Reader vs index builder**
+
+- Разделить чтение модели и построение индекса.
+- Разнести I/O, нормализацию и search indexing.
+
+**Task 12.3 — Performance and testability**
+
+- Сократить цену рекурсивного обхода атрибутов.
+- Добавить unit-тесты на edge cases extraction.
+
+**Verification:**
+
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+**Acceptance:**
+
+- Извлечение данных можно тестировать отдельно от UI.
+- Индекс остаётся функционально тем же, но код проще расширять.
+
+---
+
+### Phase 13 — Model health rules modularization
+
+**Цель:** превратить набор проверок качества модели в набор отдельных правил и модулей.
+
+**Файлы:**
+
+- Modify: `src/bim/checks/rules.ts`
+- Create: `src/bim/checks/rules/name-rules.ts`
+- Create: `src/bim/checks/rules/identity-rules.ts`
+- Create: `src/bim/checks/rules/structure-rules.ts`
+- Create: `src/bim/checks/rules/material-rules.ts`
+
+**Task 13.1 — Rule grouping**
+
+- Разделить правила по смысловым группам.
+- Отделить predicate-логику от текстов описания.
+
+**Task 13.2 — Context and localization readiness**
+
+- Подготовить правила к возможному i18n/локализации.
+- Упростить добавление новых текстов без правки центрального списка.
+
+**Task 13.3 — Rule tests**
+
+- Добавить тесты на критичные правила и контекстные вычисления.
+- Проверить duplicate IDs, proxy share, missing material/name and similar edge cases.
+
+**Verification:**
+
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+**Acceptance:**
+
+- Каждое правило легко найти и изменить.
+- Новые проверки добавляются без роста одного огромного файла.
+
+---
+
+### Phase 14 — Clash detection pipeline split
+
+**Цель:** разделить broad phase, exact overlap, scoring и отчётность по коллизиям.
+
+**Файлы:**
+
+- Modify: `src/bim/clash/clash-detector.ts`
+- Create: `src/bim/clash/broad-phase.ts`
+- Create: `src/bim/clash/overlap.ts`
+- Create: `src/bim/clash/clash-report.ts`
+- Create: `src/bim/clash/clash-candidates.ts`
+
+**Task 14.1 — Candidate generation**
+
+- Вынести генерацию candidate pairs в отдельный модуль.
+- Сделать фильтрацию прозрачной и тестируемой.
+
+**Task 14.2 — Exact overlap engine**
+
+- Вынести exact overlap/volume computation.
+- Оставить detection logic без форматирования UI-текста.
+
+**Task 14.3 — Reporting and tests**
+
+- Отделить форматирование clash record от геометрии.
+- Подготовить unit-тесты на 2D/3D edge cases и tolerance logic.
+
+**Verification:**
+
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+**Acceptance:**
+
+- Геометрия и бизнес-логика не смешаны.
+- Candidate filtering можно улучшать независимо от отчёта.
+
+---
+
+### Phase 15 — Drawings and annotations architecture cleanup
+
+**Цель:** сделать drawings-подсистему документной моделью, а не набором разрозненных helper-ов.
+
+**Файлы:**
+
+- Modify: `src/bim/drawings/drawing-annotations.ts`
+- Modify: `src/bim/drawings/drawing-persistence.ts`
+- Modify: `src/bim/drawings/drawings-panel.ts`
+- Create: `src/bim/drawings/drawing-document.ts`
+- Create: `src/bim/drawings/annotation-factory.ts`
+- Create: `src/bim/drawings/annotation-geometry.ts`
+
+**Task 15.1 — Document model**
+
+- Ввести общую модель `DrawingDocument` / `SheetDocument`.
+- Привязать к ней annotations, viewport и export state.
+
+**Task 15.2 — Annotation lifecycle**
+
+- Разделить создание, синхронизацию и удаление аннотаций.
+- Убрать эвристики из UI-текста в пользу явных типов.
+
+**Task 15.3 — Export pipeline**
+
+- Подготовить единый путь для SVG/PDF/DXF export.
+- Свести экспорт к адаптерам от одной сущности.
+
+**Verification:**
+
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+**Acceptance:**
+
+- Аннотации и листы работают через единый data model.
+- Экспорт больше не зависит от случайных helper-цепочек.
+
+---
+
+### Phase 16 — Issue store and backend layering
+
+**Цель:** разделить storage, business rules и API surfaces для issues/fragments/backend.
+
+**Файлы:**
+
+- Modify: `src/bim/issues/issues-store.ts`
+- Modify: `server/app/main.py`
+- Create: `server/app/settings.py`
+- Create: `server/app/repository.py`
+- Create: `server/app/schemas.py`
+- Create: `server/app/auth.py`
+
+**Task 16.1 — Backend layering**
+
+- Разнести backend на factory/settings/repository/routes.
+- Вынести auth dependency и parsing env vars из роутов.
+
+**Task 16.2 — Schemas and validation**
+
+- Сделать schema validation для ответов и импортов.
+- Отделить API-формат от внутреннего хранения.
+
+**Task 16.3 — Issue storage separation**
+
+- Отделить issue storage API от UI-состояния.
+- Подготовить store к будущей persistence/BCF интеграции.
+
+**Verification:**
+
+```bash
+PYTHONPATH=server pytest -q server/tests
+```
+
+**Acceptance:**
+
+- Backend читабелен по слоям.
+- Импорт/экспорт issues и fragments проще тестировать и расширять.
+
+---
+
+### Phase 17 — Profile registry, selection, and property pure logic
+
+**Цель:** убрать лишние side effects из viewer/profile/selection/property logic.
+
+**Файлы:**
+
+- Modify: `src/bim/profiles/index.ts`
+- Create: `src/bim/profiles/registry.ts`
+- Modify: `src/bim/selection/selection.ts`
+- Modify: `src/bim/properties/properties-panel.ts`
+- Modify: `src/bim/viewer/viewer.ts`
+
+**Task 17.1 — Profile registry**
+
+- Сделать декларативный реестр профилей и capabilities.
+- Свести маршруты и флаги возможностей в одно место.
+
+**Task 17.2 — Pure selection helpers**
+
+- Вынести чистые функции подсчёта/форматирования selection.
+- Упростить повторное использование и тестирование.
+
+**Task 17.3 — Property rendering split**
+
+- Отделить render-логику от вычислений свойств.
+- Снизить количество сайд-эффектов в viewer/property path.
+
+**Verification:**
+
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+**Acceptance:**
+
+- Профили и их возможности описаны в одном месте.
+- Pure helpers можно тестировать отдельно от DOM/Three.js.
+
+---
+
+### Phase 18 — Build, tests, docs, and config hardening
+
+**Цель:** закрепить рефакторинг тестами, документацией и конфигурацией сборки.
+
+**Файлы:**
+
+- Modify: `vite.config.ts`
+- Modify: `README.md`
+- Create: `src/**/*.test.ts`
+- Create: `tests/e2e/*.spec.ts`
+- Modify: `package.json`
+
+**Task 18.1 — Unit coverage**
+
+- Добавить unit-тесты для data/clash/rules/drawings helpers.
+- Приоритизировать pure modules и edge cases.
+
+**Task 18.2 — E2E smoke**
+
+- Добавить smoke e2e для загрузки BIM-профиля и одной модели.
+- Проверить старт приложения и отсутствие критических ошибок.
+
+**Task 18.3 — Docs and config**
+
+- Проверить разумный chunking для тяжёлых vendor-частей.
+- Обновить README под реальную архитектуру после рефакторинга.
+- Свести все проверки в единый repeatable runbook.
+
+**Verification:**
+
+```bash
+npx tsc --noEmit
+npm run build
+PYTHONPATH=server pytest -q server/tests
+```
+
+**Acceptance:**
+
+- Есть повторяемые проверки для критичных модулей.
+- README соответствует коду.
+- Конфиг сборки и тестов не расходится с реальной архитектурой.
+
+---
+
+### Suggested refactor order
+
+1. Phase 9 — bootstrap/orchestration
+2. Phase 10 — workspace state
+3. Phase 11 — DOM split
+4. Phase 12 — data extraction
+5. Phase 13 — health rules
+6. Phase 14 — clash pipeline
+7. Phase 15 — drawings/annotations
+8. Phase 16 — issue/backend layering
+9. Phase 17 — profiles/selection/properties
+10. Phase 18 — tests/docs/config

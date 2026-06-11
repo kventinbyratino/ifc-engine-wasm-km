@@ -49,9 +49,13 @@ export function renderSheetSvg(sheet: SheetRecord) {
   <text x="${margin + 6}" y="${size.height - margin - titleBlockHeight + 23}" font-family="Arial" font-size="5" fill="#334155">${escapeXml(sheet.title)}</text>
   <text x="${size.width - margin - 122}" y="${size.height - margin - titleBlockHeight + 12}" font-family="Arial" font-size="5" fill="#111827">Format: ${sheet.format}</text>
   <text x="${size.width - margin - 122}" y="${size.height - margin - titleBlockHeight + 23}" font-family="Arial" font-size="4" fill="#334155">Scale: 1:${drawingScale}</text>
-  <text x="${size.width - margin - 58}" y="${size.height - margin - titleBlockHeight + 12}" font-family="Arial" font-size="5" fill="#111827">${sheet.createdAt.toLocaleDateString("ru-RU")}</text>
+  <text x="${size.width - margin - 58}" y="${size.height - margin - titleBlockHeight + 12}" font-family="Arial" font-size="5" fill="#111827">${formatSheetDate(sheet.createdAt)}</text>
   <text x="${size.width - margin - 58}" y="${size.height - margin - titleBlockHeight + 23}" font-family="Arial" font-size="4" fill="#334155">${escapeXml(sheet.drawing.view.toUpperCase())}</text>
 </svg>`;
+}
+
+function formatSheetDate(value: Date) {
+  return new Intl.DateTimeFormat("ru-RU", { year: "numeric", month: "2-digit", day: "2-digit" }).format(value);
 }
 
 function renderDrawingProjection(drawing: DrawingRecord, viewport: { x: number; y: number; width: number; height: number }) {

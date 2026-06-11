@@ -8,6 +8,25 @@
 
 **Tech Stack:** TypeScript, Vite, Three.js, `@thatopen/components`, `@thatopen/components-front`, `@thatopen/fragments`, `@thatopen/ui`, `@thatopen/ui-obc`, `web-ifc`.
 
+**Статус реализации:** обновлено 2026-06-11 по ветке `ux/phase-3-product-polish` / HEAD `735ad21`. Проверка: `npm run build` проходит.
+
+**Сводка:**
+
+- ✅ Sprint 1 — архитектура BIM-профиля: выполнено.
+- ✅ Sprint 2 — BIM Data Layer: выполнено.
+- ✅ Sprint 3 — Drawings/DXF MVP: выполнено.
+- ✅ Sprint 4 — Drawing annotations: MVP выполнен; backlog частично выполнен, native ThatOpen API остаётся ограничением текущих пакетов.
+- ✅ Sprint 5 — Model Health Checks: выполнено.
+- ✅ Sprint 6 — Issues / BCF foundation: выполнено.
+- ✅ Sprint 7 — Federation + Clash MVP: выполнено.
+- ✅ Sprint 8 — Sheets, PDF/PNG, specifications: MVP выполнен; развитие листов остаётся следующим улучшением.
+
+**UX/Product Phase 3:**
+
+- ✅ Task 3.1 — empty-state onboarding card: выполнено, commit `32a79c0`.
+- ✅ Task 3.2 — русская терминология: выполнено, commit `735ad21`.
+- ⏳ Task 3.3 — status/error toast: следующий невыполненный task, отдельного `src/bim/ui/toast.ts` пока нет.
+
 ---
 
 ## 1. Техническая база

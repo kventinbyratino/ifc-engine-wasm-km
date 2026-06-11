@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript, Vite, Three.js, `@thatopen/components`, `@thatopen/components-front`, `@thatopen/fragments`, `@thatopen/ui`, `@thatopen/ui-obc`, `web-ifc`.
 
-**Статус реализации:** обновлено 2026-06-11 по ветке `ux/phase-3-product-polish` / HEAD `735ad21`. Проверка: `npm run build` проходит.
+**Статус реализации:** обновлено 2026-06-11 по ветке `ux/phase-3-product-polish`. Проверка: `npm run build` проходит.
 
 **Сводка:**
 
@@ -25,7 +25,8 @@
 
 - ✅ Task 3.1 — empty-state onboarding card: выполнено, commit `32a79c0`.
 - ✅ Task 3.2 — русская терминология: выполнено, commit `735ad21`.
-- ⏳ Task 3.3 — status/error toast: следующий невыполненный task, отдельного `src/bim/ui/toast.ts` пока нет.
+- ✅ Task 3.3 — status/error toast: выполнено; добавлен `src/bim/ui/toast.ts`, визуальные toast-уведомления для ошибок, успешной загрузки/сохранения/удаления, проверок, коллизий, issues и экспорта чертежей/DXF.
+- ✅ Phase 3 — завершена.
 
 ---
 

@@ -118,9 +118,11 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       renderDrawingsPanel();
       await fitCameraToDrawing(world, record);
       ctx.setStatus(`Чертёж готов: ${record.lineCount} линий`);
+      ctx.showToast(`Чертёж готов: ${record.lineCount} линий`, "success");
     } catch (error) {
       console.error(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
       generateDrawingBtn.loading = false;
     }
@@ -190,9 +192,11 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       await fitCameraToDrawing(world, record);
       drawingsSummary.textContent = `${getDrawingAnnotationTypeLabel(annotation.type)} добавлена · всего ${record.annotations.length}`;
       ctx.setStatus(`Аннотация добавлена: ${annotation.text}`);
+      ctx.showToast(`${getDrawingAnnotationTypeLabel(annotation.type)} добавлена`, "success");
     } catch (error) {
       console.error(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
       addAnnotationBtn.loading = false;
     }
@@ -208,6 +212,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     persistDrawings();
     renderDrawingsPanel();
     drawingsSummary.textContent = `Аннотации очищены: ${record.name}`;
+    ctx.showToast("Аннотации очищены", "success");
   }
 
   function createSheetFromActiveDrawing() {
@@ -226,6 +231,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     persistDrawings();
     renderDrawingsPanel();
     drawingsSummary.textContent = `Лист создан: ${sheet.format} · ${sheet.title}`;
+    ctx.showToast(`Лист создан: ${sheet.format}`, "success");
   }
 
   function getActiveSheet() {
@@ -261,6 +267,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     if (!sheet) return;
     downloadSheetSvg(sheet);
     drawingsSummary.textContent = `SVG экспортирован: ${sheet.format}`;
+    ctx.showToast(`SVG экспортирован: ${sheet.format}`, "success");
   }
 
   async function exportActiveSheetPng() {
@@ -270,9 +277,11 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     try {
       await downloadSheetPng(sheet);
       drawingsSummary.textContent = `PNG экспортирован: ${sheet.format}`;
+      ctx.showToast(`PNG экспортирован: ${sheet.format}`, "success");
     } catch (error) {
       console.error(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
       exportSheetPngBtn.loading = false;
     }
@@ -284,9 +293,11 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     try {
       openSheetPdfPrint(sheet);
       drawingsSummary.textContent = `PDF/print открыт: ${sheet.format}`;
+      ctx.showToast(`PDF/print открыт: ${sheet.format}`, "success");
     } catch (error) {
       console.error(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     }
   }
 
@@ -296,9 +307,11 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     try {
       downloadSheetDxfPaperSpace(components, sheet);
       drawingsSummary.textContent = `DXF paper-space экспортирован: ${sheet.format}`;
+      ctx.showToast(`DXF экспортирован: ${sheet.format}`, "success");
     } catch (error) {
       console.error(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     }
   }
 
@@ -311,6 +324,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     const rows = generateSpecification(source);
     hooks.downloadTextFile("bim-specification.csv", specificationToCsv(rows), "text/csv;charset=utf-8");
     drawingsSummary.textContent = `Спецификация экспортирована: ${rows.length} строк`;
+    ctx.showToast(`Спецификация экспортирована: ${rows.length} строк`, "success");
   }
 
   function clearDrawings() {

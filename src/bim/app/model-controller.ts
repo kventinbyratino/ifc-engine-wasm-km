@@ -58,6 +58,7 @@ export function createModelController({
     setActiveShareRecord(null);
     if (file.size > MAX_IFC_BYTES) {
       ctx.setStatus("IFC больше 200 МБ");
+      ctx.showToast("IFC больше 200 МБ", "error");
       return;
     }
 
@@ -80,6 +81,7 @@ export function createModelController({
       saveFragmentBtn.hidden = false;
       closeLibraryModal();
       ctx.setStatus("IFC загружен и преобразован. Можно сохранить fragment");
+      ctx.showToast("IFC загружен и преобразован", "success");
       ctx.setProgress(1);
     } catch (error) {
       ctx.showError(error);
@@ -96,6 +98,7 @@ export function createModelController({
     try {
       await loadFragBuffer(await file.arrayBuffer(), file.name);
       ctx.setStatus("FRAG загружен");
+      ctx.showToast("FRAG загружен", "success");
       ctx.setProgress(1);
     } catch (error) {
       ctx.showError(error);

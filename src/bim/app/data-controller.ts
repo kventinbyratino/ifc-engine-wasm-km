@@ -51,6 +51,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     if (!hooks.canUseDataBrowser()) {
       dataPanel.hidden = true;
       ctx.setStatus("BIM Data Browser доступен только в профиле BIM");
+      ctx.showToast("BIM Data Browser доступен только в профиле BIM", "error");
       return;
     }
 
@@ -94,6 +95,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
       fillSelectOptions(dataStoreyFilter, getUniqueValues(workspace.elementIndex, "storey"), "Все этажи");
       applyDataFilters();
       hooks.refreshClashSelectors();
+      ctx.showToast(`BIM Data Index: ${workspace.elementIndex.length} элементов`, "success");
     } catch (error) {
       console.error(error);
       if (isAbortError(error)) {
@@ -106,6 +108,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
       dataTableOutput.replaceChildren(
         createMessage(error instanceof Error ? error.message : String(error)),
       );
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
       ctx.finishOperation(signal);
     }
@@ -156,6 +159,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
       await hooks.applySearchHighlight(modelIdMap);
       await hooks.fitToItems(modelIdMap);
       ctx.setStatus(`Подсвечено элементов: ${limitedRecords.length}`);
+      ctx.showToast(`Подсвечено элементов: ${limitedRecords.length}`, "success");
     } finally {
       highlightFilteredBtn.loading = false;
     }

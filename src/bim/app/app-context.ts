@@ -21,5 +21,6 @@ export interface BimAppContext {
   setProgress: (value: number) => void;
   startOperation: (message: string) => AbortSignal;
   finishOperation: (signal: AbortSignal) => void;
+  showToast: (message: string, type?: "info" | "success" | "error") => void;
   showError: (error: unknown) => void;
 };

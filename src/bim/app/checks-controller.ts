@@ -54,6 +54,7 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
     if (!hooks.canUseChecks()) {
       checksPanel.hidden = true;
       ctx.setStatus("Model Health Checks доступны только в профиле BIM");
+      ctx.showToast("Model Health Checks доступны только в профиле BIM", "error");
       return;
     }
 
@@ -82,10 +83,12 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
       workspace.healthReport = null;
       checksSummary.textContent = `IDS загружен: ${specs.length} specs`;
       checksOutput.replaceChildren(createMessage(`Файл ${file.name}. Запустите проверку по IDS.`));
+      ctx.showToast(`IDS загружен: ${specs.length} specs`, "success");
     } catch (error) {
       console.error(error);
       checksSummary.textContent = "Ошибка IDS";
       checksOutput.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     }
   }
 
@@ -98,6 +101,7 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
 
     if (!(specificationName && entity && propertySet && propertyName)) {
       checksSummary.textContent = "Заполните spec, entity, pset и property";
+      ctx.showToast("Заполните spec, entity, pset и property", "error");
       return;
     }
 
@@ -110,6 +114,7 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
     });
     workspace.healthReport = null;
     checksSummary.textContent = `IDS spec добавлен: ${spec.name}`;
+    ctx.showToast(`IDS spec добавлен: ${spec.name}`, "success");
     checksOutput.replaceChildren(
       createMessage(`Всего IDS specs: ${getLoadedIDSSpecificationCount(components)}. Можно сохранить IDS или проверить модель.`),
     );
@@ -118,12 +123,14 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
   function saveIDSFile() {
     if (getLoadedIDSSpecificationCount(components) === 0) {
       checksSummary.textContent = "Нет IDS specs для сохранения";
+      ctx.showToast("Нет IDS specs для сохранения", "error");
       return;
     }
 
     const xml = exportIDSSpecifications(components, idsTitleInput.value);
     hooks.downloadTextFile("bim-requirements.ids", xml, "application/xml");
     checksSummary.textContent = `IDS сохранён: ${getLoadedIDSSpecificationCount(components)} specs`;
+    ctx.showToast(`IDS сохранён: ${getLoadedIDSSpecificationCount(components)} specs`, "success");
   }
 
   async function runChecks() {
@@ -146,10 +153,12 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
         onCreateIssue: hooks.createIssueFromHealthCheck,
       });
       ctx.setStatus(`Model Health: ${workspace.healthReport.summary.issueCount} проблем`);
+      ctx.showToast(`Model Health: ${workspace.healthReport.summary.issueCount} проблем`, "success");
     } catch (error) {
       console.error(error);
       checksSummary.textContent = "Ошибка проверки";
       checksOutput.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
       runChecksBtn.loading = false;
     }

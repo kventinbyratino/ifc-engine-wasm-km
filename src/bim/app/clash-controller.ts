@@ -45,6 +45,7 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
     if (!hooks.canUseCoordination()) {
       clashPanel.hidden = true;
       ctx.setStatus("Federation / Clash доступны только в профиле BIM");
+      ctx.showToast("Federation / Clash доступны только в профиле BIM", "error");
       return;
     }
 
@@ -110,16 +111,19 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
       workspace.clashes = result.clashes;
       renderClash();
       ctx.setStatus(`Clash detection: ${result.clashes.length} найдено, ${result.checkedPairs} пар`);
+      ctx.showToast(`Clash detection: ${result.clashes.length} найдено`, "success");
     } catch (error) {
       console.error(error);
       if (isAbortError(error)) {
         clashSummary.textContent = "Clash detection отменён";
         clashOutput.replaceChildren(createMessage("Операция отменена."));
         ctx.setStatus("Clash detection отменён");
+        ctx.showToast("Clash detection отменён", "info");
         return;
       }
       clashSummary.textContent = "Ошибка clash detection";
       clashOutput.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
       runClashBtn.loading = false;
       if (signal) ctx.finishOperation(signal);
@@ -145,6 +149,7 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
     issuesPanel.hidden = false;
     hooks.renderIssues();
     ctx.setStatus(`Issue создан из clash: ${issue.title}`);
+    ctx.showToast(`Issue создан из clash: ${issue.title}`, "success");
   }
 
   return {

@@ -30,6 +30,7 @@ export function createIssuesController(ctx: BimAppContext, hooks: IssuesControll
     if (!hooks.canUseIssues()) {
       issuesPanel.hidden = true;
       ctx.setStatus("Issues / BCF доступны только в профиле BIM");
+      ctx.showToast("Issues / BCF доступны только в профиле BIM", "error");
       return;
     }
 
@@ -50,10 +51,12 @@ export function createIssuesController(ctx: BimAppContext, hooks: IssuesControll
       onStatusChange: (issue, status) => {
         issueStore.updateStatus(issue.id, status);
         renderIssues();
+        ctx.showToast(`Статус issue: ${status}`, "success");
       },
       onDelete: (issue) => {
         issueStore.remove(issue.id);
         renderIssues();
+        ctx.showToast(`Issue удалён: ${issue.title}`, "success");
       },
     });
   }
@@ -62,6 +65,7 @@ export function createIssuesController(ctx: BimAppContext, hooks: IssuesControll
     if (!hooks.canUseIssues()) return;
     if (isEmptySelection(workspace.activeSelection)) {
       issuesSummary.textContent = "Сначала выберите элемент";
+      ctx.showToast("Сначала выберите элемент", "error");
       return;
     }
 
@@ -69,6 +73,7 @@ export function createIssuesController(ctx: BimAppContext, hooks: IssuesControll
     const record = findRecordInSelection();
     if (!record) {
       issuesSummary.textContent = "Выбранный элемент не найден в BIM Data Index";
+      ctx.showToast("Выбранный элемент не найден в BIM Data Index", "error");
       return;
     }
 
@@ -83,6 +88,7 @@ export function createIssuesController(ctx: BimAppContext, hooks: IssuesControll
     issuesPanel.hidden = false;
     renderIssues();
     ctx.setStatus(`Issue создан: ${issue.title}`);
+    ctx.showToast(`Issue создан: ${issue.title}`, "success");
   }
 
   function createIssueFromHealthCheck(healthIssue: HealthCheckIssue) {
@@ -98,6 +104,7 @@ export function createIssuesController(ctx: BimAppContext, hooks: IssuesControll
     issuesPanel.hidden = false;
     renderIssues();
     ctx.setStatus(`Issue создан из проверки: ${issue.title}`);
+    ctx.showToast(`Issue создан из проверки: ${issue.title}`, "success");
   }
 
   async function selectIssue(issue: BimIssue) {

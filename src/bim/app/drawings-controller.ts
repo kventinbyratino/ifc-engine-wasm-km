@@ -13,8 +13,11 @@ import {
 import {
   addDrawingAnnotation,
   clearDrawingAnnotations,
+  deleteDrawingAnnotation,
   getDrawingAnnotationTypeLabel,
   syncDrawingAnnotations,
+  updateDrawingAnnotationText,
+  type DrawingAnnotation,
   type DrawingAnnotationType,
 } from "../drawings/drawing-annotations";
 import {
@@ -114,13 +117,16 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       }
 
       workspace.drawings.unshift(record);
+      restoreStoredSheetsForDrawing(record, stored, storedDrawing?.id);
       persistDrawings();
       renderDrawingsPanel();
       await fitCameraToDrawing(world, record);
       ctx.setStatus(`Чертёж готов: ${record.lineCount} линий`);
+      ctx.showToast(`Чертёж готов: ${record.lineCount} линий`, "success");
     } catch (error) {
       console.error(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
       generateDrawingBtn.loading = false;
     }
@@ -155,6 +161,8 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       onSelect: (record) => void fitCameraToDrawing(world, record),
       onExport: downloadDrawingDxf,
       onAnnotate: (record) => void annotateDrawing(record),
+      onEditAnnotation: editAnnotationText,
+      onDeleteAnnotation: deleteAnnotation,
       onDelete: (record) => {
         disposeDrawing(record);
         workspace.drawings = workspace.drawings.filter((item) => item.id !== record.id);
@@ -163,6 +171,34 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
         renderDrawingsPanel();
       },
     });
+  }
+
+  function editAnnotationText(record: DrawingRecord, annotation: DrawingAnnotation) {
+    const nextText = window.prompt("Текст аннотации", annotation.text);
+    if (nextText === null) return;
+    try {
+      updateDrawingAnnotationText(record, components, annotation.id, nextText);
+      persistDrawings();
+      renderDrawingsPanel();
+      drawingsSummary.textContent = "Аннотация обновлена";
+      ctx.showToast("Аннотация обновлена", "success");
+    } catch (error) {
+      drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
+    }
+  }
+
+  function deleteAnnotation(record: DrawingRecord, annotation: DrawingAnnotation) {
+    try {
+      deleteDrawingAnnotation(record, components, annotation.id);
+      persistDrawings();
+      renderDrawingsPanel();
+      drawingsSummary.textContent = "Аннотация удалена";
+      ctx.showToast("Аннотация удалена", "success");
+    } catch (error) {
+      drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
+    }
   }
 
   async function annotateActiveDrawing() {
@@ -190,9 +226,11 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       await fitCameraToDrawing(world, record);
       drawingsSummary.textContent = `${getDrawingAnnotationTypeLabel(annotation.type)} добавлена · всего ${record.annotations.length}`;
       ctx.setStatus(`Аннотация добавлена: ${annotation.text}`);
+      ctx.showToast(`${getDrawingAnnotationTypeLabel(annotation.type)} добавлена`, "success");
     } catch (error) {
       console.error(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
       addAnnotationBtn.loading = false;
     }
@@ -208,6 +246,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     persistDrawings();
     renderDrawingsPanel();
     drawingsSummary.textContent = `Аннотации очищены: ${record.name}`;
+    ctx.showToast("Аннотации очищены", "success");
   }
 
   function createSheetFromActiveDrawing() {
@@ -226,6 +265,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     persistDrawings();
     renderDrawingsPanel();
     drawingsSummary.textContent = `Лист создан: ${sheet.format} · ${sheet.title}`;
+    ctx.showToast(`Лист создан: ${sheet.format}`, "success");
   }
 
   function getActiveSheet() {
@@ -256,11 +296,30 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     }
   }
 
+  function restoreStoredSheetsForDrawing(record: DrawingRecord, stored: StoredDrawingWorkspace | null | undefined, storedDrawingId: string | undefined) {
+    if (!storedDrawingId) return;
+    const existingSheetIds = new Set(workspace.sheets.map((sheet) => sheet.id));
+    const restoredSheets = stored?.sheets
+      .filter((sheet) => sheet.drawingId === storedDrawingId && !existingSheetIds.has(sheet.id))
+      .map((sheet) => ({
+        ...createSheet({
+          format: sheet.format,
+          drawing: record,
+          title: sheet.title,
+          projectName: sheet.projectName,
+        }),
+        id: sheet.id,
+        createdAt: new Date(sheet.createdAt),
+      })) ?? [];
+    workspace.sheets.unshift(...restoredSheets);
+  }
+
   function exportActiveSheetSvg() {
     const sheet = getActiveSheet();
     if (!sheet) return;
     downloadSheetSvg(sheet);
     drawingsSummary.textContent = `SVG экспортирован: ${sheet.format}`;
+    ctx.showToast(`SVG экспортирован: ${sheet.format}`, "success");
   }
 
   async function exportActiveSheetPng() {
@@ -270,9 +329,11 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     try {
       await downloadSheetPng(sheet);
       drawingsSummary.textContent = `PNG экспортирован: ${sheet.format}`;
+      ctx.showToast(`PNG экспортирован: ${sheet.format}`, "success");
     } catch (error) {
       console.error(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
       exportSheetPngBtn.loading = false;
     }
@@ -284,9 +345,11 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     try {
       openSheetPdfPrint(sheet);
       drawingsSummary.textContent = `PDF/print открыт: ${sheet.format}`;
+      ctx.showToast(`PDF/print открыт: ${sheet.format}`, "success");
     } catch (error) {
       console.error(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     }
   }
 
@@ -296,9 +359,11 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     try {
       downloadSheetDxfPaperSpace(components, sheet);
       drawingsSummary.textContent = `DXF paper-space экспортирован: ${sheet.format}`;
+      ctx.showToast(`DXF экспортирован: ${sheet.format}`, "success");
     } catch (error) {
       console.error(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     }
   }
 
@@ -311,6 +376,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     const rows = generateSpecification(source);
     hooks.downloadTextFile("bim-specification.csv", specificationToCsv(rows), "text/csv;charset=utf-8");
     drawingsSummary.textContent = `Спецификация экспортирована: ${rows.length} строк`;
+    ctx.showToast(`Спецификация экспортирована: ${rows.length} строк`, "success");
   }
 
   function clearDrawings() {

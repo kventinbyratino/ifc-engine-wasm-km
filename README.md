@@ -133,8 +133,8 @@ node scripts/copy-web-ifc.mjs
 - загрузка `.ifc` и `.frag` через File API;
 - конвертация IFC -> Fragments на клиенте;
 - сохранение и открытие `.frag` через backend fragments API;
-- BIM Data Browser: таблица элементов, фильтры, CSV/JSON export;
-- проверки модели/IDS, issues/BCF-like export;
+- Данные модели: таблица элементов, фильтры, экспорт CSV/JSON;
+- проверки модели/IDS, замечания и BCF-like export;
 - federation/clash detection;
 - drawings, sheets, DXF/PDF/PNG export, спецификации CSV;
 - 3D-навигация, grid, view cube, fit-to-model;

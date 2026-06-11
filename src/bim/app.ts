@@ -10,6 +10,7 @@ import { syncDrawingAnnotations, type DrawingAnnotationType } from "./drawings/d
 import { createIssueStore } from "./issues/issues-store";
 import { getProfileCapabilities } from "./profiles";
 import { createMessage } from "./ui/dom-utils";
+import { errorToMessage, showToast } from "./ui/toast";
 import { createBimViewer } from "./viewer/viewer";
 import { mountSpatialTree } from "./tree/spatial-tree";
 import type { BimAppContext } from "./app/app-context";
@@ -67,6 +68,9 @@ export async function startBimApp() {
     ifcInput,
     fragInput,
     loadIfcBtn,
+    emptyLoadIfcBtn,
+    emptyExampleBtn,
+    emptyLibraryBtn,
     loadFragBtn,
     fitBtn,
     clearBtn,
@@ -176,6 +180,7 @@ export async function startBimApp() {
     setProgress,
     startOperation,
     finishOperation,
+    showToast,
     showError,
   };
   void ctx;
@@ -438,6 +443,15 @@ export async function startBimApp() {
   });
 
   loadIfcBtn.onclick = () => openLibraryModal();
+  emptyLoadIfcBtn.onclick = () => ifcInput.click();
+  emptyExampleBtn.onclick = () => {
+    openLibraryModal();
+    showLibraryStart();
+  };
+  emptyLibraryBtn.onclick = () => {
+    openLibraryModal();
+    void showFragmentLibrary();
+  };
   loadFragBtn.onclick = () => fragInput.click();
   fitBtn.onclick = () => void fitToModels();
   clearBtn.onclick = () => void clearModels();
@@ -591,6 +605,7 @@ export async function startBimApp() {
     activeOperation.abort();
     statusText.textContent = "Операция отменяется...";
     loadingStatus.textContent = "Операция отменяется...";
+    showToast("Операция отменяется...", "info");
   }
 
   function setProgress(value: number) {
@@ -602,8 +617,9 @@ export async function startBimApp() {
   function showError(error: unknown) {
     console.error(error);
     statusText.textContent = "Ошибка загрузки модели";
+    showToast(errorToMessage(error), "error");
     propertiesOutput.replaceChildren(
-      createMessage(error instanceof Error ? error.message : String(error)),
+      createMessage(errorToMessage(error)),
     );
   }
 

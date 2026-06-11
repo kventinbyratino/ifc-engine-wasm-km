@@ -108,6 +108,7 @@ export function createLibraryController({
       fragmentList.replaceChildren(list);
     } catch (error) {
       fragmentList.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     }
   }
 
@@ -189,9 +190,11 @@ export function createLibraryController({
     const response = await fetch(apiUrl(`/fragments/${record.id}`), { method: "DELETE" });
     if (!response.ok) {
       fragmentList.replaceChildren(createMessage("Не удалось удалить fragment."));
+      ctx.showToast("Не удалось удалить fragment", "error");
       return;
     }
     await showFragmentLibrary();
+    ctx.showToast(`Fragment удалён: ${record.name}`, "success");
   }
 
   async function saveCurrentFragment() {
@@ -200,6 +203,7 @@ export function createLibraryController({
     const model = fragments.list.get(workspace.lastConvertedModelId);
     if (!model) {
       ctx.setStatus("Нет модели для сохранения");
+      ctx.showToast("Нет модели для сохранения", "error");
       return;
     }
 
@@ -209,6 +213,7 @@ export function createLibraryController({
       const fragsBuffer = await model.getBuffer(true);
       if (fragsBuffer.byteLength > MAX_FRAGMENT_BYTES) {
         ctx.setStatus("Fragment больше 100 МБ");
+        ctx.showToast("Fragment больше 100 МБ", "error");
         return;
       }
 
@@ -223,6 +228,7 @@ export function createLibraryController({
       saveFragmentBtn.hidden = true;
       setActiveShareRecord(savedRecord);
       ctx.setStatus("Fragment сохранён");
+      ctx.showToast("Fragment сохранён", "success");
     } catch (error) {
       ctx.showError(error);
     } finally {

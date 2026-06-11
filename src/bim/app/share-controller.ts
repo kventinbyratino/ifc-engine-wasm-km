@@ -33,9 +33,11 @@ export function createShareController(ctx: BimAppContext) {
         document.execCommand("copy");
       }
       shareCopyStatus.textContent = "Ссылка скопирована";
+      ctx.showToast("Ссылка скопирована", "success");
     } catch (error) {
       console.error(error);
       shareCopyStatus.textContent = "Не удалось скопировать. Скопируйте вручную.";
+      ctx.showToast("Не удалось скопировать ссылку", "error");
     }
   }
 

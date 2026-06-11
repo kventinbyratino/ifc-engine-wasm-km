@@ -57,7 +57,8 @@ function ensurePaperViewport(sheet: SheetRecord): PaperViewportLayout {
   const paper = { widthMm: size.width, heightMm: size.height, margin };
 
   const viewportBounds = fitBoundsToPaperSlot(bounds, viewportWidth, viewportHeight);
-  const existing = [...drawing.viewports.values()].find((viewport) => viewport.name === sheetViewportName(sheet));
+  const existing = sheet.drawing.viewport
+    ?? [...drawing.viewports.values()].find((viewport) => viewport.name === sheetViewportName(sheet));
   const viewport = existing ?? drawing.viewports.create({ ...viewportBounds, name: sheetViewportName(sheet) });
   viewport.left = viewportBounds.left;
   viewport.right = viewportBounds.right;

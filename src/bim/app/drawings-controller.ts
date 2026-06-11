@@ -13,8 +13,11 @@ import {
 import {
   addDrawingAnnotation,
   clearDrawingAnnotations,
+  deleteDrawingAnnotation,
   getDrawingAnnotationTypeLabel,
   syncDrawingAnnotations,
+  updateDrawingAnnotationText,
+  type DrawingAnnotation,
   type DrawingAnnotationType,
 } from "../drawings/drawing-annotations";
 import {
@@ -114,6 +117,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       }
 
       workspace.drawings.unshift(record);
+      restoreStoredSheetsForDrawing(record, stored, storedDrawing?.id);
       persistDrawings();
       renderDrawingsPanel();
       await fitCameraToDrawing(world, record);
@@ -157,6 +161,8 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       onSelect: (record) => void fitCameraToDrawing(world, record),
       onExport: downloadDrawingDxf,
       onAnnotate: (record) => void annotateDrawing(record),
+      onEditAnnotation: editAnnotationText,
+      onDeleteAnnotation: deleteAnnotation,
       onDelete: (record) => {
         disposeDrawing(record);
         workspace.drawings = workspace.drawings.filter((item) => item.id !== record.id);
@@ -165,6 +171,34 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
         renderDrawingsPanel();
       },
     });
+  }
+
+  function editAnnotationText(record: DrawingRecord, annotation: DrawingAnnotation) {
+    const nextText = window.prompt("Текст аннотации", annotation.text);
+    if (nextText === null) return;
+    try {
+      updateDrawingAnnotationText(record, components, annotation.id, nextText);
+      persistDrawings();
+      renderDrawingsPanel();
+      drawingsSummary.textContent = "Аннотация обновлена";
+      ctx.showToast("Аннотация обновлена", "success");
+    } catch (error) {
+      drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
+    }
+  }
+
+  function deleteAnnotation(record: DrawingRecord, annotation: DrawingAnnotation) {
+    try {
+      deleteDrawingAnnotation(record, components, annotation.id);
+      persistDrawings();
+      renderDrawingsPanel();
+      drawingsSummary.textContent = "Аннотация удалена";
+      ctx.showToast("Аннотация удалена", "success");
+    } catch (error) {
+      drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
+    }
   }
 
   async function annotateActiveDrawing() {
@@ -260,6 +294,24 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       console.warn("Drawing persistence restore failed", error);
       return null;
     }
+  }
+
+  function restoreStoredSheetsForDrawing(record: DrawingRecord, stored: StoredDrawingWorkspace | null | undefined, storedDrawingId: string | undefined) {
+    if (!storedDrawingId) return;
+    const existingSheetIds = new Set(workspace.sheets.map((sheet) => sheet.id));
+    const restoredSheets = stored?.sheets
+      .filter((sheet) => sheet.drawingId === storedDrawingId && !existingSheetIds.has(sheet.id))
+      .map((sheet) => ({
+        ...createSheet({
+          format: sheet.format,
+          drawing: record,
+          title: sheet.title,
+          projectName: sheet.projectName,
+        }),
+        id: sheet.id,
+        createdAt: new Date(sheet.createdAt),
+      })) ?? [];
+    workspace.sheets.unshift(...restoredSheets);
   }
 
   function exportActiveSheetSvg() {

@@ -1364,6 +1364,47 @@ body {
   background: #fee2e2;
 }
 
+.drawing-annotation-list {
+  display: grid;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(23, 32, 38, 0.08);
+}
+
+.drawing-annotation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 6px;
+  align-items: center;
+  color: #52616c;
+  font-size: 11px;
+}
+
+.drawing-annotation-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawing-annotation-row button {
+  min-height: 28px;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #141a20;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.drawing-annotation-row .drawing-danger {
+  min-width: 28px;
+  color: #991b1b;
+  background: #fee2e2;
+}
+
 .toast-stack {
   position: fixed;
   right: max(18px, env(safe-area-inset-right));

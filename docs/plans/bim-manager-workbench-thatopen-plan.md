@@ -769,6 +769,8 @@ npm run build
 - DOM-слой отражает UI-модули, а не весь экран целиком.
 - Добавление новой панели не требует расширять один мегасписок на сотни строк.
 
+Статус: выполнено — DOM разбит на `viewer/data/checks/issues/clash/drawings`, helper проверки вынесен в `dom-helpers.ts`, а `getDomElements()` собирает секции в явные группы.
+
 ---
 
 ### Phase 12 — Element index extraction and data layer cleanup

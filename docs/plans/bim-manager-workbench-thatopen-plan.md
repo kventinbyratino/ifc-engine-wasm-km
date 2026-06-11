@@ -812,6 +812,8 @@ npm run build
 - Извлечение данных можно тестировать отдельно от UI.
 - Индекс остаётся функционально тем же, но код проще расширять.
 
+Статус: выполнено — `element-index` разнесён на `extractors`, `property-sets`, `model-reader`, `search-index`; добавлены unit-тесты на edge cases и сборку индекса.
+
 ---
 
 ### Phase 13 — Model health rules modularization

@@ -823,10 +823,14 @@ npm run build
 **Файлы:**
 
 - Modify: `src/bim/checks/rules.ts`
-- Create: `src/bim/checks/rules/name-rules.ts`
-- Create: `src/bim/checks/rules/identity-rules.ts`
-- Create: `src/bim/checks/rules/structure-rules.ts`
-- Create: `src/bim/checks/rules/material-rules.ts`
+- Modify: `src/bim/checks/model-health.ts`
+- Create: `src/bim/checks/rule-registry.ts`
+- Create: `src/bim/checks/rule-utils.ts`
+- Create: `src/bim/checks/name-rules.ts`
+- Create: `src/bim/checks/identity-rules.ts`
+- Create: `src/bim/checks/structure-rules.ts`
+- Create: `src/bim/checks/material-rules.ts`
+- Create: `src/bim/checks/check-types.ts` helpers for registry control
 
 **Task 13.1 — Rule grouping**
 
@@ -843,6 +847,11 @@ npm run build
 - Добавить тесты на критичные правила и контекстные вычисления.
 - Проверить duplicate IDs, proxy share, missing material/name and similar edge cases.
 
+**Task 13.4 — Rule list and management**
+
+- Нужен список правил с управлением: просмотр, включение/выключение и приоритизация.
+- Подготовить структуру, чтобы правила можно было удобно редактировать без правки центрального монолита.
+
 **Verification:**
 
 ```bash
@@ -854,6 +863,8 @@ npm run build
 
 - Каждое правило легко найти и изменить.
 - Новые проверки добавляются без роста одного огромного файла.
+
+Статус: выполнено — `rules.ts` разделён на rule registry и grouped modules; добавлен список правил с включением/выключением и приоритизацией; проверки покрыты unit-тестами.
 
 ---
 
@@ -1078,3 +1089,7 @@ PYTHONPATH=server pytest -q server/tests
 8. Phase 16 — issue/backend layering
 9. Phase 17 — profiles/selection/properties
 10. Phase 18 — tests/docs/config
+
+### Tags
+
+- запуск для прода

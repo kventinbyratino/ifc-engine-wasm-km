@@ -1,7 +1,7 @@
 import * as OBC from "@thatopen/components";
 import type { BimElementRecord } from "../data/element-index";
 import type { IDSPropertyRequirementDraft, IDSRequirementCheck, IDSValidationReport, ModelHealthReport } from "./check-types";
-import { createIssueFromRule, createRuleContext, MODEL_HEALTH_RULES } from "./rules";
+import { createIssueFromRule, createRuleContext, getEnabledHealthRules, MODEL_HEALTH_RULE_REGISTRY } from "./rules";
 
 export function loadIDSSpecifications(components: OBC.Components, idsXml: string) {
   const ids = components.get(OBC.IDSSpecifications);
@@ -46,14 +46,15 @@ export function exportIDSSpecifications(components: OBC.Components, title: strin
   });
 }
 
-export function runModelHealthChecks(elementIndex: BimElementRecord[]): ModelHealthReport {
+export function runModelHealthChecks(elementIndex: BimElementRecord[], registry = MODEL_HEALTH_RULE_REGISTRY): ModelHealthReport {
   const context = createRuleContext(elementIndex);
+  const enabledRules = getEnabledHealthRules(registry);
   const issues = elementIndex.flatMap((record) =>
-    MODEL_HEALTH_RULES.filter((rule) => rule.applies(record, context)).map((rule) => createIssueFromRule(record, rule, context)),
+    enabledRules.filter((rule) => rule.applies(record, context)).map((rule) => createIssueFromRule(record, rule, context)),
   );
 
   return {
-    title: "Model Health Checks v1",
+    title: "Model Health Checks v2",
     createdAt: new Date().toISOString(),
     issues,
     summary: {

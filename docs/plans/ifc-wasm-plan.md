@@ -257,6 +257,8 @@ npm run build
 
 ### Phase 13 — Model health rules modularization
 
+**Status:** выполнено — rules split into a registry plus grouped modules; model-health checks now use discrete rule files and persisted rule settings; unit tests cover duplicate IDs, missing material/name and similar edge cases.
+
 **Цель:** превратить набор проверок качества модели в набор отдельных правил и модулей.
 
 **Files:**
@@ -314,7 +316,7 @@ npm run build
 - **Current canonical plan file:** `docs/plans/ifc-wasm-plan.md`
 - **Old split plan files removed**; this file is now the single source of truth for the IFC WASM plan.
 
-**Next phase to execute:** Phase 13.
+**Next phase to execute:** Phase 14.
 
 ## 4. Recommended verification loop
 

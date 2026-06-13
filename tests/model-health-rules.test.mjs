@@ -39,9 +39,7 @@ const rulesUrl = pathToFileURL(path.join(tempRoot, "rules.ts")).href;
 const modelHealthUrl = pathToFileURL(path.join(tempRoot, "model-health.ts")).href;
 
 const {
-  listHealthRuleControls,
-  setHealthRuleEnabled,
-  setHealthRulePriority,
+  createDefaultModelHealthRuleRegistry,
   MODEL_HEALTH_RULE_REGISTRY,
 } = await import(rulesUrl);
 const { runModelHealthChecks } = await import(modelHealthUrl);
@@ -64,19 +62,20 @@ function makeRecord(overrides) {
 }
 
 test("health rule controls are sorted by priority and show enabled state", () => {
-  const controls = listHealthRuleControls(MODEL_HEALTH_RULE_REGISTRY);
+  const controls = MODEL_HEALTH_RULE_REGISTRY.listRules();
   assert.equal(controls[0].type, "missing-name");
   assert.ok(controls.some((control) => control.type === "missing-material"));
   assert.ok(controls.every((control) => control.enabled === true));
 });
 
 test("health rule registry can toggle and reprioritize rules without mutating the source registry", () => {
-  const disabled = setHealthRuleEnabled(MODEL_HEALTH_RULE_REGISTRY, "missing-material", false);
-  assert.equal(listHealthRuleControls(disabled).find((control) => control.type === "missing-material").enabled, false);
-  assert.equal(listHealthRuleControls(MODEL_HEALTH_RULE_REGISTRY).find((control) => control.type === "missing-material").enabled, true);
+  const registry = createDefaultModelHealthRuleRegistry();
+  registry.disableRule("missing-material");
+  assert.equal(registry.listRules().find((control) => control.type === "missing-material").enabled, false);
+  assert.equal(MODEL_HEALTH_RULE_REGISTRY.listRules().find((control) => control.type === "missing-material").enabled, true);
 
-  const reprioritized = setHealthRulePriority(disabled, "missing-material", 1);
-  assert.equal(listHealthRuleControls(reprioritized)[0].type, "missing-material");
+  registry.setRulePriority("missing-material", 1);
+  assert.equal(registry.listRules()[0].type, "missing-material");
 });
 
 test("runModelHealthChecks respects disabled rules and reports grouped edge cases", () => {
@@ -138,7 +137,8 @@ test("runModelHealthChecks respects disabled rules and reports grouped edge case
   assert.ok(report.issues.some((issue) => issue.type === "proxy-overuse" && issue.localId === 3));
   assert.ok(report.issues.some((issue) => issue.type === "space-missing-name-or-number" && issue.localId === 4));
 
-  const withoutMaterialRule = setHealthRuleEnabled(MODEL_HEALTH_RULE_REGISTRY, "missing-material", false);
+  const withoutMaterialRule = createDefaultModelHealthRuleRegistry();
+  withoutMaterialRule.disableRule("missing-material");
 
   const prunedReport = runModelHealthChecks(records, withoutMaterialRule);
   assert.equal(prunedReport.issues.some((issue) => issue.type === "missing-material"), false);

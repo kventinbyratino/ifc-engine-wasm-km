@@ -379,6 +379,11 @@ export async function startBimApp() {
     closeClashPanel: () => closeClashPanel(),
     closeDrawingsPanel: () => closeDrawingsPanel(),
     refreshModelState,
+    onProfileChange: (profile) => {
+      if (profile === "bim") {
+        checksController.loadChecksSettings(profile);
+      }
+    },
   });
   const {
     navigateToProfile,

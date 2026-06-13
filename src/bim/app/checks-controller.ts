@@ -1,4 +1,4 @@
-import type { HealthCheckIssue } from "../checks/check-types";
+import type { HealthCheckIssue, HealthCheckIssueType } from "../checks/check-types";
 import {
   addIDSPropertyRequirement,
   exportIDSSpecifications,
@@ -8,11 +8,18 @@ import {
   runModelHealthChecks,
 } from "../checks/model-health";
 import {
+  clearStoredChecksSettings,
+  createDefaultChecksRuleRegistry,
+  loadChecksRuleRegistry,
+  saveStoredChecksSettings,
+} from "../checks/check-settings";
+import {
   exportChecksCsv,
   exportChecksJson,
   formatChecksSummary,
   renderChecksPanel,
 } from "../ui/checks-panel";
+import { renderChecksSettingsPanel } from "../ui/checks-settings-panel";
 import { createMessage } from "../ui/dom-utils";
 import type { BimElementRecord } from "../data/element-index";
 import { getHealthIssueCount } from "../state/workspace-state";
@@ -39,6 +46,10 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
     idsEntityInput,
     idsPsetInput,
     idsPropertyInput,
+    checksSettingsSummary,
+    saveChecksSettingsBtn,
+    resetChecksSettingsBtn,
+    checksSettingsOutput,
     checksOutput,
   } = ctx.dom;
 
@@ -67,12 +78,87 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
       onCreateIssue: hooks.createIssueFromHealthCheck,
     });
     checksSummary.textContent = formatChecksSummary(workspace.checks.healthReport);
+    syncChecksSettingsPanel();
   }
 
   function closeChecksPanel() {
     checksPanel.hidden = true;
   }
 
+  function syncChecksSettingsPanel() {
+    if (!hooks.canUseChecks()) {
+      checksSettingsSummary.textContent = "Доступно только в BIM";
+      checksSettingsOutput.replaceChildren(createMessage("Откройте BIM-профиль, чтобы управлять правилами проверок."));
+      return;
+    }
+
+    renderChecksSettingsPanel({
+      registry: workspace.checks.ruleRegistry,
+      summary: checksSettingsSummary,
+      output: checksSettingsOutput,
+    });
+  }
+
+  function loadChecksSettings(profile = workspace.viewer.activeProfile) {
+    workspace.checks.ruleRegistry = loadChecksRuleRegistry(profile);
+    syncChecksSettingsPanel();
+  }
+
+  function saveChecksSettings() {
+    if (!hooks.canUseChecks()) return null;
+    return saveStoredChecksSettings(workspace.viewer.activeProfile, workspace.checks.ruleRegistry);
+  }
+
+  function resetChecksSettings() {
+    workspace.checks.ruleRegistry = createDefaultChecksRuleRegistry();
+    clearStoredChecksSettings(workspace.viewer.activeProfile);
+    syncChecksSettingsPanel();
+    workspace.checks.healthReport = null;
+    checksSummary.textContent = "Настройки проверок сброшены";
+    checksOutput.replaceChildren(createMessage("Настройки проверок сброшены. Запустите проверку повторно."));
+  }
+
+  function handleChecksSettingsChange(event: Event) {
+    if (!hooks.canUseChecks()) return;
+    const target = event.target as HTMLInputElement | null;
+    if (!target) return;
+
+    const toggleType = target.dataset.checksRuleToggle;
+    const priorityType = target.dataset.checksRulePriority;
+    if (!toggleType && !priorityType) return;
+
+    if (toggleType) {
+      if (target.checked) workspace.checks.ruleRegistry.enableRule(toggleType as HealthCheckIssueType);
+      else workspace.checks.ruleRegistry.disableRule(toggleType as HealthCheckIssueType);
+    }
+
+    if (priorityType) {
+      const priority = Number(target.value);
+      if (Number.isFinite(priority)) {
+        workspace.checks.ruleRegistry.setRulePriority(priorityType as never, priority);
+      }
+    }
+
+    workspace.checks.healthReport = null;
+    checksSummary.textContent = "Настройки проверок изменены";
+    checksOutput.replaceChildren(createMessage("Настройки проверок изменены. Запустите проверку ещё раз."));
+    saveChecksSettings();
+    syncChecksSettingsPanel();
+  }
+
+  function handleSaveChecksSettings() {
+    const payload = saveChecksSettings();
+    if (!payload) return;
+    ctx.setStatus("Настройки проверок сохранены");
+    ctx.showToast(`Настройки проверок сохранены: ${payload.rules.length} правил`, "success");
+    syncChecksSettingsPanel();
+  }
+
+  function handleResetChecksSettings() {
+    resetChecksSettings();
+    ctx.setStatus("Настройки проверок сброшены");
+    ctx.showToast("Настройки проверок сброшены", "success");
+  }
   async function loadIDSFile() {
     const file = idsFileInput.files?.[0];
     if (!file) return;
@@ -145,7 +231,7 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
         checksSummary.textContent = "Сначала индексируем элементы...";
         await hooks.rebuildDataIndex();
       }
-      workspace.checks.healthReport = runModelHealthChecks(workspace.data.elementIndex);
+      workspace.checks.healthReport = runModelHealthChecks(workspace.data.elementIndex, workspace.checks.ruleRegistry);
       checksSummary.textContent = formatChecksSummary(workspace.checks.healthReport);
       renderChecksPanel({
         report: workspace.checks.healthReport,
@@ -172,10 +258,15 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
     checksOutput.replaceChildren(createMessage("Загрузите модель и запустите проверку."));
   }
 
+  checksSettingsOutput.onchange = handleChecksSettingsChange;
+  saveChecksSettingsBtn.onclick = () => handleSaveChecksSettings();
+  resetChecksSettingsBtn.onclick = () => handleResetChecksSettings();
+
   return {
     toggleChecksPanel,
     openChecksPanel,
     closeChecksPanel,
+    loadChecksSettings,
     loadIDSFile,
     addIDSRequirementFromForm,
     saveIDSFile,

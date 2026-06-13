@@ -252,6 +252,22 @@
             <button id="exportChecksJsonBtn" class="data-action" type="button">JSON</button>
           </div>
 
+          <div class="checks-settings">
+            <div class="data-panel-header">
+              <div>
+                <strong>Настройки проверок</strong>
+                <span id="checksSettingsSummary">Настройки не загружены</span>
+              </div>
+              <div class="data-actions">
+                <button id="saveChecksSettingsBtn" class="data-action" type="button">Сохранить настройки</button>
+                <button id="resetChecksSettingsBtn" class="data-action data-action-secondary" type="button">Сбросить</button>
+              </div>
+            </div>
+            <div id="checksSettingsOutput" class="checks-settings-output">
+              <span class="empty-state">Загрузите модель или откройте BIM-профиль, чтобы увидеть правила.</span>
+            </div>
+          </div>
+
           <div id="checksOutput" class="checks-output">
             <span class="empty-state">Загрузите модель и запустите проверку.</span>
           </div>

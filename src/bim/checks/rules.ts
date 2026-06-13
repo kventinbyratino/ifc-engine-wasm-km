@@ -58,19 +58,18 @@ export function createModelHealthRuleRegistry(rules: readonly HealthRuleDefiniti
   };
 }
 
-export const MODEL_HEALTH_RULE_REGISTRY = createHealthRuleRegistry([
-  ...NAME_RULES,
-  ...IDENTITY_RULES,
-  ...STRUCTURE_RULES,
-  ...MATERIAL_RULES,
-]);
+export function createDefaultModelHealthRuleRegistry() {
+  return createModelHealthRuleRegistry([
+    ...NAME_RULES,
+    ...IDENTITY_RULES,
+    ...STRUCTURE_RULES,
+    ...MATERIAL_RULES,
+  ]);
+}
 
-export const DEFAULT_MODEL_HEALTH_RULE_REGISTRY = createModelHealthRuleRegistry([
-  ...NAME_RULES,
-  ...IDENTITY_RULES,
-  ...STRUCTURE_RULES,
-  ...MATERIAL_RULES,
-]);
+export const MODEL_HEALTH_RULE_REGISTRY = createDefaultModelHealthRuleRegistry();
+
+export const DEFAULT_MODEL_HEALTH_RULE_REGISTRY = createDefaultModelHealthRuleRegistry();
 
 export const MODEL_HEALTH_RULES = MODEL_HEALTH_RULE_REGISTRY;
 

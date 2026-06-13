@@ -9,6 +9,7 @@ export interface BimProfileRouterOptions {
   closeClashPanel: () => void;
   closeDrawingsPanel: () => void;
   refreshModelState: () => void;
+  onProfileChange?: (profile: Profile) => void;
 }
 
 export function createProfileRouter({
@@ -19,6 +20,7 @@ export function createProfileRouter({
   closeClashPanel,
   closeDrawingsPanel,
   refreshModelState,
+  onProfileChange,
 }: BimProfileRouterOptions) {
   const { app, bimStub } = ctx.dom;
 
@@ -56,11 +58,13 @@ export function createProfileRouter({
     if (profile === "pending") {
       app.classList.add("profile-pending");
       refreshProfilePanels();
+      onProfileChange?.(profile);
       return;
     }
 
     app.classList.add(profile === "km" ? "profile-km" : "profile-bim");
     refreshProfilePanels();
+    onProfileChange?.(profile);
   }
 
   function canUseDataBrowser() {

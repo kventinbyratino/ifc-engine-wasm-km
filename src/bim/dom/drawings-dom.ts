@@ -22,7 +22,9 @@ export function getDrawingsDom() {
     exportSheetDxfBtn: requiredElement<HTMLButtonElement>("exportSheetDxfBtn"),
     exportSpecsBtn: requiredElement<HTMLButtonElement>("exportSpecsBtn"),
     generateDrawingBtn: requiredElement<LoadingElement>("generateDrawingBtn"),
+    drawingStudioBtn: requiredElement<HTMLButtonElement>("drawingStudioBtn"),
     clearDrawingsBtn: requiredElement<HTMLButtonElement>("clearDrawingsBtn"),
+    drawingPreview: requiredElement<HTMLDivElement>("drawingPreview"),
     drawingsOutput: requiredElement<HTMLDivElement>("drawingsOutput"),
   };
 }

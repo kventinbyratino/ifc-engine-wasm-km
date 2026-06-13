@@ -11,6 +11,7 @@ import { createIssueStore } from "../issues/issues-store";
 import { getProfileCapabilities } from "../profiles";
 import { createMessage } from "../ui/dom-utils";
 import { errorToMessage, showToast } from "../ui/toast";
+import type { ModelIdMap } from "../types";
 import { createBimViewer } from "../viewer/viewer";
 import { mountSpatialTree } from "../tree/spatial-tree";
 import type { BimAppContext } from "./app-context";
@@ -326,6 +327,9 @@ export async function startBimApp() {
     canUseDrawings: () => canUseDrawings(),
     getGeometryItemsMap,
     downloadTextFile,
+    applySearchHighlight,
+    fitToItems,
+    setModelSelection,
   });
   const {
     toggleDrawingsPanel,
@@ -338,6 +342,7 @@ export async function startBimApp() {
     exportActiveSheetPdf,
     exportActiveSheetDxf,
     exportSpecifications,
+    syncDrawingSelectionFromModel,
   } = drawingsController;
   controllerRegistry.register("drawings", {
     close: drawingsController.closeDrawingsPanel,
@@ -455,6 +460,7 @@ export async function startBimApp() {
     workspace.viewer.activeSelection = modelIdMap;
     selectionCount.textContent = String(countSelection(modelIdMap));
     await renderSelectedProperties({ components, modelIdMap, output: propertiesOutput });
+    syncDrawingSelectionFromModel(modelIdMap);
   });
 
   highlighter.events.select.onClear.add(() => {
@@ -590,6 +596,12 @@ export async function startBimApp() {
     workspace.viewer.activeSelection = {};
     selectionCount.textContent = "0";
     propertiesOutput.replaceChildren(createMessage("Выберите элемент модели."));
+  }
+
+  async function setModelSelection(modelIdMap: ModelIdMap) {
+    workspace.viewer.activeSelection = modelIdMap;
+    selectionCount.textContent = String(countSelection(modelIdMap));
+    await renderSelectedProperties({ components, modelIdMap, output: propertiesOutput });
   }
 
   function setBusy(isBusy: boolean, message?: string) {

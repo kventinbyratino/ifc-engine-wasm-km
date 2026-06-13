@@ -1,22 +1,16 @@
 import * as THREE from "three";
 import type { SheetFormat, SheetRecord } from "./sheet-types";
 import { SHEET_SIZES_MM } from "./sheet-types";
-import type { DrawingRecord } from "../drawings/drawings-panel";
+import type { DrawingDocument } from "../drawings/drawing-document";
+import { createSheetDocument } from "../drawings/drawing-document";
 
 export function createSheet(options: {
   format: SheetFormat;
-  drawing: DrawingRecord;
+  drawing: DrawingDocument;
   projectName?: string;
   title?: string;
 }): SheetRecord {
-  return {
-    id: `sheet-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    format: options.format,
-    title: options.title || options.drawing.name,
-    projectName: options.projectName || "BIM Manager Workbench",
-    drawing: options.drawing,
-    createdAt: new Date(),
-  };
+  return createSheetDocument(options);
 }
 
 export function renderSheetSvg(sheet: SheetRecord) {
@@ -58,7 +52,7 @@ function formatSheetDate(value: Date) {
   return new Intl.DateTimeFormat("ru-RU", { year: "numeric", month: "2-digit", day: "2-digit" }).format(value);
 }
 
-function renderDrawingProjection(drawing: DrawingRecord, viewport: { x: number; y: number; width: number; height: number }) {
+function renderDrawingProjection(drawing: DrawingDocument, viewport: { x: number; y: number; width: number; height: number }) {
   const lines = collectDrawingLines(drawing);
   if (lines.length === 0) return "";
   const box = new THREE.Box2();
@@ -85,7 +79,7 @@ function renderDrawingProjection(drawing: DrawingRecord, viewport: { x: number; 
     .join("\n    ");
 }
 
-function collectDrawingLines(drawing: DrawingRecord) {
+function collectDrawingLines(drawing: DrawingDocument) {
   const lines: Array<{ start: THREE.Vector3; end: THREE.Vector3 }> = [];
   drawing.drawing.three.updateWorldMatrix(true, true);
   drawing.drawing.three.traverse((object) => {
@@ -102,7 +96,7 @@ function collectDrawingLines(drawing: DrawingRecord) {
   return lines;
 }
 
-function estimateSheetScale(drawing: DrawingRecord, slotWidthMm: number, slotHeightMm: number) {
+function estimateSheetScale(drawing: DrawingDocument, slotWidthMm: number, slotHeightMm: number) {
   const width = Math.abs(drawing.projection.bounds.right - drawing.projection.bounds.left);
   const height = Math.abs(drawing.projection.bounds.top - drawing.projection.bounds.bottom);
   const widthScale = (width * 1000) / Math.max(slotWidthMm, 1);

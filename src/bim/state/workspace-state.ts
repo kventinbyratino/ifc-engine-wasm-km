@@ -22,6 +22,7 @@ import { createClashState, getClashCount, type ClashWorkspaceState } from "./cla
 import {
   createDrawingsState,
   getActiveDrawing,
+  setActiveDrawing,
   getActiveSheet,
   getDrawingStats,
   type DrawingsWorkspaceState,
@@ -49,4 +50,4 @@ export function createWorkspaceState(): WorkspaceState {
 
 export type { Profile, ModelIdMap, FragmentRecord, BimElementRecord, ModelHealthReport, ClashRecord, DrawingRecord, SheetRecord };
 
-export { getSelectionCount, isSelectionEmpty, getIndexedElementCount, getFilteredElementCount, getHealthIssueCount, hasActiveIssue, getClashCount, getActiveDrawing, getActiveSheet, getDrawingStats };
+export { getSelectionCount, isSelectionEmpty, getIndexedElementCount, getFilteredElementCount, getHealthIssueCount, hasActiveIssue, getClashCount, getActiveDrawing, setActiveDrawing, getActiveSheet, getDrawingStats };

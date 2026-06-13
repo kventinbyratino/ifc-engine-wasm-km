@@ -1,4 +1,4 @@
-import type { DrawingRecord } from "../drawings/drawings-panel";
+import type { DrawingDocument } from "../drawings/drawing-document";
 
 export type SheetFormat = "A4" | "A3" | "A2" | "A1" | "A0";
 
@@ -7,7 +7,7 @@ export type SheetRecord = {
   format: SheetFormat;
   title: string;
   projectName: string;
-  drawing: DrawingRecord;
+  drawing: DrawingDocument;
   createdAt: Date;
 };
 

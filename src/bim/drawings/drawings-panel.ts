@@ -3,29 +3,11 @@ import * as OBC from "@thatopen/components";
 import type { ModelIdMap } from "../types";
 import { countSelection, isEmptySelection } from "../selection/selection";
 import type { DrawingAnnotation } from "./drawing-annotations";
+import type { DrawingDocument } from "./drawing-document";
+import type { DrawingProjection, DrawingSource, DrawingView } from "./drawing-types";
+import { cloneModelIdMap } from "./drawing-selection-sync";
 
-export type DrawingView = "plan" | "front" | "right" | "back" | "left" | "section";
-export type DrawingSource = "all" | "selection" | "filtered";
-
-export type DrawingProjection = {
-  far: number;
-  bounds: OBC.DrawingViewportConfig;
-  scale: number;
-};
-
-export type DrawingRecord = {
-  id: string;
-  name: string;
-  view: DrawingView;
-  source: DrawingSource;
-  itemCount: number;
-  lineCount: number;
-  annotations: DrawingAnnotation[];
-  createdAt: Date;
-  drawing: OBC.TechnicalDrawing;
-  viewport: OBC.DrawingViewport | null;
-  projection: DrawingProjection;
-};
+export type DrawingRecord = DrawingDocument;
 
 export type DrawingBuildOptions = {
   components: OBC.Components;
@@ -63,6 +45,7 @@ export function getDrawingViewLabel(view: DrawingView) {
 export function renderDrawingList(options: {
   records: DrawingRecord[];
   output: HTMLElement;
+  activeDrawingId?: string | null;
   onSelect: (record: DrawingRecord) => void;
   onExport: (record: DrawingRecord) => void;
   onAnnotate: (record: DrawingRecord) => void;
@@ -80,7 +63,7 @@ export function renderDrawingList(options: {
 
   for (const record of options.records) {
     const card = document.createElement("article");
-    card.className = "drawing-card";
+    card.className = `drawing-card${record.id === options.activeDrawingId ? " is-active" : ""}`;
     card.innerHTML = `
       <div class="drawing-card-main">
         <strong>${escapeHtml(record.name)}</strong>
@@ -215,6 +198,8 @@ export async function createTechnicalDrawing(options: DrawingBuildOptions): Prom
       bounds,
       scale: viewport.drawingScale,
     },
+    sourceModelIdMap: cloneModelIdMap(options.modelIdMap),
+    sheets: [],
   };
   return record;
 }

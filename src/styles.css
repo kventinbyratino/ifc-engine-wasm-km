@@ -161,12 +161,65 @@ body {
   touch-action: none;
 }
 
-.viewport canvas {
+.viewer-shell.is-drawing-split {
+  display: grid;
+  grid-template-columns: minmax(0, var(--drawing-split-left, 58%)) 12px minmax(0, var(--drawing-split-right, 42%));
+}
+
+.viewer-shell.is-drawing-split .viewport,
+.viewer-shell.is-drawing-split .drawings-panel {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.viewer-shell.is-drawing-split .viewport {
+  grid-column: 1;
+}
+
+.viewer-shell.is-drawing-split .drawing-split-handle {
   display: block;
-  width: 100% !important;
-  height: 100% !important;
+  grid-column: 2;
+}
+
+.viewer-shell.is-drawing-split .drawings-panel {
+  grid-column: 3;
+  overflow: hidden;
+}
+
+.drawing-split-handle {
+  position: relative;
+  display: none;
+  z-index: 8;
+  width: 12px;
+  height: 100%;
+  margin: 0 -6px;
+  cursor: col-resize;
   touch-action: none;
 }
+
+.drawing-split-handle::before {
+  content: "";
+  position: absolute;
+  top: 24px;
+  bottom: 24px;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(99, 115, 129, 0.4);
+}
+
+.drawing-split-handle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: transparent;
+}
+
 
 /* Hide the default That Open Company watermark added by the renderer. */
 .viewport > div[style*="left: 0.75rem"][style*="bottom: 0.75rem"] {
@@ -1094,7 +1147,7 @@ body {
   bottom: calc(max(18px, env(safe-area-inset-bottom)) + 74px);
   z-index: 10;
   display: grid;
-  grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr);
   gap: 10px;
   width: min(430px, calc(100vw - 28px));
   padding: 12px;
@@ -1137,6 +1190,35 @@ body {
   outline: 2px solid rgba(37, 99, 235, 0.45);
   outline-offset: -2px;
 }
+
+.drawing-preview {
+  display: grid;
+  gap: 8px;
+  min-height: 160px;
+  padding: 10px;
+  border: 1px solid rgba(23, 32, 38, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  overflow: auto;
+}
+
+.drawing-preview-frame {
+  display: block;
+  min-width: 0;
+}
+
+.drawing-preview-frame svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.drawing-preview svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 
 .checks-output,
 .issues-output,
@@ -1314,6 +1396,12 @@ body {
   border: 1px solid rgba(23, 32, 38, 0.08);
   border-radius: 14px;
   background: #ffffff;
+}
+
+.drawing-card.is-active {
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.12) inset;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 55%);
 }
 
 .drawing-card-main {

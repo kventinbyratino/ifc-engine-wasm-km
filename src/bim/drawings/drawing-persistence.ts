@@ -1,10 +1,12 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
-import type { DrawingRecord, DrawingSource, DrawingView } from "./drawings-panel";
-import type { SheetFormat, SheetRecord } from "../sheets/sheet-types";
+import type { DrawingDocument, SheetDocument } from "./drawing-document";
+import type { DrawingSource, DrawingView } from "./drawing-types";
+import type { SheetFormat } from "../sheets/sheet-types";
+import { serializeModelIdMap } from "./drawing-selection-sync";
 
 export const DRAWING_STORAGE_KEY = "bim-real-drawings-mvp:v2";
-export const DRAWING_STORAGE_SCHEMA_VERSION = 2;
+export const DRAWING_STORAGE_SCHEMA_VERSION = 3;
 
 export type StoredDrawingAnnotation =
   | { system: "linear"; pointA: [number, number, number]; pointB: [number, number, number]; offset: number; style: string }
@@ -25,6 +27,7 @@ export type StoredDrawingRecord = {
     bounds: OBC.DrawingViewportConfig;
   };
   createdAt: string;
+  sourceModelIdMap: Array<[string, number[]]>;
   annotations: StoredDrawingAnnotation[];
 };
 
@@ -45,7 +48,7 @@ export type StoredDrawingWorkspace = {
   sheets: StoredSheetRecord[];
 };
 
-export function saveDrawingWorkspace(projectName: string, drawings: DrawingRecord[], sheets: SheetRecord[], components: OBC.Components) {
+export function saveDrawingWorkspace(projectName: string, drawings: DrawingDocument[], sheets: SheetDocument[], components: OBC.Components) {
   const payload: StoredDrawingWorkspace = {
     schemaVersion: DRAWING_STORAGE_SCHEMA_VERSION,
     projectName,
@@ -80,7 +83,7 @@ export function clearStoredDrawingWorkspace() {
   localStorage.removeItem(DRAWING_STORAGE_KEY);
 }
 
-export function replayStoredAnnotations(record: DrawingRecord, annotations: StoredDrawingAnnotation[], components: OBC.Components) {
+export function replayStoredAnnotations(record: DrawingDocument, annotations: StoredDrawingAnnotation[], components: OBC.Components) {
   const techDrawings = components.get(OBC.TechnicalDrawings);
   for (const annotation of annotations) {
     if (annotation.system === "linear") {
@@ -112,7 +115,7 @@ export function replayStoredAnnotations(record: DrawingRecord, annotations: Stor
   }
 }
 
-function serializeDrawing(record: DrawingRecord, components: OBC.Components): StoredDrawingRecord {
+function serializeDrawing(record: DrawingDocument, components: OBC.Components): StoredDrawingRecord {
   const techDrawings = components.get(OBC.TechnicalDrawings);
   const linear = techDrawings.use(OBC.LinearAnnotations);
   const leader = techDrawings.use(OBC.LeaderAnnotations);
@@ -165,6 +168,7 @@ function serializeDrawing(record: DrawingRecord, components: OBC.Components): St
       bounds: { ...record.projection.bounds },
     },
     createdAt: record.createdAt.toISOString(),
+    sourceModelIdMap: serializeModelIdMap(record.sourceModelIdMap),
     annotations,
   };
 }
@@ -213,6 +217,7 @@ function normalizeStoredDrawingRecord(raw: Record<string, unknown>): StoredDrawi
       bounds: normalizeViewportBounds(raw.projection.bounds),
     },
     createdAt: raw.createdAt,
+    sourceModelIdMap: normalizeStoredModelIdMapEntries(raw.sourceModelIdMap),
     annotations,
   };
 }
@@ -247,6 +252,21 @@ function normalizeStoredAnnotation(raw: Record<string, unknown>): StoredDrawingA
   }
 
   return null;
+}
+
+function normalizeStoredModelIdMapEntries(raw: unknown): Array<[string, number[]]> {
+  if (!Array.isArray(raw)) return [];
+  const result: Array<[string, number[]]> = [];
+
+  for (const entry of raw) {
+    if (!Array.isArray(entry) || entry.length !== 2) continue;
+    const [modelId, ids] = entry as [unknown, unknown];
+    if (typeof modelId !== "string" || !Array.isArray(ids)) continue;
+    const validIds = ids.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    result.push([modelId, [...new Set(validIds)].sort((a, b) => a - b)]);
+  }
+
+  return result;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

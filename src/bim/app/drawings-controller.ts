@@ -1,4 +1,4 @@
-import { isEmptySelection } from "../selection/selection";
+import { countSelection, isEmptySelection } from "../selection/selection";
 import { recordsToModelIdMap } from "../data/element-index";
 import {
   createTechnicalDrawing,
@@ -7,8 +7,6 @@ import {
   fitCameraToDrawing,
   renderDrawingList,
   type DrawingRecord,
-  type DrawingSource,
-  type DrawingView,
 } from "../drawings/drawings-panel";
 import {
   addDrawingAnnotation,
@@ -27,19 +25,25 @@ import {
   saveDrawingWorkspace,
   type StoredDrawingWorkspace,
 } from "../drawings/drawing-persistence";
-import { createSheet } from "../sheets/sheet-board";
+import { attachSheetDocument, createSheetDocument, removeSheetDocumentsForDrawing } from "../drawings/drawing-document";
+import { createSheet, renderSheetSvg } from "../sheets/sheet-board";
 import { downloadSheetPng, downloadSheetSvg, openSheetPdfPrint } from "../sheets/pdf-export";
 import { downloadSheetDxfPaperSpace } from "../sheets/dxf-paper-export";
-import type { SheetFormat } from "../sheets/sheet-types";
+import type { SheetFormat, SheetRecord } from "../sheets/sheet-types";
 import { generateSpecification, specificationToCsv } from "../specs/spec-generator";
-import { getActiveDrawing, getDrawingStats } from "../state/workspace-state";
+import { getActiveDrawing, getActiveSheet, getDrawingStats, setActiveDrawing } from "../state/workspace-state";
 import type { ModelIdMap } from "../types";
 import type { BimAppContext } from "./app-context";
+import type { DrawingSource, DrawingView } from "../drawings/drawing-types";
+import { cloneModelIdMap, findBestMatchingDrawing } from "../drawings/drawing-selection-sync";
 
 export interface DrawingsControllerHooks {
   canUseDrawings: () => boolean;
   getGeometryItemsMap: () => Promise<ModelIdMap>;
   downloadTextFile: (name: string, content: string, type: string) => void;
+  applySearchHighlight: (modelIdMap: ModelIdMap) => Promise<void>;
+  fitToItems: (modelIdMap: ModelIdMap) => Promise<void>;
+  setModelSelection: (modelIdMap: ModelIdMap) => Promise<void>;
 }
 
 export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsControllerHooks) {
@@ -57,10 +61,16 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     annotationTextInput,
     addAnnotationBtn,
     generateDrawingBtn,
+    drawingStudioBtn,
+    drawingPreview,
     exportSheetPngBtn,
     drawingsOutput,
+    viewerShell,
+    drawingSplitHandle,
   } = ctx.dom;
 
+  let drawingStudioActive = false;
+  let drawingSplitRatio = 0.58;
   function toggleDrawingsPanel() {
     if (drawingsPanel.hidden) {
       openDrawingsPanel();
@@ -78,11 +88,156 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
 
     drawingsPanel.hidden = false;
     renderDrawingsPanel();
+    if (!isEmptySelection(workspace.viewer.activeSelection)) syncDrawingSelectionFromModel(workspace.viewer.activeSelection);
   }
 
   function closeDrawingsPanel() {
     drawingsPanel.hidden = true;
+    setDrawingStudioActive(false);
   }
+
+  function toggleDrawingStudio() {
+    if (drawingsPanel.hidden) {
+      openDrawingsPanel();
+      if (drawingsPanel.hidden) return;
+    }
+    setDrawingStudioActive(!drawingStudioActive);
+  }
+
+  function setDrawingStudioActive(value: boolean) {
+    drawingStudioActive = value;
+    viewerShell.classList.toggle("is-drawing-split", value);
+    drawingSplitHandle.hidden = !value;
+    drawingStudioBtn.classList.toggle("is-active", value);
+    drawingStudioBtn.textContent = value ? "Закрыть оформление" : "Оформление";
+    if (value) {
+      updateDrawingSplitRatio(drawingSplitRatio);
+      renderDrawingPreview();
+    } else {
+      viewerShell.style.removeProperty("--drawing-split-left");
+      viewerShell.style.removeProperty("--drawing-split-right");
+    }
+  }
+
+  function updateDrawingSplitRatio(nextRatio: number) {
+    drawingSplitRatio = clamp(nextRatio, 0.42, 0.72);
+    viewerShell.style.setProperty("--drawing-split-left", `${(drawingSplitRatio * 100).toFixed(1)}%`);
+    viewerShell.style.setProperty("--drawing-split-right", `${((1 - drawingSplitRatio) * 100).toFixed(1)}%`);
+  }
+
+  function handleDrawingSplitDrag(event: PointerEvent) {
+    if (!drawingStudioActive || event.button !== 0) return;
+    event.preventDefault();
+    const pointerId = event.pointerId;
+    const updateFromEvent = (moveEvent: PointerEvent) => {
+      const rect = viewerShell.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const nextRatio = (moveEvent.clientX - rect.left) / rect.width;
+      updateDrawingSplitRatio(nextRatio);
+      renderDrawingPreview();
+    };
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+      updateFromEvent(moveEvent);
+    };
+    const onPointerUp = (upEvent: PointerEvent) => {
+      if (upEvent.pointerId !== pointerId) return;
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      try {
+        drawingSplitHandle.releasePointerCapture(pointerId);
+      } catch {
+        // ignore
+      }
+    };
+
+    drawingSplitHandle.setPointerCapture(pointerId);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    updateFromEvent(event);
+  }
+
+  function renderDrawingPreview() {
+    const record = getActiveDrawing(workspace.drawings);
+    if (!record) {
+      drawingPreview.replaceChildren(createPreviewMessage("Откройте режим оформления или выберите чертёж."));
+      return;
+    }
+
+    const activeSheet = workspace.drawings.sheets.find((sheet) => sheet.drawing.id === record.id) ?? null;
+    const previewSheet: SheetRecord = activeSheet ?? {
+      id: `preview-${record.id}`,
+      format: sheetFormatSelect.value as SheetFormat,
+      title: `Оформление: ${record.name}`,
+      projectName: getProjectName(),
+      drawing: record,
+      createdAt: record.createdAt,
+    };
+
+    drawingPreview.replaceChildren(createPreviewFrame(previewSheet));
+  }
+
+  function createPreviewFrame(sheet: SheetRecord) {
+    const frame = document.createElement("div");
+    frame.className = "drawing-preview-frame";
+    frame.innerHTML = renderSheetSvg(sheet);
+    return frame;
+  }
+
+  function createPreviewMessage(message: string) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "empty-state";
+    wrapper.textContent = message;
+    return wrapper;
+  }
+
+  async function activateDrawing(record: DrawingRecord, syncSelection: boolean) {
+    setActiveDrawing(workspace.drawings, record.id);
+    setDrawingStudioActive(true);
+    renderDrawingsPanel();
+    await fitCameraToDrawing(world, record);
+    if (syncSelection) {
+      await syncModelSelectionFromDrawing(record);
+    } else {
+      renderDrawingPreview();
+    }
+  }
+
+  async function syncModelSelectionFromDrawing(record: DrawingRecord) {
+    const sourceSelection = cloneModelIdMap(record.sourceModelIdMap);
+    if (isEmptySelection(sourceSelection)) {
+      drawingsSummary.textContent = `У чертежа нет исходной выборки: ${record.name}`;
+      return;
+    }
+
+    await hooks.applySearchHighlight(sourceSelection);
+    await hooks.fitToItems(sourceSelection);
+    await hooks.setModelSelection(sourceSelection);
+    drawingsSummary.textContent = `Выборка связана с чертежом: ${countSelection(sourceSelection)} элементов`;
+    ctx.setStatus(`Выборка связана с чертежом: ${record.name}`);
+    renderDrawingPreview();
+  }
+
+  function syncDrawingSelectionFromModel(modelIdMap: ModelIdMap) {
+    if (isEmptySelection(modelIdMap) || workspace.drawings.drawings.length === 0) return;
+
+    const best = findBestMatchingDrawing(workspace.drawings.drawings, modelIdMap);
+    if (!best) return;
+
+    if (workspace.drawings.drawings[0]?.id !== best.drawing.id) {
+      setActiveDrawing(workspace.drawings, best.drawing.id);
+    }
+    if (drawingStudioActive) renderDrawingPreview();
+    renderDrawingsPanel();
+    ctx.setStatus(`Активен чертёж: ${best.drawing.name} · совпадение ${best.overlap} эл.`);
+  }
+
+  function clamp(value: number, min: number, max: number) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  drawingStudioBtn.addEventListener("click", toggleDrawingStudio);
+  drawingSplitHandle.addEventListener("pointerdown", handleDrawingSplitDrag);
 
   async function generateDrawing() {
     if (!hooks.canUseDrawings()) return;
@@ -158,7 +313,10 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     renderDrawingList({
       records: workspace.drawings.drawings,
       output: drawingsOutput,
-      onSelect: (record) => void fitCameraToDrawing(world, record),
+      activeDrawingId: getActiveDrawing(workspace.drawings)?.id ?? null,
+      onSelect: (record) => {
+        void activateDrawing(record, true);
+      },
       onExport: downloadDrawingDxf,
       onAnnotate: (record) => void annotateDrawing(record),
       onEditAnnotation: editAnnotationText,
@@ -167,10 +325,12 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
         disposeDrawing(record);
         workspace.drawings.drawings = workspace.drawings.drawings.filter((item) => item.id !== record.id);
         workspace.drawings.sheets = workspace.drawings.sheets.filter((sheet) => sheet.drawing.id !== record.id);
+        removeSheetDocumentsForDrawing(record);
         persistDrawings();
         renderDrawingsPanel();
       },
     });
+    renderDrawingPreview();
   }
 
   function editAnnotationText(record: DrawingRecord, annotation: DrawingAnnotation) {
@@ -262,6 +422,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       projectName: getProjectName(),
     });
     workspace.drawings.sheets.unshift(sheet);
+    attachSheetDocument(record, sheet);
     persistDrawings();
     renderDrawingsPanel();
     drawingsSummary.textContent = `Лист создан: ${sheet.format} · ${sheet.title}`;
@@ -301,16 +462,18 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     const existingSheetIds = new Set(workspace.drawings.sheets.map((sheet) => sheet.id));
     const restoredSheets = stored?.sheets
       .filter((sheet) => sheet.drawingId === storedDrawingId && !existingSheetIds.has(sheet.id))
-      .map((sheet) => ({
-        ...createSheet({
+      .map((sheet) => {
+        const restored = createSheetDocument({
           format: sheet.format,
           drawing: record,
           title: sheet.title,
           projectName: sheet.projectName,
-        }),
-        id: sheet.id,
-        createdAt: new Date(sheet.createdAt),
-      })) ?? [];
+          id: sheet.id,
+          createdAt: new Date(sheet.createdAt),
+        });
+        attachSheetDocument(record, restored);
+        return restored;
+      }) ?? [];
     workspace.drawings.sheets.unshift(...restoredSheets);
   }
 
@@ -380,7 +543,10 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
   }
 
   function clearDrawings() {
-    for (const record of workspace.drawings.drawings) disposeDrawing(record);
+    for (const record of workspace.drawings.drawings) {
+      disposeDrawing(record);
+      removeSheetDocumentsForDrawing(record);
+    }
     workspace.drawings.drawings = [];
     workspace.drawings.sheets = [];
     clearStoredDrawingWorkspace();
@@ -402,6 +568,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     exportActiveSheetPdf,
     exportActiveSheetDxf,
     exportSpecifications,
+    syncDrawingSelectionFromModel,
     clearDrawings,
     persistDrawings,
   };

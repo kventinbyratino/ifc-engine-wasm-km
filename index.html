@@ -35,8 +35,9 @@
         </div>
       </section>
 
-      <section class="viewer-shell">
+      <section id="viewerShell" class="viewer-shell">
         <div id="viewport" class="viewport"></div>
+        <div id="drawingSplitHandle" class="drawing-split-handle" hidden aria-hidden="true"></div>
 
         <button id="topBackBtn" class="action-button top-back-button" type="button" aria-label="Назад">
           <span aria-hidden="true">←</span>
@@ -369,6 +370,7 @@
 
           <div class="data-actions">
             <button id="generateDrawingBtn" class="data-action" type="button">Сгенерировать</button>
+            <button id="drawingStudioBtn" class="data-action data-action-secondary" type="button">Оформление</button>
             <button id="addAnnotationBtn" class="data-action" type="button">Добавить аннотацию</button>
             <button id="interactiveAnnotationBtn" class="data-action data-action-secondary" type="button">Интерактивно</button>
             <button id="exportSheetSvgBtn" class="data-action" type="button">SVG</button>
@@ -377,6 +379,10 @@
             <button id="exportSheetDxfBtn" class="data-action" type="button">DXF лист</button>
             <button id="clearAnnotationsBtn" class="data-action data-action-secondary" type="button">Очистить анн.</button>
             <button id="clearDrawingsBtn" class="data-action data-action-secondary" type="button">Очистить чертежи</button>
+          </div>
+
+          <div id="drawingPreview" class="drawing-preview">
+            <span class="empty-state">Откройте режим оформления или выберите чертёж.</span>
           </div>
 
           <div id="drawingsOutput" class="drawings-output">

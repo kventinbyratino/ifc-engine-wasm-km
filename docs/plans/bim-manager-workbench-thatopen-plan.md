@@ -907,6 +907,8 @@ npm run build
 - Геометрия и бизнес-логика не смешаны.
 - Candidate filtering можно улучшать независимо от отчёта.
 
+Статус: выполнено — clash pipeline разнесён на candidate generation, broad phase, overlap engine и report layer; добавлены unit-тесты на tolerance, overlap и formatting.
+
 ---
 
 ### Phase 15 — Drawings and annotations architecture cleanup

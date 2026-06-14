@@ -1,17 +1,11 @@
 import type { ModelIdMap } from "../types";
-import { countPropertySets } from "./property-sets";
 import { readModelIdsWithGeometry, readModelItems } from "./model-reader";
-import { buildSearchableIndex, matchesElementRecord, normalizeElementIndexQuery } from "./search-index";
-import { attr, findMaterial, findStorey, stringifyValues, type RawItem } from "./property-extractor";
+import { matchesElementRecord, normalizeElementIndexQuery } from "./search-index";
 import type { BimElementRecord, ElementRecord } from "./element-record";
+import { createElementRecord } from "./element-record-factory";
+import type { ElementIndexFilters } from "./element-index-types";
 
-export type ModelIndexFilters = {
-  query: string;
-  category: string;
-  storey: string;
-};
-
-export type { ElementRecord, BimElementRecord };
+export type { ElementRecord, BimElementRecord, ElementIndexFilters };
 
 export async function buildModelIndex(options: {
   fragments: { list: Map<string, unknown> };
@@ -45,7 +39,7 @@ export async function buildModelIndex(options: {
     for (const chunk of chunks) {
       for (let itemIndex = 0; itemIndex < chunk.ids.length; itemIndex++) {
         const localId = chunk.ids[itemIndex];
-        const item = chunk.items[itemIndex] as RawItem | undefined;
+        const item = chunk.items[itemIndex] as Parameters<typeof createElementRecord>[2];
         records.push(createElementRecord(modelId, localId, item));
       }
 
@@ -57,7 +51,7 @@ export async function buildModelIndex(options: {
   return records;
 }
 
-export function filterModelIndex(records: BimElementRecord[], filters: ModelIndexFilters) {
+export function filterModelIndex(records: BimElementRecord[], filters: ElementIndexFilters) {
   const normalized = normalizeElementIndexQuery(filters);
   return records.filter((record) => matchesElementRecord(record, normalized));
 }
@@ -75,45 +69,4 @@ export function getUniqueValues(records: BimElementRecord[], key: "category" | "
   return [...new Set(records.map((record) => record[key]).filter(Boolean))].sort((a, b) =>
     a.localeCompare(b, "ru"),
   );
-}
-
-export const buildElementIndex = buildModelIndex;
-export const filterElementIndex = filterModelIndex;
-export type ElementIndexFilters = ModelIndexFilters;
-
-function createElementRecord(modelId: string, localId: number, item: RawItem | undefined): BimElementRecord {
-  const name = attr(item, "Name") || `#${localId}`;
-  const category = attr(item, "_category") || attr(item, "ObjectType") || "IfcElement";
-  const globalId = attr(item, "_guid") || attr(item, "GlobalId");
-  const typeName = attr(item, "ObjectType") || attr(item, "PredefinedType") || attr(item, "Tag");
-  const storey = findStorey(item);
-  const number = attr(item, "Tag") || attr(item, "LongName") || attr(item, "Number");
-  const materialName = findMaterial(item);
-  const psetCount = countPropertySets(item);
-  const searchable = buildSearchableIndex([
-    modelId,
-    localId,
-    name,
-    category,
-    globalId,
-    typeName,
-    storey,
-    number,
-    materialName,
-    stringifyValues(item),
-  ]);
-
-  return {
-    modelId,
-    localId,
-    name,
-    category,
-    globalId,
-    typeName,
-    storey,
-    number,
-    materialName,
-    psetCount,
-    searchable,
-  };
 }

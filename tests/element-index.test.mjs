@@ -23,12 +23,20 @@ await copyPatched("model-reader.ts");
 await copyPatched("search-index.ts");
 await copyPatched("element-index.ts", [
   ["./model-index", "./model-index.ts"],
+  ["./element-record-factory", "./element-record-factory.ts"],
+]);
+await copyPatched("element-record-factory.ts", [
+  ["./element-record", "./element-record.ts"],
+  ["./property-sets", "./property-sets.ts"],
+  ["./search-index", "./search-index.ts"],
+  ["./property-extractor", "./property-extractor.ts"],
 ]);
 await copyPatched("model-index.ts", [
   ["./property-sets", "./property-sets.ts"],
   ["./model-reader", "./model-reader.ts"],
   ["./search-index", "./search-index.ts"],
   ["./property-extractor", "./property-extractor.ts"],
+  ["./element-record-factory", "./element-record-factory.ts"],
 ]);
 await copyPatched("property-extractor.ts", [["./extractors", "./extractors.ts"]]);
 
@@ -39,6 +47,7 @@ const propertySetsUrl = pathToFileURL(path.join(tempRoot, "property-sets.ts")).h
 const searchIndexUrl = pathToFileURL(path.join(tempRoot, "search-index.ts")).href;
 
 const { buildElementIndex, filterElementIndex, recordsToModelIdMap } = await import(elementIndexUrl);
+const { createElementRecord } = await import(pathToFileURL(path.join(tempRoot, "element-record-factory.ts")).href);
 const { attr, findMaterial, findStorey, stringifyValues } = await import(extractorsUrl);
 const { countPropertySets } = await import(propertySetsUrl);
 const { buildSearchableIndex } = await import(searchIndexUrl);
@@ -77,6 +86,27 @@ test("extractors handle nested values and cycles", () => {
   assert.equal(countPropertySets(item), 1);
   assert.match(stringifyValues(item), /Wall 01/);
   assert.match(stringifyValues(item), /Level 01/);
+});
+
+test("createElementRecord derives the expected model record", () => {
+  const item = makeCircularItem();
+  const record = createElementRecord("model-a", 11, item);
+
+  assert.deepEqual(record, {
+    modelId: "model-a",
+    localId: 11,
+    name: "Wall 01",
+    category: "IFCWALL",
+    globalId: "GID-001",
+    typeName: "WallType",
+    storey: "Level 01",
+    number: "A1",
+    materialName: "Concrete",
+    psetCount: 1,
+    searchable: record.searchable,
+  });
+  assert.match(record.searchable, /wall 01/);
+  assert.match(record.searchable, /concrete/);
 });
 
 test("buildSearchableIndex normalizes tokens", () => {

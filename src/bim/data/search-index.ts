@@ -1,4 +1,5 @@
-import type { BimElementRecord, ElementIndexFilters } from "./model-index";
+import type { BimElementRecord } from "./element-record";
+import type { ElementIndexFilters } from "./element-index-types";
 
 export function buildSearchableIndex(parts: Array<string | number | boolean>) {
   return parts.map((part) => String(part)).join(" ").toLocaleLowerCase();

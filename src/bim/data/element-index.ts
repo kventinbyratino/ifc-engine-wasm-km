@@ -1,8 +1,8 @@
 export type {
   ElementRecord,
   BimElementRecord,
-  ModelIndexFilters as ElementIndexFilters,
 } from "./model-index";
+export type { ElementIndexFilters } from "./element-index-types";
 export {
   buildModelIndex as buildElementIndex,
   filterModelIndex as filterElementIndex,

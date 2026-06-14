@@ -23,17 +23,18 @@
 - Phase 9 is complete and verified.
 - Phase 10 is complete and verified.
 - Phase 11 is complete and verified.
-- Next refactor phase: Phase 12.
+- Phase 12 is complete and verified.
+- Next refactor phase: none; the listed refactor phases are complete.
 
 ## 0. Priorities / working mode
 
 **Now:** Sprint 7–8 — federation/clash and sheets.
 
-**Next:** Phase 12 refactor backlog.
+**Next:** no remaining refactor backlog.
 
 **Later:** TBD.
 
-**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Phase 9; Phase 10; Phase 11; Phase 12–16.
+**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
 
 **Definition of done for any item:** scoped files are listed, acceptance is clear, verification commands pass, and `git diff --check` is clean.
 
@@ -866,6 +867,8 @@ git diff --check
 ---
 
 ### Phase 12 — Element index extraction and data layer cleanup
+
+**Status:** выполнено — `element-index` now re-exports the cleaned public facade, `search-index` no longer depends on `model-index`, `model-index` uses a dedicated record factory, and `data-controller` imports the normalized API.
 
 **Цель:** сделать индекс элементов модели более чистым, переиспользуемым и тестируемым.
 

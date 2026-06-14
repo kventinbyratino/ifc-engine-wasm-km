@@ -1,11 +1,11 @@
 import { renderSelectedProperties } from "../properties/properties-panel";
 import {
-  buildModelIndex,
-  filterModelIndex,
+  buildElementIndex,
+  filterElementIndex,
   getUniqueValues,
   recordsToModelIdMap,
   type BimElementRecord,
-} from "../data/model-index";
+} from "../data/element-index";
 import {
   exportElementsCsv,
   exportElementsJson,
@@ -84,7 +84,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     const signal = ctx.startOperation("Индексация элементов");
 
     try {
-      workspace.data.elementIndex = await buildModelIndex({
+      workspace.data.elementIndex = await buildElementIndex({
         fragments,
         signal,
         onProgress: (processed, total) => {
@@ -127,7 +127,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
   }
 
   function applyDataFilters() {
-    workspace.data.filteredElements = filterModelIndex(workspace.data.elementIndex, {
+    workspace.data.filteredElements = filterElementIndex(workspace.data.elementIndex, {
       query: dataSearchInput.value,
       category: dataCategoryFilter.value,
       storey: dataStoreyFilter.value,

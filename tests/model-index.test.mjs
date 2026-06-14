@@ -21,17 +21,29 @@ await copyPatched("extractors.ts");
 await copyPatched("property-sets.ts", [["./extractors", "./extractors.ts"]]);
 await copyPatched("model-reader.ts");
 await copyPatched("search-index.ts");
+await copyPatched("relation-types.ts");
+await copyPatched("element-relations.ts", [["./property-extractor", "./property-extractor.ts"], ["./relation-types", "./relation-types.ts"]]);
 await copyPatched("element-index.ts", [
+  ["./relation-types", "./relation-types.ts"],
   ["./property-sets", "./property-sets.ts"],
   ["./model-reader", "./model-reader.ts"],
   ["./search-index", "./search-index.ts"],
   ["./extractors", "./extractors.ts"],
+]);
+await copyPatched("element-record.ts");
+await copyPatched("element-record-factory.ts", [
+  ["./element-record", "./element-record.ts"],
+  ["./property-sets", "./property-sets.ts"],
+  ["./search-index", "./search-index.ts"],
+  ["./property-extractor", "./property-extractor.ts"],
 ]);
 await copyPatched("model-index.ts", [
   ["./property-sets", "./property-sets.ts"],
   ["./model-reader", "./model-reader.ts"],
   ["./search-index", "./search-index.ts"],
   ["./property-extractor", "./property-extractor.ts"],
+  ["./element-relations", "./element-relations.ts"],
+  ["./element-record-factory", "./element-record-factory.ts"],
 ]);
 await copyPatched("property-extractor.ts", [["./extractors", "./extractors.ts"]]);
 
@@ -66,6 +78,12 @@ test("property extractor canonical module exposes nested property helpers", () =
 });
 
 test("model index canonical module builds, filters and maps records", async () => {
+  const storey = {
+    Name: { value: "Level 01" },
+    _category: "IFCBUILDINGSTOREY",
+    GlobalId: { value: "STOREY-001" },
+    Tag: "S1",
+  };
   const item1 = {
     Name: { value: "Wall 01" },
     _category: "IFCWALL",
@@ -73,12 +91,7 @@ test("model index canonical module builds, filters and maps records", async () =
     ObjectType: "WallType",
     Tag: "A1",
     MaterialName: "Concrete",
-    Nested: {
-      relation: {
-        _category: "IFCBUILDINGSTOREY",
-        Name: { value: "Level 01" },
-      },
-    },
+    ContainedInStructure: storey,
     Pset: {
       Name: "Pset_WallCommon",
       _category: "IFCPROPERTYSET",
@@ -92,31 +105,37 @@ test("model index canonical module builds, filters and maps records", async () =
     Tag: "D1",
     Material: "Steel",
     Storey: "Level 02",
+    ContainedInStructure: storey,
     PsetDoorCommon: { Name: "Pset_DoorCommon", _category: "IFCPROPERTYSET" },
   };
   item1.self = item1;
   item2.self = item2;
+  storey.self = storey;
 
   const model = {
     async getItemsIdsWithGeometry() {
-      return [11, 22];
+      return [11, 22, 33];
     },
     async getItemsData(ids) {
-      return ids.map((id) => (id === 11 ? item1 : item2));
+      return ids.map((id) => (id === 11 ? item1 : id === 22 ? item2 : storey));
     },
   };
 
-  const records = await buildModelIndex({ fragments: { list: new Map([["model-a", model]]) } });
-  assert.equal(records.length, 2);
+  const { records, relations } = await buildModelIndex({ fragments: { list: new Map([["model-a", model]]) } });
+  assert.equal(records.length, 3);
   assert.equal(records[0].name, "Wall 01");
   assert.equal(records[0].storey, "Level 01");
   assert.equal(records[1].materialName, "Steel");
+  assert.equal(records[2].name, "Level 01");
 
   const filtered = filterModelIndex(records, { query: "wall", category: "IFCWALL", storey: "Level 01" });
   assert.equal(filtered.length, 1);
   assert.equal(filtered[0].localId, 11);
 
   const modelIdMap = recordsToModelIdMap(records);
-  assert.deepEqual([...modelIdMap["model-a"]].sort((a, b) => a - b), [11, 22]);
+  assert.deepEqual([...modelIdMap["model-a"]].sort((a, b) => a - b), [11, 22, 33]);
   assert.deepEqual(getUniqueValues(records, "storey"), ["Level 01", "Level 02"]);
+  assert.equal(relations.edges.length, 2);
+  assert.ok(relations.outgoing["model-a:11"].some((edge) => edge.type === "hosted_by"));
+  assert.ok(relations.outgoing["model-a:22"].some((edge) => edge.type === "hosted_by"));
 });

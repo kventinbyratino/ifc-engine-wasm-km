@@ -1,11 +1,5 @@
 import { renderSelectedProperties } from "../properties/properties-panel";
-import {
-  buildElementIndex,
-  filterElementIndex,
-  getUniqueValues,
-  recordsToModelIdMap,
-  type BimElementRecord,
-} from "../data/element-index";
+import { buildElementIndex, filterElementIndex, getUniqueValues, recordsToModelIdMap, type BimElementRecord } from "../data/element-index";
 import {
   exportElementsCsv,
   exportElementsJson,
@@ -84,7 +78,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     const signal = ctx.startOperation("Индексация элементов");
 
     try {
-      workspace.data.elementIndex = await buildElementIndex({
+      const indexResult = await buildElementIndex({
         fragments,
         signal,
         onProgress: (processed, total) => {
@@ -92,11 +86,16 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
           ctx.setProgress(total > 0 ? processed / total : 0);
         },
       });
+      workspace.data.elementIndex = indexResult.records;
+      workspace.data.elementRelations = indexResult.relations;
       fillSelectOptions(dataCategoryFilter, getUniqueValues(workspace.data.elementIndex, "category"), "Все IFC Class");
       fillSelectOptions(dataStoreyFilter, getUniqueValues(workspace.data.elementIndex, "storey"), "Все этажи");
       applyDataFilters();
       hooks.refreshClashSelectors();
-      ctx.showToast(`BIM Data Index: ${getIndexedElementCount(workspace.data)} элементов`, "success");
+      ctx.showToast(
+        `BIM Data Index: ${getIndexedElementCount(workspace.data)} элементов · ${workspace.data.elementRelations.edges.length} связей`,
+        "success",
+      );
     } catch (error) {
       console.error(error);
       if (isAbortError(error)) {
@@ -118,6 +117,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
   function resetDataIndex() {
     workspace.data.elementIndex = [];
     workspace.data.filteredElements = [];
+    workspace.data.elementRelations = { edges: [], outgoing: {}, incoming: {} };
     dataSummary.textContent = "Загрузите модель";
     dataSearchInput.value = "";
     fillSelectOptions(dataCategoryFilter, [], "Все IFC Class");

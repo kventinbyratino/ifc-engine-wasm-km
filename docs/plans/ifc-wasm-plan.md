@@ -14,6 +14,7 @@
 - BIM profile and base viewer are in place.
 - Sprint 1 is complete and verified.
 - Sprint 2 is complete and verified.
+- Sprint 2.5 is complete and verified.
 - Sprint 3 is complete and verified.
 - Sprint 4 is complete and verified.
 - Sprint 5 is complete and verified.
@@ -283,13 +284,14 @@ git diff --check
 **Цель:** связать элементы модели в семантический граф отношений, чтобы планировщик и UI понимали связи вида `стена → окно → помещение`.
 
 **Files:**
-- Create: `src/bim/data/element-relations.ts`
 - Create: `src/bim/data/relation-types.ts`
+- Create: `src/bim/data/element-relations.ts`
 - Modify: `src/bim/data/model-index.ts`
-- Modify: `src/bim/data/element-record.ts`
-- Modify: `src/bim/app.ts`
+- Modify: `src/bim/data/element-index.ts`
+- Modify: `src/bim/state/data-state.ts`
+- Modify: `src/bim/app/data-controller.ts`
 
-**Status:** planned
+**Status:** completed — relations are extracted during model indexing, stored in workspace state, and verified by tests/build.
 
 ### Task 1: Define relation model
 

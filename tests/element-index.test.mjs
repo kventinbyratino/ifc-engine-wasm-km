@@ -21,7 +21,11 @@ await copyPatched("extractors.ts");
 await copyPatched("property-sets.ts", [["./extractors", "./extractors.ts"]]);
 await copyPatched("model-reader.ts");
 await copyPatched("search-index.ts");
+await copyPatched("relation-types.ts");
+await copyPatched("element-relations.ts", [["./property-extractor", "./property-extractor.ts"], ["./relation-types", "./relation-types.ts"]]);
 await copyPatched("element-index.ts", [
+  ["./relation-types", "./relation-types.ts"],
+  ["./element-relations", "./element-relations.ts"],
   ["./model-index", "./model-index.ts"],
   ["./element-record-factory", "./element-record-factory.ts"],
 ]);
@@ -36,6 +40,7 @@ await copyPatched("model-index.ts", [
   ["./model-reader", "./model-reader.ts"],
   ["./search-index", "./search-index.ts"],
   ["./property-extractor", "./property-extractor.ts"],
+  ["./element-relations", "./element-relations.ts"],
   ["./element-record-factory", "./element-record-factory.ts"],
 ]);
 await copyPatched("property-extractor.ts", [["./extractors", "./extractors.ts"]]);
@@ -182,7 +187,13 @@ test("recordsToModelIdMap groups ids by model", () => {
 });
 
 test("buildElementIndex extracts records from model data", async () => {
+  const storey = {
+    Name: { value: "Level 01" },
+    _category: "IFCBUILDINGSTOREY",
+    GlobalId: { value: "STOREY-001" },
+  };
   const item1 = makeCircularItem();
+  item1.ContainedInStructure = storey;
   const item2 = {
     Name: "Door 01",
     _category: "IFCDOOR",
@@ -191,29 +202,32 @@ test("buildElementIndex extracts records from model data", async () => {
     Tag: "D1",
     Material: "Steel",
     Storey: "Level 02",
+    ContainedInStructure: storey,
     PsetDoorCommon: { Name: "Pset_DoorCommon", _category: "IFCPROPERTYSET" },
   };
   item2.self = item2;
 
   const model = {
     async getItemsIdsWithGeometry() {
-      return [11, 22];
+      return [11, 22, 33];
     },
     async getItemsData(ids) {
-      return ids.map((id) => (id === 11 ? item1 : item2));
+      return ids.map((id) => (id === 11 ? item1 : id === 22 ? item2 : storey));
     },
   };
 
-  const records = await buildElementIndex({
+  const { records, relations } = await buildElementIndex({
     fragments: { list: new Map([["model-a", model]]) },
   });
 
-  assert.equal(records.length, 2);
+  assert.equal(records.length, 3);
   assert.equal(records[0].name, "Wall 01");
   assert.equal(records[0].storey, "Level 01");
   assert.equal(records[0].psetCount, 1);
   assert.equal(records[1].name, "Door 01");
   assert.equal(records[1].storey, "Level 02");
+  assert.equal(records[2].name, "Level 01");
   assert.equal(records[1].materialName, "Steel");
   assert.match(records[1].searchable, /door 01/);
+  assert.equal(relations.edges.length, 2);
 });

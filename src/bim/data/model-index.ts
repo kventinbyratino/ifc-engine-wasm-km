@@ -1,5 +1,6 @@
 import type { ModelIdMap } from "../types";
 import { readModelIdsWithGeometry, readModelItems } from "./model-reader";
+import { buildElementRelationGraph, type ElementRelationSource } from "./element-relations";
 import { matchesElementRecord, normalizeElementIndexQuery } from "./search-index";
 import type { BimElementRecord, ElementRecord } from "./element-record";
 import { createElementRecord } from "./element-record-factory";
@@ -13,6 +14,7 @@ export async function buildModelIndex(options: {
   signal?: AbortSignal;
 }) {
   const records: BimElementRecord[] = [];
+  const sources: ElementRelationSource[] = [];
   const modelEntries = [...options.fragments.list] as Array<[string, any]>;
   const modelItems: Array<{ modelId: string; model: any; ids: number[] }> = [];
   let total = 0;
@@ -40,7 +42,9 @@ export async function buildModelIndex(options: {
       for (let itemIndex = 0; itemIndex < chunk.ids.length; itemIndex++) {
         const localId = chunk.ids[itemIndex];
         const item = chunk.items[itemIndex] as Parameters<typeof createElementRecord>[2];
-        records.push(createElementRecord(modelId, localId, item));
+        const record = createElementRecord(modelId, localId, item);
+        records.push(record);
+        sources.push({ record, item });
       }
 
       processed += chunk.ids.length;
@@ -48,7 +52,10 @@ export async function buildModelIndex(options: {
     }
   }
 
-  return records;
+  return {
+    records,
+    relations: buildElementRelationGraph(sources),
+  };
 }
 
 export function filterModelIndex(records: BimElementRecord[], filters: ElementIndexFilters) {

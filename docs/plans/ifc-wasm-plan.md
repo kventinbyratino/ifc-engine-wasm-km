@@ -21,13 +21,11 @@
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 5 — Model Health Checks.
+**Now:** Sprint 6 — Issues / BCF foundation.
 
-**Next:** Sprint 6 — Issues / BCF foundation.
+**Next:** Sprint 7–8 — federation/clash and sheets.
 
-**Later:** Sprint 7–8 — federation/clash and sheets.
-
-**Refactor backlog:** Phase 9–11.
+**Later:** Phase 9–11 refactor backlog.
 
 **Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Phase 12–16.
 
@@ -498,6 +496,8 @@ npm run build
 ### Sprint 5 — Model Health Checks (P3)
 
 **Цель:** вынести проверки качества модели в отдельный слой правил.
+
+**Status:** ✅ completed
 
 ### Task 1: Split rule groups
 

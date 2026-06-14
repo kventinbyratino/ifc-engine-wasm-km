@@ -7,6 +7,7 @@ import { countSelection } from "../selection/selection";
 import { createWorkspaceState } from "../state/workspace-state";
 import { createDrawingInteractionController } from "../drawings/drawing-interaction";
 import { syncDrawingAnnotations, type DrawingAnnotationType } from "../drawings/drawing-annotations";
+import { bindBimUiEvents } from "./ui-wiring";
 import { createIssueStore } from "../issues/issues-store";
 import { getProfileCapabilities } from "../profiles";
 import { createMessage } from "../ui/dom-utils";
@@ -422,6 +423,93 @@ export async function startBimApp() {
     close: libraryController.closeLibraryModal,
   });
 
+  bindBimUiEvents(ctx, drawingInteraction, {
+    search: {
+      searchItems,
+      toggleSearchPanel,
+      expandSearchPanel,
+      closeSearchPanel,
+    },
+    data: {
+      toggleDataPanel,
+      closeDataPanel,
+      applyDataFilters,
+      highlightFilteredElements,
+      exportElementsCsv,
+      exportElementsJson,
+    },
+    checks: {
+      toggleChecksPanel,
+      closeChecksPanel,
+      loadIDSFile,
+      addIDSRequirementFromForm,
+      saveIDSFile,
+      runChecks,
+      exportChecksCsv,
+      exportChecksJson,
+    },
+    issues: {
+      toggleIssuesPanel,
+      closeIssuesPanel,
+      createIssueFromSelection,
+      renderIssues,
+      exportIssuesJson,
+      exportIssuesBcfLikeJson,
+    },
+    clash: {
+      toggleClashPanel,
+      closeClashPanel,
+      runClashDetection,
+      clearBBoxIndex,
+      renderClash,
+    },
+    drawings: {
+      toggleDrawingsPanel,
+      closeDrawingsPanel,
+      generateDrawing,
+      annotateActiveDrawing,
+      clearActiveDrawingAnnotations,
+      createSheetFromActiveDrawing,
+      placeSpecificationsOnActiveSheet,
+      exportActiveSheetSvg,
+      exportActiveSheetPng,
+      exportActiveSheetPdf,
+      exportActiveSheetDxf,
+      exportSpecifications,
+      clearDrawings,
+    },
+    model: {
+      loadIfc,
+      loadFrag,
+      clearModels,
+      downloadFragments,
+      hideSelected,
+      isolateSelected,
+      fitToModels,
+      resetHomeView,
+    },
+    profile: {
+      navigateToProfile,
+    },
+    library: {
+      openLibraryModal,
+      showLibraryStart,
+      showFragmentLibrary,
+      closeLibraryModal,
+      openFragmentFromUrl,
+      saveCurrentFragment,
+    },
+    share: {
+      openShareModal,
+      closeShareModal,
+      copyShareLink,
+    },
+    utilities: {
+      cancelActiveOperation,
+      clearSelectionInfo,
+    },
+  });
+
   world.camera.controls.addEventListener("update", () => {
     fragments.core.update();
   });
@@ -467,117 +555,6 @@ export async function startBimApp() {
 
   highlighter.events.select.onClear.add(() => {
     clearSelectionInfo();
-  });
-
-  loadIfcBtn.onclick = () => openLibraryModal();
-  emptyLoadIfcBtn.onclick = () => ifcInput.click();
-  emptyExampleBtn.onclick = () => {
-    openLibraryModal();
-    showLibraryStart();
-  };
-  emptyLibraryBtn.onclick = () => {
-    openLibraryModal();
-    void showFragmentLibrary();
-  };
-  loadFragBtn.onclick = () => fragInput.click();
-  fitBtn.onclick = () => void fitToModels();
-  clearBtn.onclick = () => void clearModels();
-  downloadFragBtn.onclick = () => void downloadFragments();
-  hideSelectedBtn.onclick = () => void hideSelected();
-  isolateSelectedBtn.onclick = () => void isolateSelected();
-  showAllBtn.onclick = () => void hider.set(true);
-  searchToggleBtn.onclick = () => toggleSearchPanel();
-  homeViewBtn.onclick = () => void resetHomeView();
-  dataBrowserBtn.onclick = () => toggleDataPanel();
-  checksBtn.onclick = () => toggleChecksPanel();
-  issuesBtn.onclick = () => toggleIssuesPanel();
-  clashBtn.onclick = () => toggleClashPanel();
-  drawingsBtn.onclick = () => toggleDrawingsPanel();
-  closeDataPanelBtn.onclick = () => closeDataPanel();
-  dataSearchInput.oninput = () => applyDataFilters();
-  dataCategoryFilter.onchange = () => applyDataFilters();
-  dataStoreyFilter.onchange = () => applyDataFilters();
-  highlightFilteredBtn.onclick = () => void highlightFilteredElements();
-  exportCsvBtn.onclick = () => exportElementsCsv(workspace.data.filteredElements);
-  exportJsonBtn.onclick = () => exportElementsJson(workspace.data.filteredElements);
-  closeChecksPanelBtn.onclick = () => closeChecksPanel();
-  idsFileInput.onchange = () => void loadIDSFile();
-  addIdsRequirementBtn.onclick = () => addIDSRequirementFromForm();
-  saveIdsBtn.onclick = () => saveIDSFile();
-  runChecksBtn.onclick = () => void runChecks();
-  exportChecksCsvBtn.onclick = () => exportChecksCsv(workspace.checks.healthReport);
-  exportChecksJsonBtn.onclick = () => exportChecksJson(workspace.checks.healthReport);
-  closeIssuesPanelBtn.onclick = () => closeIssuesPanel();
-  createIssueBtn.onclick = () => void createIssueFromSelection();
-  exportIssuesJsonBtn.onclick = () => exportIssuesJson(issueStore.list());
-  exportIssuesBcfBtn.onclick = () => exportIssuesBcfLikeJson(issueStore.list());
-  clearIssuesBtn.onclick = () => {
-    issueStore.clear();
-    renderIssues();
-  };
-  closeClashPanelBtn.onclick = () => closeClashPanel();
-  runClashBtn.onclick = () => void runClashDetection();
-  clearClashBtn.onclick = () => {
-    workspace.clash.clashes = [];
-    renderClash();
-  };
-  closeDrawingsPanelBtn.onclick = () => closeDrawingsPanel();
-  generateDrawingBtn.onclick = () => void generateDrawing();
-  addAnnotationBtn.onclick = () => void annotateActiveDrawing();
-  interactiveAnnotationBtn.onclick = () => {
-    drawingInteraction.setActive(!drawingInteraction.active);
-    interactiveAnnotationBtn.classList.toggle("is-active", drawingInteraction.active);
-  };
-  clearAnnotationsBtn.onclick = () => clearActiveDrawingAnnotations();
-  createSheetBtn.onclick = () => createSheetFromActiveDrawing();
-  placeSpecsBtn.onclick = () => placeSpecificationsOnActiveSheet();
-  exportSheetSvgBtn.onclick = () => exportActiveSheetSvg();
-  exportSheetPngBtn.onclick = () => void exportActiveSheetPng();
-  exportSheetPdfBtn.onclick = () => exportActiveSheetPdf();
-  exportSheetDxfBtn.onclick = () => exportActiveSheetDxf();
-  exportSpecsBtn.onclick = () => exportSpecifications();
-  clearDrawingsBtn.onclick = () => clearDrawings();
-  searchBtn.onclick = () => void searchItems();
-  clearSearchBtn.onclick = () => void closeSearchPanel();
-  searchPanel.onclick = () => {
-    if (searchPanel.classList.contains("is-collapsed")) expandSearchPanel();
-  };
-  profileKmBtn.onclick = () => navigateToProfile("km");
-  profileBimBtn.onclick = () => navigateToProfile("bim");
-  backToProfilesBtn.onclick = () => navigateToProfile("pending");
-  closeLibraryBtn.onclick = () => closeLibraryModal();
-  chooseFragmentBtn.onclick = () => void showFragmentLibrary();
-  addIfcBtn.onclick = () => ifcInput.click();
-  libraryBackBtn.onclick = () => showLibraryStart();
-  saveFragmentBtn.onclick = () => void saveCurrentFragment();
-  shareModelBtn.onclick = () => openShareModal();
-  closeShareBtn.onclick = () => closeShareModal();
-  copyShareBtn.onclick = () => void copyShareLink();
-  loadingCancelBtn.onclick = () => cancelActiveOperation();
-  topBackBtn.onclick = () => navigateToProfile("pending");
-
-  ifcInput.onchange = () => {
-    const [file] = ifcInput.files ?? [];
-    if (file) void loadIfc(file);
-    ifcInput.value = "";
-  };
-
-  fragInput.onchange = () => {
-    const [file] = fragInput.files ?? [];
-    if (file) void loadFrag(file);
-    fragInput.value = "";
-  };
-
-  window.addEventListener("keydown", (event) => {
-    if (event.code === "Escape") {
-      closeShareModal();
-      void highlighter.clear("select");
-      void highlighter.clear("search");
-    }
-
-    if (event.code === "Enter" && document.activeElement === searchInput) {
-      void searchItems();
-    }
   });
 
   syncProfileWithLocation();

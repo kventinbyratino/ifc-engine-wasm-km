@@ -20,17 +20,20 @@
 - Sprint 6 is complete and verified.
 - Sprint 7 is complete and verified.
 - Detailed phase statuses are tracked in the phase sections below.
-- Next refactor phase: TBD.
+- Phase 9 is complete and verified.
+- Phase 10 is complete and verified.
+- Phase 11 is complete and verified.
+- Next refactor phase: Phase 12.
 
 ## 0. Priorities / working mode
 
 **Now:** Sprint 7–8 — federation/clash and sheets.
 
-**Next:** Phase 9–11 refactor backlog.
+**Next:** Phase 12 refactor backlog.
 
 **Later:** TBD.
 
-**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Phase 12–16.
+**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Phase 9; Phase 10; Phase 11; Phase 12–16.
 
 **Definition of done for any item:** scoped files are listed, acceptance is clear, verification commands pass, and `git diff --check` is clean.
 
@@ -840,17 +843,23 @@ git diff --check
 
 ### Phase 9 — App bootstrap and controller orchestration (P5)
 
+**Status:** выполнено — `src/bim/app.ts` reduced to a thin export while `src/bim/app/bootstrap.ts` now owns app startup and controller orchestration.
+
 **Цель:** убрать центральную точку сборки из `src/bim/app.ts` и сделать запуск приложения явным.
 
 ---
 
 ### Phase 10 — Workspace state decomposition (P5)
 
+**Status:** выполнено — `WorkspaceState` has been split into domain-focused slices and the shared data bag was removed.
+
 **Цель:** разнести `WorkspaceState` по доменным срезам и убрать общий мешок данных.
 
 ---
 
 ### Phase 11 — DOM segmentation and UI module split (P5)
+
+**Status:** выполнено — UI event wiring moved into `src/bim/app/ui-wiring.ts`, reducing bootstrap monolithism and making feature-grouped bindings easier to maintain.
 
 **Цель:** сделать DOM-слой менее монолитным и проще для тестирования.
 
@@ -953,7 +962,7 @@ npm run build
 - **Current canonical plan file:** `docs/plans/ifc-wasm-plan.md`
 - **Old split plan files removed**; this file is now the single source of truth for the IFC WASM plan.
 
-**Next phase to execute:** Phase 16.
+**Next phase to execute:** Phase 11.
 
 ## 4. Recommended verification loop
 

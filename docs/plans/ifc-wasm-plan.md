@@ -14,8 +14,10 @@
 - BIM profile and base viewer are in place.
 - Drawings / annotations / sheets MVP are in place.
 - Phase 12 completed: element-index cleanup.
+- Phase 13 completed: model health rules modularization.
+- Phase 14 completed: clash detection pipeline split.
 - Phase 15 completed: drawings and annotations architecture cleanup.
-- Next refactor phase: **Phase 13 — Model health rules modularization**.
+- Next refactor phase: **Phase 16 — Issue store and backend layering**.
 
 ---
 
@@ -293,7 +295,32 @@ npm run build
 
 ### Phase 14 — Clash detection pipeline split
 
+**Status:** выполнено — pipeline коллизий разделён на broad phase, candidate generation, exact overlap и reporting; добавлены unit-тесты на broad phase, overlap engine и clash report.
+
 **Цель:** разделить broad phase, exact overlap, scoring и отчётность по коллизиям.
+
+**Files:**
+- Modify: `src/bim/clash/clash-detector.ts`
+- Create: `src/bim/clash/broad-phase.ts`
+- Create: `src/bim/clash/overlap.ts`
+- Create: `src/bim/clash/clash-report.ts`
+- Create: `src/bim/clash/clash-candidates.ts`
+
+**Tasks:**
+1. Вынести генерацию candidate pairs в отдельный модуль.
+2. Вынести exact overlap/volume computation.
+3. Отделить форматирование clash record от геометрии.
+4. Подготовить unit-тесты на 2D/3D edge cases и tolerance logic.
+
+**Verification:**
+```bash
+node --test tests/clash-pipeline.test.mjs
+npm run build
+```
+
+**Acceptance:**
+- Геометрия и бизнес-логика не смешаны.
+- Candidate filtering можно улучшать независимо от отчёта.
 
 ---
 
@@ -316,7 +343,7 @@ npm run build
 - **Current canonical plan file:** `docs/plans/ifc-wasm-plan.md`
 - **Old split plan files removed**; this file is now the single source of truth for the IFC WASM plan.
 
-**Next phase to execute:** Phase 14.
+**Next phase to execute:** Phase 16.
 
 ## 4. Recommended verification loop
 

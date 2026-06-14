@@ -13,20 +13,23 @@
 **Current status:**
 - BIM profile and base viewer are in place.
 - Sprint 1 is complete and verified.
+- Sprint 2 is complete and verified.
+- Sprint 3 is complete and verified.
+- Sprint 4 is complete and verified.
 - Detailed phase statuses are tracked in the phase sections below.
 - Next refactor phase: TBD.
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 2 — BIM Data Layer, after the viewer/app split is stable.
+**Now:** Sprint 5 — Model Health Checks.
 
-**Next:** Sprint 3 — Drawings/DXF MVP on ThatOpen.
+**Next:** Sprint 6 — Issues / BCF foundation.
 
-**Later:** Sprint 4–8 — annotations, health checks, issues, federation/clash, sheets.
+**Later:** Sprint 7–8 — federation/clash and sheets.
 
 **Refactor backlog:** Phase 9–11.
 
-**Done:** Sprint 1; Phase 12–16.
+**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Phase 12–16.
 
 **Definition of done for any item:** scoped files are listed, acceptance is clear, verification commands pass, and `git diff --check` is clean.
 
@@ -176,6 +179,8 @@ git diff --check
 - Create: `src/bim/ui/elements-table.ts`
 - Modify: `src/bim/app.ts`
 
+**Status:** ✅ completed
+
 **ElementRecord:**
 ```ts
 export type ElementRecord = {
@@ -267,6 +272,57 @@ git diff --check
 
 
 ---
+
+### Sprint 2.5 — Element Relationship Graph (P1)
+
+**Цель:** связать элементы модели в семантический граф отношений, чтобы планировщик и UI понимали связи вида `стена → окно → помещение`.
+
+**Files:**
+- Create: `src/bim/data/element-relations.ts`
+- Create: `src/bim/data/relation-types.ts`
+- Modify: `src/bim/data/model-index.ts`
+- Modify: `src/bim/data/element-record.ts`
+- Modify: `src/bim/app.ts`
+
+**Status:** planned
+
+### Task 1: Define relation model
+
+**Objective:** добавить типы и хранение связей между элементами модели.
+
+**Files:**
+- Create: `src/bim/data/relation-types.ts`
+- Create: `src/bim/data/element-relations.ts`
+- Modify: `src/bim/data/element-record.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- В модели можно хранить связи `hosted_by`, `fills_opening`, `bounded_by`, `contains`, `adjacent_to`.
+- `ElementRecord` может ссылаться на связанные элементы без дублирования геометрии.
+
+### Task 2: Index wall/window/room relations
+
+**Objective:** извлекать базовые связи между стеной, окном и помещением из IFC-данных.
+
+**Files:**
+- Modify: `src/bim/data/model-index.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Стена связывается с окнами/дверями, которые она содержит.
+- Помещение получает границы по ограждающим элементам.
+- Пример `стена → окно → помещение` представлен в индексе модели.
 
 ### Sprint 3 — Drawings/DXF MVP на ThatOpen (P2)
 
@@ -360,6 +416,8 @@ git diff --check
 **Acceptance:**
 - Пользователь видит список drawings.
 - Панель не мешает viewer и загрузке модели.
+
+**Status:** ✅ completed
 
 ---
 

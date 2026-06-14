@@ -22,13 +22,18 @@ await copyPatched("property-sets.ts", [["./extractors", "./extractors.ts"]]);
 await copyPatched("model-reader.ts");
 await copyPatched("search-index.ts");
 await copyPatched("element-index.ts", [
+  ["./model-index", "./model-index.ts"],
+]);
+await copyPatched("model-index.ts", [
   ["./property-sets", "./property-sets.ts"],
   ["./model-reader", "./model-reader.ts"],
   ["./search-index", "./search-index.ts"],
-  ["./extractors", "./extractors.ts"],
+  ["./property-extractor", "./property-extractor.ts"],
 ]);
+await copyPatched("property-extractor.ts", [["./extractors", "./extractors.ts"]]);
 
 const elementIndexUrl = pathToFileURL(path.join(tempRoot, "element-index.ts")).href;
+const modelIndexUrl = pathToFileURL(path.join(tempRoot, "model-index.ts")).href;
 const extractorsUrl = pathToFileURL(path.join(tempRoot, "extractors.ts")).href;
 const propertySetsUrl = pathToFileURL(path.join(tempRoot, "property-sets.ts")).href;
 const searchIndexUrl = pathToFileURL(path.join(tempRoot, "search-index.ts")).href;

@@ -2,12 +2,13 @@ import { countSelection, isEmptySelection } from "../selection/selection";
 import { recordsToModelIdMap } from "../data/element-index";
 import {
   createTechnicalDrawing,
+  createFloorPlanDrawing,
   disposeDrawing,
-  downloadDrawingDxf,
   fitCameraToDrawing,
-  renderDrawingList,
   type DrawingRecord,
-} from "../drawings/drawings-panel";
+} from "../drawings/drawing-manager";
+import { downloadDrawingDxf } from "../drawings/dxf-export";
+import { renderDrawingList } from "../ui/drawings-panel";
 import {
   addDrawingAnnotation,
   clearDrawingAnnotations,
@@ -251,19 +252,32 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       const far = Number(drawingFarInput.value) || 40;
       drawingsSummary.textContent = "Генерация проекции...";
 
-      const record = await createTechnicalDrawing({
-        components,
-        world,
-        fragments,
-        modelIdMap,
-        view,
-        source,
-        far,
-        onProgress: (message, progressValue) => {
-          const progressText = typeof progressValue === "number" ? ` · ${Math.round(progressValue * 100)}%` : "";
-          drawingsSummary.textContent = `${message}${progressText}`;
-        },
-      });
+      const record = await (view === "plan"
+        ? createFloorPlanDrawing({
+            components,
+            world,
+            fragments,
+            modelIdMap,
+            source,
+            far,
+            onProgress: (message, progressValue) => {
+              const progressText = typeof progressValue === "number" ? ` · ${Math.round(progressValue * 100)}%` : "";
+              drawingsSummary.textContent = `${message}${progressText}`;
+            },
+          })
+        : createTechnicalDrawing({
+            components,
+            world,
+            fragments,
+            modelIdMap,
+            view,
+            source,
+            far,
+            onProgress: (message, progressValue) => {
+              const progressText = typeof progressValue === "number" ? ` · ${Math.round(progressValue * 100)}%` : "";
+              drawingsSummary.textContent = `${message}${progressText}`;
+            },
+          }));
 
       const stored = getStoredDrawingWorkspace();
       const storedDrawing = stored?.drawings.find((item) => item.view === view && item.source === source);

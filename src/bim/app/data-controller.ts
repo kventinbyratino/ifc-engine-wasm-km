@@ -1,16 +1,16 @@
 import { renderSelectedProperties } from "../properties/properties-panel";
 import {
-  buildElementIndex,
-  filterElementIndex,
+  buildModelIndex,
+  filterModelIndex,
   getUniqueValues,
   recordsToModelIdMap,
   type BimElementRecord,
-} from "../data/element-index";
+} from "../data/model-index";
 import {
   exportElementsCsv,
   exportElementsJson,
   fillSelectOptions,
-  renderElementTable,
+  renderElementsTable,
 } from "../data/data-browser";
 import { createMessage } from "../ui/dom-utils";
 import type { ModelIdMap } from "../types";
@@ -84,7 +84,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     const signal = ctx.startOperation("Индексация элементов");
 
     try {
-      workspace.data.elementIndex = await buildElementIndex({
+      workspace.data.elementIndex = await buildModelIndex({
         fragments,
         signal,
         onProgress: (processed, total) => {
@@ -127,14 +127,14 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
   }
 
   function applyDataFilters() {
-    workspace.data.filteredElements = filterElementIndex(workspace.data.elementIndex, {
+    workspace.data.filteredElements = filterModelIndex(workspace.data.elementIndex, {
       query: dataSearchInput.value,
       category: dataCategoryFilter.value,
       storey: dataStoreyFilter.value,
     });
 
     dataSummary.textContent = `${getFilteredElementCount(workspace.data)} из ${getIndexedElementCount(workspace.data)} элементов`;
-    renderElementTable({
+    renderElementsTable({
       records: workspace.data.filteredElements,
       totalCount: workspace.data.filteredElements.length,
       output: dataTableOutput,

@@ -17,7 +17,8 @@
 - Phase 13 completed: model health rules modularization.
 - Phase 14 completed: clash detection pipeline split.
 - Phase 15 completed: drawings and annotations architecture cleanup.
-- Next refactor phase: **Phase 16 — Issue store and backend layering**.
+- Phase 16 completed: issue store and backend layering.
+- Next refactor phase: TBD.
 
 ---
 
@@ -335,6 +336,11 @@ npm run build
 ### Phase 16 — Issue store and backend layering
 
 **Цель:** разделить storage, business rules и API surfaces для issues/fragments/backend.
+
+**Completed:**
+- Issue store вынесен в отдельный слой `issue-repository` с нормализацией create/import/update/remove.
+- Backend fragments API разложен на `settings`, `auth`, `repository`, `schemas` и тонкий `main.py`.
+- Добавлены тесты для issue store и backend layering, покрывающие нормализацию и CRUD-флоу.
 
 ---
 

@@ -12,19 +12,29 @@
 
 **Current status:**
 - BIM profile and base viewer are in place.
-- Drawings / annotations / sheets MVP are in place.
-- Phase 12 completed: element-index cleanup.
-- Phase 13 completed: model health rules modularization.
-- Phase 14 completed: clash detection pipeline split.
-- Phase 15 completed: drawings and annotations architecture cleanup.
-- Phase 16 completed: issue store and backend layering.
+- Sprint 1 is complete and verified.
+- Detailed phase statuses are tracked in the phase sections below.
 - Next refactor phase: TBD.
+
+## 0. Priorities / working mode
+
+**Now:** Sprint 2 — BIM Data Layer, after the viewer/app split is stable.
+
+**Next:** Sprint 3 — Drawings/DXF MVP on ThatOpen.
+
+**Later:** Sprint 4–8 — annotations, health checks, issues, federation/clash, sheets.
+
+**Refactor backlog:** Phase 9–11.
+
+**Done:** Sprint 1; Phase 12–16.
+
+**Definition of done for any item:** scoped files are listed, acceptance is clear, verification commands pass, and `git diff --check` is clean.
 
 ---
 
 ## 1. Product roadmap
 
-### Sprint 1 — Архитектура единого BIM-профиля
+### Sprint 1 — Архитектура единого BIM-профиля (P0 / next)
 
 **Цель:** подготовить код к росту и убрать монолитность `src/main.ts`.
 
@@ -39,13 +49,105 @@
 - Create: `src/bim/state/workspace-state.ts`
 - Modify: `src/styles.css`
 
-**Tasks:**
-1. Вынести инициализацию ThatOpen components/world/camera/renderer из `main.ts`.
-2. Вынести загрузку IFC/fragments в `model-loader.ts`.
-3. Вынести selection/highlighter/hider в `selection.ts`.
-4. Вынести spatial tree и properties panel.
-5. Оставить `/ifc-engine-wasm/bim/` как основной BIM route.
-6. Сохранить существующий viewer-функционал без регресса.
+### Task 1: Bootstrap app
+
+**Objective:** вынести сборку приложения из `src/main.ts` в `src/bim/app.ts`.
+
+**Files:**
+- Modify: `src/main.ts`
+- Create: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- `src/main.ts` содержит только точку входа.
+- Создание app-контекста живёт в отдельном модуле.
+
+### Task 2: Split viewer setup
+
+**Objective:** вынести конфигурацию сцены, камеры и рендера в `src/bim/viewer/viewer.ts`.
+
+**Files:**
+- Create: `src/bim/viewer/viewer.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Viewer-конфигурация отделена от bootstrap.
+- `main.ts` не зависит от деталей сцены напрямую.
+
+### Task 3: Move model loading
+
+**Objective:** вынести загрузку IFC / fragments в `src/bim/models/model-loader.ts`.
+
+**Files:**
+- Create: `src/bim/models/model-loader.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Логика загрузки модели отделена от orchestration.
+- Загрузка IFC/fragments продолжает работать на BIM route.
+
+### Task 4: Split selection helpers
+
+**Objective:** вынести selection / highlighter / hider в `src/bim/selection/selection.ts`.
+
+**Files:**
+- Create: `src/bim/selection/selection.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Выбор элемента работает.
+- hide / isolate / show all работают.
+
+### Task 5: Extract UI panels
+
+**Objective:** вынести spatial tree и properties panel в отдельные модули.
+
+**Files:**
+- Create: `src/bim/properties/properties-panel.ts`
+- Create: `src/bim/tree/spatial-tree.ts`
+- Modify: `src/bim/app.ts`
+- Modify: `src/styles.css`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Свойства отображаются.
+- Spatial tree строится и подключается через app layer.
+
+### Task 6: Stabilize the route
+
+**Objective:** сохранить `/ifc-engine-wasm/bim/` основным BIM route без регрессии.
+
+**Files:**
+- Modify: `src/main.ts`
+- Modify: `src/bim/app.ts`
 
 **Verification:**
 ```bash
@@ -56,13 +158,13 @@ git diff --check
 **Acceptance:**
 - `/ifc-engine-wasm/bim/` открывает viewer.
 - IFC загружается.
-- Выбор элемента работает.
-- Свойства отображаются.
-- hide/isolate/show all работают.
+- Существующий viewer-функционал не сломан.
+
+**Status:** ✅ выполнено
 
 ---
 
-### Sprint 2 — BIM Data Layer
+### Sprint 2 — BIM Data Layer (P1)
 
 **Цель:** создать индекс элементов модели для таблиц, фильтров, проверок и AI.
 
@@ -90,12 +192,50 @@ export type ElementRecord = {
 };
 ```
 
-**Tasks:**
-1. После загрузки модели построить список элементов.
-2. Извлечь базовые свойства и psets/qsets.
-3. Добавить таблицу элементов.
-4. Добавить фильтры: модель, IFC class, этаж, поиск.
-5. Добавить экспорт CSV/JSON.
+### Task 1: Build element index
+
+**Objective:** после загрузки модели построить `ModelIndex` с перечнем элементов.
+
+**Files:**
+- Create: `src/bim/data/model-index.ts`
+- Create: `src/bim/data/element-record.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Индекс элементов строится автоматически после загрузки модели.
+- Данные доступны без прямого обхода сцены в UI.
+
+### Task 2: Extract properties and sets
+
+**Objective:** извлечь базовые свойства, `psets` и `qsets` в единый record слой.
+
+**Files:**
+- Create: `src/bim/data/property-extractor.ts`
+- Modify: `src/bim/data/model-index.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- `ElementRecord` содержит основные свойства элемента.
+- `psets` и `qsets` собираются стабильно для разных IFC классов.
+
+### Task 3: Add elements table and filters
+
+**Objective:** добавить таблицу элементов и базовые фильтры по модели, классу, этажу и поиску.
+
+**Files:**
+- Create: `src/bim/ui/elements-table.ts`
+- Modify: `src/bim/app.ts`
 
 **Verification:**
 ```bash
@@ -105,13 +245,30 @@ git diff --check
 
 **Acceptance:**
 - Таблица показывает элементы модели.
-- Выбор строки подсвечивает элемент в 3D.
-- Фильтры работают.
+- Фильтры обновляют список без поломки viewer.
+
+### Task 4: Add export formats
+
+**Objective:** добавить экспорт таблицы элементов в CSV и JSON.
+
+**Files:**
+- Create: `src/bim/data/exporters.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
 - CSV/JSON скачивается.
+- Экспорт использует данные из `ModelIndex`, а не отдельный ручной обход.
+
 
 ---
 
-### Sprint 3 — Drawings/DXF MVP на ThatOpen
+### Sprint 3 — Drawings/DXF MVP на ThatOpen (P2)
 
 **Цель:** добавить формирование плана этажа и экспорт DXF из модели.
 
@@ -132,12 +289,13 @@ const drawing = techDrawings.create(world);
 drawing.orientTo(new THREE.Vector3(0, -1, 0));
 ```
 
-**Tasks:**
-1. Создать генерацию плана этажа из IFC элементов.
-2. Сформировать 2D проекцию в TechnicalDrawings.
-3. Подключить DXF export через DxfManager.
-4. Добавить панель drawings.
-5. Проверить рендер и экспорт.
+### Task 1: Build floor-plan generator
+
+**Objective:** создать генератор плана этажа из IFC элементов.
+
+**Files:**
+- Create: `src/bim/drawings/floor-plan.ts`
+- Create: `src/bim/drawings/drawing-types.ts`
 
 **Verification:**
 ```bash
@@ -146,21 +304,76 @@ git diff --check
 ```
 
 **Acceptance:**
-- Генерация плана работает.
-- DXF экспортируется.
-- Пользователь видит список drawing’ов.
+- План этажа вычисляется из модели.
+- Типы drawings отделены от UI.
+
+### Task 2: Wire TechnicalDrawings
+
+**Objective:** сформировать 2D проекцию через `TechnicalDrawings`.
+
+**Files:**
+- Create: `src/bim/drawings/drawing-manager.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Drawing создаётся и ориентируется корректно.
+- Рендер не ломает основной viewer.
+
+### Task 3: Add DXF export
+
+**Objective:** подключить экспорт DXF через `DxfManager`.
+
+**Files:**
+- Create: `src/bim/drawings/dxf-export.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- DXF файл экспортируется из drawing layer.
+
+### Task 4: Add drawings panel and styling
+
+**Objective:** добавить панель drawings и базовую интеграцию со стилями.
+
+**Files:**
+- Create: `src/bim/ui/drawings-panel.ts`
+- Modify: `src/styles.css`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Пользователь видит список drawings.
+- Панель не мешает viewer и загрузке модели.
 
 ---
 
-### Sprint 4 — Drawing annotations
+### Sprint 4 — Drawing annotations (P3)
 
 **Цель:** сделать аннотации для чертежей usable и редактируемыми.
 
-**Tasks:**
-- Native annotations on drawings.
-- Interactive placement.
-- Persistence for annotation data.
-- Edit/delete/clear flows.
+### Task 1: Add annotation primitives
+
+**Objective:** добавить базовые аннотации для drawings.
+
+**Files:**
+- Create: `src/bim/drawings/annotations.ts`
+- Modify: `src/bim/drawings/drawing-manager.ts`
 
 **Verification:**
 ```bash
@@ -169,20 +382,111 @@ npm run build
 ```
 
 **Acceptance:**
-- Размеры, выноски, подписи можно ставить на drawings.
-- Аннотации сохраняются локально.
+- На drawing можно создать annotation объект.
+
+### Task 2: Add interactive placement
+
+**Objective:** сделать размещение аннотаций интерактивным.
+
+**Files:**
+- Create: `src/bim/ui/annotation-tools.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+**Acceptance:**
+- Аннотации ставятся вручную на drawing.
+
+### Task 3: Persist annotation state
+
+**Objective:** сохранить данные аннотаций локально.
+
+**Files:**
+- Create: `src/bim/drawings/annotation-storage.ts`
+- Modify: `src/bim/drawings/annotations.ts`
+
+**Verification:**
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+**Acceptance:**
+- Аннотации восстанавливаются после перезагрузки.
+
+### Task 4: Add edit/delete/clear flows
+
+**Objective:** поддержать редактирование и очистку аннотаций.
+
+**Files:**
+- Modify: `src/bim/drawings/annotations.ts`
+- Modify: `src/bim/ui/annotation-tools.ts`
+
+**Verification:**
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+**Acceptance:**
+- Аннотации можно редактировать, удалять и очищать.
 
 ---
 
-### Sprint 5 — Model Health Checks
+### Sprint 5 — Model Health Checks (P3)
 
 **Цель:** вынести проверки качества модели в отдельный слой правил.
 
-**Tasks:**
-- Structural rules.
-- Identity rules.
-- Material and naming rules.
-- Reports and filtering.
+### Task 1: Split rule groups
+
+**Objective:** разнести проверки по смысловым группам.
+
+**Files:**
+- Create: `src/bim/checks/structure-rules.ts`
+- Create: `src/bim/checks/identity-rules.ts`
+- Create: `src/bim/checks/material-rules.ts`
+- Create: `src/bim/checks/name-rules.ts`
+- Modify: `src/bim/checks/model-health.ts`
+
+**Verification:**
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+**Acceptance:**
+- Каждая группа правил живёт в своём модуле.
+
+### Task 2: Add rule registry and utils
+
+**Objective:** отделить регистр правил и общие helper’ы.
+
+**Files:**
+- Create: `src/bim/checks/rule-registry.ts`
+- Create: `src/bim/checks/rule-utils.ts`
+- Create: `src/bim/checks/check-types.ts`
+- Modify: `src/bim/checks/rules.ts`
+
+**Verification:**
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+**Acceptance:**
+- Правила подключаются через registry, а не из одного файла.
+
+### Task 3: Add reporting and filtering
+
+**Objective:** собрать отчёты по health checks и фильтры по типам issues.
+
+**Files:**
+- Modify: `src/bim/checks/model-health.ts`
+- Modify: `src/bim/app.ts`
 
 **Verification:**
 ```bash
@@ -192,61 +496,250 @@ npm run build
 
 **Acceptance:**
 - Health checks запускаются по модели.
-- Пользователь видит список issues.
+- Пользователь видит и фильтрует список issues.
 
 ---
 
-### Sprint 6 — Issues / BCF foundation
+### Sprint 6 — Issues / BCF foundation (P4)
 
 **Цель:** создать основу issue management.
 
-**Tasks:**
-- Issue store.
-- Create/update/resolve flows.
-- Link issues to elements.
-- Prepare BCF-compatible exports.
+### Task 1: Build issue store
+
+**Objective:** создать отдельный issue store и слой нормализации.
+
+**Files:**
+- Create: `src/bim/issues/issue-repository.ts`
+- Create: `src/bim/issues/issue-types.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Issues хранятся отдельно от UI.
+
+### Task 2: Add CRUD flows
+
+**Objective:** реализовать create / update / resolve flows для issues.
+
+**Files:**
+- Modify: `src/bim/issues/issue-repository.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Issue можно создавать, обновлять и закрывать.
+
+### Task 3: Link issues to elements
+
+**Objective:** привязать issues к элементам модели.
+
+**Files:**
+- Modify: `src/bim/issues/issue-repository.ts`
+- Modify: `src/bim/data/model-index.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- У issue есть явная связь с element record.
+
+### Task 4: Prepare BCF export
+
+**Objective:** подготовить BCF-compatible export слой.
+
+**Files:**
+- Create: `src/bim/issues/bcf-export.ts`
+- Modify: `src/bim/issues/issue-repository.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Экспорт issues не завязан на UI.
 
 ---
 
-### Sprint 7 — Federation + Clash MVP
+### Sprint 7 — Federation + Clash MVP (P4)
 
 **Цель:** объединение моделей и базовая детекция коллизий.
 
-**Tasks:**
-- Load multiple models.
-- Federation view.
-- Broad phase / exact overlap.
-- Clash list and highlights.
+### Task 1: Load multiple models
+
+**Objective:** поддержать загрузку нескольких моделей в одном workspace.
+
+**Files:**
+- Modify: `src/bim/models/model-loader.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Несколько моделей загружаются без потери текущего viewer flow.
+
+### Task 2: Build federation view
+
+**Objective:** показать объединённый federation view.
+
+**Files:**
+- Create: `src/bim/federation/federation-view.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Пользователь видит федерацию моделей в одном workspace.
+
+### Task 3: Split clash pipeline
+
+**Objective:** реализовать broad phase и exact overlap отдельными шагами.
+
+**Files:**
+- Modify: `src/bim/clash/clash-detector.ts`
+- Create: `src/bim/clash/broad-phase.ts`
+- Create: `src/bim/clash/overlap.ts`
+
+**Verification:**
+```bash
+node --test tests/clash-pipeline.test.mjs
+npm run build
+```
+
+**Acceptance:**
+- Коллизии считаются через отдельные уровни pipeline.
+
+### Task 4: Add clash list and highlights
+
+**Objective:** добавить список коллизий и подсветку в viewer.
+
+**Files:**
+- Create: `src/bim/clash/clash-report.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+node --test tests/clash-pipeline.test.mjs
+npm run build
+```
+
+**Acceptance:**
+- Пользователь видит clash list и подсветку в 3D.
 
 ---
 
-### Sprint 8 — Sheets, PDF/PNG, specifications
+### Sprint 8 — Sheets, PDF/PNG, specifications (P4)
 
 **Цель:** довести листы, экспорт и спецификации до рабочего MVP.
 
-**Tasks:**
-- Sheets.
-- PDF/PNG export.
-- Spec tables.
-- Polished title blocks.
+### Task 1: Build sheets layer
+
+**Objective:** добавить слой sheets для наборов листов.
+
+**Files:**
+- Create: `src/bim/sheets/sheet-manager.ts`
+- Create: `src/bim/sheets/sheet-types.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Листы можно создавать и перечислять в UI.
+
+### Task 2: Add PDF/PNG export
+
+**Objective:** подключить экспорт листов в PDF и PNG.
+
+**Files:**
+- Create: `src/bim/sheets/exporters.ts`
+- Modify: `src/bim/app.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Лист экспортируется в PDF и PNG.
+
+### Task 3: Add spec tables
+
+**Objective:** сформировать спецификации из данных модели.
+
+**Files:**
+- Create: `src/bim/sheets/spec-tables.ts`
+- Modify: `src/bim/data/model-index.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Спецификации строятся из индексированных данных.
+
+### Task 4: Polish title blocks
+
+**Objective:** довести оформление листов и title blocks до рабочего вида.
+
+**Files:**
+- Modify: `src/styles.css`
+- Modify: `src/bim/sheets/sheet-manager.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Title blocks выглядят аккуратно и стабильно.
 
 ---
 
 ## 2. Refactor / architecture phases
 
-### Phase 9 — App bootstrap and controller orchestration
+### Phase 9 — App bootstrap and controller orchestration (P5)
 
 **Цель:** убрать центральную точку сборки из `src/bim/app.ts` и сделать запуск приложения явным.
 
 ---
 
-### Phase 10 — Workspace state decomposition
+### Phase 10 — Workspace state decomposition (P5)
 
 **Цель:** разнести `WorkspaceState` по доменным срезам и убрать общий мешок данных.
 
 ---
 
-### Phase 11 — DOM segmentation and UI module split
+### Phase 11 — DOM segmentation and UI module split (P5)
 
 **Цель:** сделать DOM-слой менее монолитным и проще для тестирования.
 

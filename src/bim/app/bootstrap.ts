@@ -142,6 +142,7 @@ export async function startBimApp() {
     interactiveAnnotationBtn,
     clearAnnotationsBtn,
     createSheetBtn,
+    placeSpecsBtn,
     exportSheetSvgBtn,
     exportSheetPngBtn,
     exportSheetPdfBtn,
@@ -341,6 +342,7 @@ export async function startBimApp() {
     exportActiveSheetPng,
     exportActiveSheetPdf,
     exportActiveSheetDxf,
+    placeSpecificationsOnActiveSheet,
     exportSpecifications,
     syncDrawingSelectionFromModel,
   } = drawingsController;
@@ -528,6 +530,7 @@ export async function startBimApp() {
   };
   clearAnnotationsBtn.onclick = () => clearActiveDrawingAnnotations();
   createSheetBtn.onclick = () => createSheetFromActiveDrawing();
+  placeSpecsBtn.onclick = () => placeSpecificationsOnActiveSheet();
   exportSheetSvgBtn.onclick = () => exportActiveSheetSvg();
   exportSheetPngBtn.onclick = () => void exportActiveSheetPng();
   exportSheetPdfBtn.onclick = () => exportActiveSheetPdf();

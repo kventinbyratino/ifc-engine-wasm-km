@@ -16,6 +16,7 @@ export function getDrawingsDom() {
     interactiveAnnotationBtn: requiredElement<HTMLButtonElement>("interactiveAnnotationBtn"),
     clearAnnotationsBtn: requiredElement<HTMLButtonElement>("clearAnnotationsBtn"),
     createSheetBtn: requiredElement<LoadingElement>("createSheetBtn"),
+    placeSpecsBtn: requiredElement<HTMLButtonElement>("placeSpecsBtn"),
     exportSheetSvgBtn: requiredElement<HTMLButtonElement>("exportSheetSvgBtn"),
     exportSheetPngBtn: requiredElement<LoadingElement>("exportSheetPngBtn"),
     exportSheetPdfBtn: requiredElement<HTMLButtonElement>("exportSheetPdfBtn"),

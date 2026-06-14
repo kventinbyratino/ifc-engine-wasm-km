@@ -1,9 +1,9 @@
 import type * as OBC from "@thatopen/components";
-import type { DrawingAnnotation } from "./drawing-annotations";
-import type { DrawingProjection, DrawingSource, DrawingView } from "./drawing-types";
-import type { SheetFormat } from "../sheets/sheet-types";
-import type { ModelIdMap } from "../types";
-import { cloneModelIdMap } from "./drawing-selection-sync";
+import type { DrawingAnnotation } from "./drawing-annotations.ts";
+import type { DrawingProjection, DrawingSource, DrawingView } from "./drawing-types.ts";
+import type { SheetFormat, SheetSpecBlock } from "../sheets/sheet-types.ts";
+import type { ModelIdMap } from "../types.ts";
+import { cloneModelIdMap } from "./drawing-selection-sync.ts";
 
 export interface DrawingDocument {
   id: string;
@@ -28,6 +28,7 @@ export interface SheetDocument {
   projectName: string;
   drawing: DrawingDocument;
   createdAt: Date;
+  specBlocks: SheetSpecBlock[];
 }
 
 export function createDrawingDocument(document: Omit<DrawingDocument, "sheets"> & { sheets?: SheetDocument[] }): DrawingDocument {
@@ -45,6 +46,7 @@ export function createSheetDocument(options: {
   title?: string;
   id?: string;
   createdAt?: Date;
+  specBlocks?: SheetSpecBlock[];
 }): SheetDocument {
   return {
     id: options.id || `sheet-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -53,6 +55,7 @@ export function createSheetDocument(options: {
     projectName: options.projectName || "BIM Manager Workbench",
     drawing: options.drawing,
     createdAt: options.createdAt || new Date(),
+    specBlocks: options.specBlocks ? [...options.specBlocks] : [],
   };
 }
 

@@ -1,4 +1,5 @@
 import type { FederatedModelSummary } from "../federation/federation";
+import { renderFederationView } from "../federation/federation-view";
 import type { ClashRecord } from "../clash/clash-types";
 import { createMessage, escapeHtml } from "./dom-utils";
 
@@ -56,13 +57,7 @@ export function renderClashPanel(options: ClashPanelOptions) {
   wrapper.className = "clash-list";
 
   if (models.length > 0) {
-    const modelsBlock = document.createElement("div");
-    modelsBlock.className = "federation-summary";
-    for (const model of models) {
-      const item = document.createElement("span");
-      item.innerHTML = `<i style="background:${escapeHtml(model.color)}"></i>${escapeHtml(model.discipline)} · ${escapeHtml(model.name)} · ${model.elementCount}`;
-      modelsBlock.append(item);
-    }
+    const modelsBlock = renderFederationView({ models, title: "Federation" });
     wrapper.append(modelsBlock);
   }
 

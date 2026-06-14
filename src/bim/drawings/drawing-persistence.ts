@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
-import type { DrawingDocument, SheetDocument } from "./drawing-document";
-import type { DrawingSource, DrawingView } from "./drawing-types";
-import type { SheetFormat } from "../sheets/sheet-types";
-import { serializeModelIdMap } from "./drawing-selection-sync";
+import type { DrawingDocument, SheetDocument } from "./drawing-document.ts";
+import type { DrawingSource, DrawingView } from "./drawing-types.ts";
+import type { SheetFormat, SheetSpecBlock } from "../sheets/sheet-types.ts";
+import { serializeModelIdMap } from "./drawing-selection-sync.ts";
 
 export const DRAWING_STORAGE_KEY = "bim-real-drawings-mvp:v2";
 export const DRAWING_STORAGE_SCHEMA_VERSION = 3;
@@ -38,6 +38,14 @@ export type StoredSheetRecord = {
   projectName: string;
   drawingId: string;
   createdAt: string;
+  specBlocks: StoredSpecBlock[];
+};
+
+export type StoredSpecBlock = {
+  id: string;
+  title: string;
+  order: number;
+  rows: Array<{ category: string; storey: string; count: number }>;
 };
 
 export type StoredDrawingWorkspace = {
@@ -61,6 +69,7 @@ export function saveDrawingWorkspace(projectName: string, drawings: DrawingDocum
       projectName: sheet.projectName,
       drawingId: sheet.drawing.id,
       createdAt: sheet.createdAt.toISOString(),
+      specBlocks: sheet.specBlocks.map((block) => serializeSpecBlock(block)),
     })),
   };
   localStorage.setItem(DRAWING_STORAGE_KEY, JSON.stringify(payload));
@@ -232,7 +241,32 @@ function normalizeStoredSheetRecord(raw: Record<string, unknown>): StoredSheetRe
     projectName: raw.projectName,
     drawingId: raw.drawingId,
     createdAt: raw.createdAt,
+    specBlocks: Array.isArray(raw.specBlocks)
+      ? raw.specBlocks.filter(isRecord).map(normalizeStoredSpecBlock).filter((block): block is StoredSpecBlock => block !== null)
+      : [],
   };
+}
+
+function serializeSpecBlock(block: SheetSpecBlock): StoredSpecBlock {
+  return {
+    id: block.id,
+    title: block.title,
+    order: block.order,
+    rows: block.rows.map((row) => ({ category: row.category, storey: row.storey, count: row.count })),
+  };
+}
+
+function normalizeStoredSpecBlock(raw: Record<string, unknown>): StoredSpecBlock | null {
+  if (typeof raw.id !== "string" || typeof raw.title !== "string" || typeof raw.order !== "number") return null;
+  const rows = Array.isArray(raw.rows)
+    ? raw.rows.filter(isRecord).map(normalizeSpecRow).filter((row): row is { category: string; storey: string; count: number } => row !== null)
+    : [];
+  return { id: raw.id, title: raw.title, order: raw.order, rows };
+}
+
+function normalizeSpecRow(raw: Record<string, unknown>) {
+  if (typeof raw.category !== "string" || typeof raw.storey !== "string" || typeof raw.count !== "number") return null;
+  return { category: raw.category, storey: raw.storey, count: raw.count };
 }
 
 function normalizeStoredAnnotation(raw: Record<string, unknown>): StoredDrawingAnnotation | null {

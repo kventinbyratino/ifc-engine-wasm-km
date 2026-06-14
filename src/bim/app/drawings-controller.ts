@@ -32,6 +32,7 @@ import { downloadSheetPng, downloadSheetSvg, openSheetPdfPrint } from "../sheets
 import { downloadSheetDxfPaperSpace } from "../sheets/dxf-paper-export";
 import type { SheetFormat, SheetRecord } from "../sheets/sheet-types";
 import { generateSpecification, specificationToCsv } from "../specs/spec-generator";
+import { createSpecBlocksFromRows } from "../sheets/spec-placement";
 import { getActiveDrawing, getActiveSheet, getDrawingStats, setActiveDrawing } from "../state/workspace-state";
 import type { ModelIdMap } from "../types";
 import type { BimAppContext } from "./app-context";
@@ -173,6 +174,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       projectName: getProjectName(),
       drawing: record,
       createdAt: record.createdAt,
+      specBlocks: [],
     };
 
     drawingPreview.replaceChildren(createPreviewFrame(previewSheet));
@@ -484,6 +486,12 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
           projectName: sheet.projectName,
           id: sheet.id,
           createdAt: new Date(sheet.createdAt),
+          specBlocks: sheet.specBlocks.map((block) => ({
+            id: block.id,
+            title: block.title,
+            order: block.order,
+            rows: block.rows.map((row) => ({ ...row })),
+          })),
         });
         attachSheetDocument(record, restored);
         return restored;
@@ -544,6 +552,34 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     }
   }
 
+  function placeSpecificationsOnActiveSheet() {
+    const sheet = getActiveSheet();
+    if (!sheet) {
+      drawingsSummary.textContent = "Сначала сгенерируйте лист";
+      return;
+    }
+    const source = workspace.data.filteredElements.length > 0 ? workspace.data.filteredElements : workspace.data.elementIndex;
+    if (source.length === 0) {
+      drawingsSummary.textContent = "Нет элементов для спецификации";
+      return;
+    }
+    const rows = generateSpecification(source);
+    const blocks = createSpecBlocksFromRows(rows, {
+      title: `${sheet.title} · Спецификация`,
+      maxRowsPerBlock: 10,
+      idPrefix: `${sheet.id}-spec`,
+    });
+    if (blocks.length === 0) {
+      drawingsSummary.textContent = "Нет строк для спецификации";
+      return;
+    }
+    sheet.specBlocks = blocks;
+    persistDrawings();
+    renderDrawingsPanel();
+    drawingsSummary.textContent = `Спецификация размещена на листе: ${blocks.length} блоков`;
+    ctx.showToast(`Спецификация размещена: ${blocks.length} блоков`, "success");
+  }
+
   function exportSpecifications() {
     const source = workspace.data.filteredElements.length > 0 ? workspace.data.filteredElements : workspace.data.elementIndex;
     if (source.length === 0) {
@@ -581,6 +617,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     exportActiveSheetPng,
     exportActiveSheetPdf,
     exportActiveSheetDxf,
+    placeSpecificationsOnActiveSheet,
     exportSpecifications,
     syncDrawingSelectionFromModel,
     clearDrawings,

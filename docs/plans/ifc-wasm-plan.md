@@ -16,18 +16,21 @@
 - Sprint 2 is complete and verified.
 - Sprint 3 is complete and verified.
 - Sprint 4 is complete and verified.
+- Sprint 5 is complete and verified.
+- Sprint 6 is complete and verified.
+- Sprint 7 is complete and verified.
 - Detailed phase statuses are tracked in the phase sections below.
 - Next refactor phase: TBD.
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 6 — Issues / BCF foundation.
+**Now:** Sprint 7–8 — federation/clash and sheets.
 
-**Next:** Sprint 7–8 — federation/clash and sheets.
+**Next:** Phase 9–11 refactor backlog.
 
-**Later:** Phase 9–11 refactor backlog.
+**Later:** TBD.
 
-**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Phase 12–16.
+**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Phase 12–16.
 
 **Definition of done for any item:** scoped files are listed, acceptance is clear, verification commands pass, and `git diff --check` is clean.
 
@@ -562,6 +565,8 @@ npm run build
 
 **Цель:** создать основу issue management.
 
+**Status:** ✅ completed
+
 ### Task 1: Build issue store
 
 **Objective:** создать отдельный issue store и слой нормализации.
@@ -637,6 +642,8 @@ git diff --check
 
 **Цель:** объединение моделей и базовая детекция коллизий.
 
+**Status:** ✅ completed
+
 ### Task 1: Load multiple models
 
 **Objective:** поддержать загрузку нескольких моделей в одном workspace.
@@ -710,7 +717,9 @@ npm run build
 
 ### Sprint 8 — Sheets, PDF/PNG, specifications (P4)
 
-**Цель:** довести листы, экспорт и спецификации до рабочего MVP.
+**Цель:** довести листы, экспорт и спецификации до рабочего MVP, включая размещение таблицы/спецификации на листе при оформлении.
+
+**Status:** ✅ completed
 
 ### Task 1: Build sheets layer
 
@@ -749,7 +758,7 @@ git diff --check
 
 ### Task 3: Add spec tables
 
-**Objective:** сформировать спецификации из данных модели.
+**Objective:** сформировать спецификации из индексированных данных модели.
 
 **Files:**
 - Create: `src/bim/sheets/spec-tables.ts`
@@ -763,6 +772,50 @@ git diff --check
 
 **Acceptance:**
 - Спецификации строятся из индексированных данных.
+- Пользователь может разместить таблицу/спецификацию на листе при оформлении.
+
+### Task 3.1: Place spec tables on sheet
+
+**Objective:** встроить таблицу/спецификацию в лист как отдельный элемент оформления.
+
+**Files:**
+- Create: `src/bim/sheets/spec-placement.ts`
+- Modify: `src/bim/sheets/sheet-board.ts`
+- Modify: `src/bim/app/drawings-controller.ts`
+- Modify: `src/bim/sheets/sheet-types.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Спецификация может быть добавлена на лист вместе с чертежом.
+- Размещение спецификации не ломает PDF/PNG/DXF экспорт.
+- Лист остаётся пригодным для печати и просмотра.
+
+### Task 3.2: Support multiple spec blocks
+
+**Objective:** позволить размещать несколько таблиц/спецификаций на одном листе и управлять их порядком.
+
+**Files:**
+- Create: `src/bim/sheets/spec-layout.ts`
+- Modify: `src/bim/sheets/spec-placement.ts`
+- Modify: `src/bim/sheets/sheet-board.ts`
+- Modify: `src/bim/app/drawings-controller.ts`
+- Modify: `src/bim/sheets/sheet-types.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- На одном листе можно разместить несколько spec blocks.
+- Блоки можно переупорядочивать без поломки рендера.
+- Экспорт листа остаётся стабильным во всех форматах.
 
 ### Task 4: Polish title blocks
 

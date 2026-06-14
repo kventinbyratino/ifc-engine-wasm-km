@@ -1,6 +1,14 @@
 import type { DrawingDocument } from "../drawings/drawing-document";
+import type { SpecificationRow } from "../specs/spec-generator";
 
 export type SheetFormat = "A4" | "A3" | "A2" | "A1" | "A0";
+
+export type SheetSpecBlock = {
+  id: string;
+  title: string;
+  rows: SpecificationRow[];
+  order: number;
+};
 
 export type SheetRecord = {
   id: string;
@@ -9,6 +17,7 @@ export type SheetRecord = {
   projectName: string;
   drawing: DrawingDocument;
   createdAt: Date;
+  specBlocks: SheetSpecBlock[];
 };
 
 export const SHEET_SIZES_MM: Record<SheetFormat, { width: number; height: number }> = {

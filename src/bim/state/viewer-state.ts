@@ -7,6 +7,7 @@ export type ViewerWorkspaceState = {
   lastConvertedModelId: string;
   lastSourceIfcName: string;
   activeShareRecord: FragmentRecord | null;
+  lastFederationSyncAt: string;
 };
 
 export function createViewerState(): ViewerWorkspaceState {
@@ -16,6 +17,7 @@ export function createViewerState(): ViewerWorkspaceState {
     lastConvertedModelId: "",
     lastSourceIfcName: "",
     activeShareRecord: null,
+    lastFederationSyncAt: "",
   };
 }
 

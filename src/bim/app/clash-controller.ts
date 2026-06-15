@@ -1,7 +1,7 @@
 import { countSelection } from "../selection/selection";
 import { detectHardClashes } from "../clash/clash-detector";
 import type { ClashRecord } from "../clash/clash-types";
-import { getClashGroupOptions, selectClashGroup, summarizeFederatedModels } from "../federation/federation";
+import { getClashGroupOptions, selectClashGroup, summarizeFederatedModels } from "../federation/federation.ts";
 import { BBoxIndex } from "../spatial/bbox-index";
 import { fillClashGroupSelect, renderClashPanel } from "../ui/clash-panel";
 import { createMessage } from "../ui/dom-utils";

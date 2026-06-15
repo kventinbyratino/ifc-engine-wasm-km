@@ -1,4 +1,4 @@
-import type { FederatedModelSummary } from "./federation";
+import type { FederatedModelSummary } from "./federation.ts";
 
 export type FederationViewCard = {
   modelId: string;

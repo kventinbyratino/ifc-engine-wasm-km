@@ -151,6 +151,14 @@
             <span class="action-label">Домой</span>
           </button>
 
+          <button id="federationBtn" class="action-button federation-button" type="button" aria-label="Федерация" hidden>
+            <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 8l8-4 8 4-8 4z" />
+              <path d="M4 16l8-4 8 4-8 4z" />
+            </svg>
+            <span class="action-label">Федерация</span>
+          </button>
+
           <button id="dataBrowserBtn" class="action-button data-browser-button" type="button" aria-label="BIM данные" hidden>
             <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
               <rect x="4" y="5" width="16" height="14" rx="2" />
@@ -197,6 +205,20 @@
             <span class="action-label">Чертежи</span>
           </button>
         </div>
+
+        <section id="federationPanel" class="federation-panel" hidden>
+          <div class="data-panel-header">
+            <div>
+              <strong>Федерация</strong>
+              <span id="federationSummary">Загрузите модель</span>
+            </div>
+            <button id="closeFederationPanelBtn" class="plain-button" type="button" aria-label="Закрыть федерацию">×</button>
+          </div>
+
+          <div id="federationOutput" class="federation-output">
+            <span class="empty-state">Загрузите хотя бы одну модель, чтобы увидеть controls федерации.</span>
+          </div>
+        </section>
 
         <section id="dataPanel" class="data-panel" hidden>
           <div class="data-panel-header">

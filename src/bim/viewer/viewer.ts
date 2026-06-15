@@ -4,6 +4,19 @@ import * as CUI from "@thatopen/ui-obc";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 
+export type ModelLike = {
+  object?: THREE.Object3D;
+  useCamera?: (camera: THREE.Camera) => void;
+  modelId?: string;
+};
+
+export type MaterialLike = {
+  opacity?: number;
+  transparent?: boolean;
+  needsUpdate?: boolean;
+  isLodMaterial?: boolean;
+};
+
 export type BimViewerContext = Awaited<ReturnType<typeof createBimViewer>>;
 
 export const searchHighlightStyle = {
@@ -19,6 +32,26 @@ export const dimHighlightStyle = {
   transparent: true,
   renderedFaces: 0,
 };
+
+export function applyModelVisibility(model: ModelLike | null | undefined, visible: boolean) {
+  if (!model?.object) return;
+  model.object.visible = visible;
+}
+
+export function applyModelOpacity(model: ModelLike | null | undefined, opacity: number) {
+  if (!model?.object) return;
+  const normalized = Math.max(0, Math.min(1, opacity));
+  model.object.traverse((child) => {
+    const candidate = child as THREE.Mesh & { material?: MaterialLike | MaterialLike[] };
+    const materials = candidate.material;
+    if (!materials) return;
+    for (const material of Array.isArray(materials) ? materials : [materials]) {
+      if (typeof material.opacity === "number") material.opacity = normalized;
+      if (typeof material.transparent === "boolean") material.transparent = normalized < 1;
+      if (typeof material.needsUpdate === "boolean") material.needsUpdate = true;
+    }
+  });
+}
 
 export async function createBimViewer(options: {
   viewport: HTMLDivElement;

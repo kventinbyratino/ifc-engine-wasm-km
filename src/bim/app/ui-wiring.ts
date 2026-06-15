@@ -44,6 +44,10 @@ export interface BimUiWiringActions {
     clearBBoxIndex: () => void;
     renderClash: () => void;
   };
+  federation: {
+    togglePanel: () => void;
+    closePanel: () => void;
+  };
   drawings: {
     toggleDrawingsPanel: () => void;
     closeDrawingsPanel: () => void;
@@ -116,8 +120,11 @@ export function bindBimUiEvents(
     hideSelectedBtn,
     isolateSelectedBtn,
     showAllBtn,
+    federationBtn,
+    closeFederationPanelBtn,
     closeDataPanelBtn,
     dataSearchInput,
+    searchToggleBtn,
     dataCategoryFilter,
     dataStoreyFilter,
     highlightFilteredBtn,
@@ -168,7 +175,7 @@ export function bindBimUiEvents(
     topBackBtn,
   } = ctx.dom;
 
-  const { search, data, checks, issues, clash, drawings, model, profile, library, share, utilities } = actions;
+  const { search, data, checks, issues, clash, federation, drawings, model, profile, library, share, utilities } = actions;
 
   loadIfcBtn.onclick = () => library.openLibraryModal();
   emptyLoadIfcBtn.onclick = () => ifcInput.click();
@@ -193,11 +200,13 @@ export function bindBimUiEvents(
     if (searchPanel.classList.contains("is-collapsed")) search.expandSearchPanel();
   };
   dataBrowserBtn.onclick = () => data.toggleDataPanel();
+  federationBtn.onclick = () => federation.togglePanel();
   checksBtn.onclick = () => checks.toggleChecksPanel();
   issuesBtn.onclick = () => issues.toggleIssuesPanel();
   clashBtn.onclick = () => clash.toggleClashPanel();
   drawingsBtn.onclick = () => drawings.toggleDrawingsPanel();
   closeDataPanelBtn.onclick = () => data.closeDataPanel();
+  closeFederationPanelBtn.onclick = () => federation.closePanel();
   dataSearchInput.oninput = () => data.applyDataFilters();
   dataCategoryFilter.onchange = () => data.applyDataFilters();
   dataStoreyFilter.onchange = () => data.applyDataFilters();

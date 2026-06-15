@@ -25,18 +25,19 @@
 - Phase 10 is complete and verified.
 - Phase 11 is complete and verified.
 - Phase 12 is complete and verified.
-- Sprint 9, Sprint 10 and Sprint 11 are planned next.
+- Sprint 9 is complete and verified.
+- Sprint 10 is complete and verified. Sprint 11 is planned next.
 - Detailed roadmapped work continues below.
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 9 — federation loading and model registry (P0).
+**Now:** Sprint 11 — cross-model coordination (P1).
 
-**Next:** Sprint 10 — federation management controls (P1).
+**Next:** Sprint 12 — federation snapshot and export hardening (P2).
 
-**Later:** Sprint 11 — cross-model coordination (P1).
+**Later:** Sprint 13 — federation UX polish (P3).
 
-**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
+**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
 
 **Definition of done for any item:** scoped files are listed, acceptance is clear, verification commands pass, and `git diff --check` is clean.
 
@@ -1032,6 +1033,8 @@ git diff --check
 - Список моделей можно восстановить из сохранённого состояния.
 - После reload федерация открывается в ожидаемом составе.
 
+**Status:** ✅ done and verified
+
 ---
 
 ### Sprint 10 — Federation management controls (P1)
@@ -1044,8 +1047,10 @@ git diff --check
 
 **Files:**
 - Create: `src/bim/ui/federation-panel.ts`
+- Create: `src/bim/dom/federation-dom.ts`
 - Modify: `src/bim/dom/viewer-dom.ts`
 - Modify: `src/bim/app/bootstrap.ts`
+- Modify: `src/bim/app/ui-wiring.ts`
 - Create: `tests/federation/federation-panel.test.mjs`
 
 **Verification:**
@@ -1065,6 +1070,7 @@ git diff --check
 
 **Files:**
 - Modify: `src/bim/federation/federation-registry.ts`
+- Create: `src/bim/federation/federation-actions.ts`
 - Modify: `src/bim/viewer/viewer.ts`
 - Modify: `src/bim/app/model-controller.ts`
 - Create: `tests/federation/federation-visibility.test.mjs`
@@ -1100,6 +1106,8 @@ git diff --check
 **Acceptance:**
 - Можно изолировать одну модель и вернуть сцену обратно.
 - Можно быстро удалить модель из текущей федерации без перезагрузки всей сцены.
+
+**Status:** ✅ done and verified
 
 ---
 
@@ -1171,7 +1179,7 @@ git diff --check
 - Snapshot помогает быстро вернуть рабочую конфигурацию проекта.
 
 ---
-### Phase 17 — Performance pipeline and progressive loading (P0)
+### Sprint 12 — Performance pipeline and progressive loading (P0)
 
 **Цель:** ускорить загрузку и отображение больших моделей за счёт progressive loading, LOD, видимости по камере и кеша в IndexedDB.
 
@@ -1281,7 +1289,7 @@ git diff --check
 
 ---
 
-### Phase 18 — IFC overrides, class remapping, and export (P1)
+### Sprint 13 — IFC overrides, class remapping, and export (P1)
 
 **Цель:** добавить неразрушающее редактирование параметров IFC, замену классов и экспорт изменений обратно в IFC.
 
@@ -1393,7 +1401,7 @@ git diff --check
 - **Current canonical plan file:** `docs/plans/ifc-wasm-plan.md`
 - **Old split plan files removed**; this file is now the single source of truth for the IFC WASM plan.
 
-- **Next phase to execute:** Phase 17.
+- **Next sprint to execute:** Sprint 12.
 
 ## 4. Recommended verification loop
 

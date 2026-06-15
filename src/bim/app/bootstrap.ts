@@ -1,12 +1,14 @@
 import workerUrl from "@thatopen/fragments/worker?url";
 import "../../styles.css";
-import { APP_BASE } from "../config";
+import { APP_BASE, API_BASE } from "../config";
 import { getDomElements } from "../dom";
 import { renderSelectedProperties } from "../properties/properties-panel";
 import { countSelection } from "../selection/selection";
 import { createWorkspaceState } from "../state/workspace-state";
 import { createDrawingInteractionController } from "../drawings/drawing-interaction";
 import { syncDrawingAnnotations, type DrawingAnnotationType } from "../drawings/drawing-annotations";
+import { syncFederationRegistry } from "../federation/federation-registry.ts";
+import { loadStoredFederationWorkspace, restoreFederationState, saveFederationWorkspace } from "../federation/federation-persistence.ts";
 import { bindBimUiEvents } from "./ui-wiring";
 import { createIssueStore } from "../issues/issues-store";
 import { getProfileCapabilities } from "../profiles";
@@ -169,6 +171,10 @@ export async function startBimApp() {
   });
 
   const workspace = createWorkspaceState();
+  const storedFederationWorkspace = loadStoredFederationWorkspace();
+  if (storedFederationWorkspace) {
+    restoreFederationState(workspace.federation, storedFederationWorkspace);
+  }
   const issueStore = createIssueStore();
   let activeOperation: AbortController | null = null;
   const ctx: BimAppContext = {
@@ -235,6 +241,16 @@ export async function startBimApp() {
   const resetDataIndex = () => controllerRegistry.reset("data");
   const resetChecks = () => controllerRegistry.reset("checks");
   const persistDrawings = () => controllerRegistry.persist("drawings");
+  const refreshFederationRegistry = () => {
+    syncFederationRegistry({
+      state: workspace.federation,
+      models: fragments.list,
+      records: workspace.data.elementIndex,
+    });
+    workspace.viewer.lastFederationSyncAt = new Date().toISOString();
+    saveFederationWorkspace(workspace.federation);
+  };
+  const persistFederationRegistry = () => saveFederationWorkspace(workspace.federation);
   const renderDrawingsPanel = () => controllerRegistry.render("drawings");
 
   const searchController = createSearchController(ctx);
@@ -254,6 +270,7 @@ export async function startBimApp() {
     applySearchHighlight,
     fitToItems,
     refreshClashSelectors: () => refreshClashSelectors(),
+    refreshFederationRegistry,
   });
   const {
     toggleDataPanel,
@@ -365,6 +382,8 @@ export async function startBimApp() {
     resetChecks: () => resetChecks(),
     setActiveShareRecord,
     closeLibraryModal: () => closeLibraryModal(),
+    refreshFederationRegistry,
+    persistFederationRegistry,
   });
   const {
     loadIfc,
@@ -377,6 +396,8 @@ export async function startBimApp() {
     fitToModels,
     resetHomeView,
     refreshModelState,
+    toggleFederationPanel,
+    closeFederationPanel: closeFederationPanelAction,
   } = modelController;
 
   const profileRouter = createProfileRouter({
@@ -418,10 +439,37 @@ export async function startBimApp() {
     showFragmentLibrary,
     openFragmentFromUrl,
     saveCurrentFragment,
+    fetchExampleBlob,
   } = libraryController;
   controllerRegistry.register("library", {
     close: libraryController.closeLibraryModal,
   });
+
+  const fragmentId = new URLSearchParams(window.location.search).get("fragment")?.trim();
+  async function restoreFederationWorkspace() {
+    if (!storedFederationWorkspace || fragmentId) return;
+    const restorableModels = storedFederationWorkspace.models.filter((model) => model.source.restorable);
+    if (restorableModels.length === 0) return;
+
+    ctx.setStatus("Восстановление federation");
+    try {
+      for (const model of restorableModels) {
+        if (model.source.kind === "ifc") {
+          const blob = await fetchExampleBlob(model.source.reference);
+          await loadIfc(new File([blob], model.source.label, { type: "application/octet-stream" }), model.source);
+          continue;
+        }
+
+        const response = await fetch(`${API_BASE}/fragments/${model.source.reference}/download`);
+        if (!response.ok) throw new Error(`Не удалось восстановить fragment ${model.source.label}`);
+        await loadFragBuffer(await response.arrayBuffer(), model.source.label, model.source);
+      }
+      refreshFederationRegistry();
+      ctx.showToast(`Восстановлено моделей: ${restorableModels.length}`, "success");
+    } catch (error) {
+      ctx.showError(error);
+    }
+  }
 
   bindBimUiEvents(ctx, drawingInteraction, {
     search: {
@@ -462,6 +510,10 @@ export async function startBimApp() {
       runClashDetection,
       clearBBoxIndex,
       renderClash,
+    },
+    federation: {
+      togglePanel: toggleFederationPanel,
+      closePanel: closeFederationPanelAction,
     },
     drawings: {
       toggleDrawingsPanel,
@@ -561,6 +613,7 @@ export async function startBimApp() {
   resetDataIndex();
   renderExampleList();
   refreshModelState();
+  void restoreFederationWorkspace();
   void openFragmentFromUrl();
 
   function downloadTextFile(name: string, content: string, type: string) {

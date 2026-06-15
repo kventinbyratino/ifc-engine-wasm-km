@@ -1,5 +1,5 @@
-import type { FederatedModelSummary } from "../federation/federation";
-import { renderFederationView } from "../federation/federation-view";
+import type { FederatedModelSummary } from "../federation/federation.ts";
+import { renderFederationView } from "../federation/federation-view.ts";
 import type { ClashRecord } from "../clash/clash-types";
 import { createMessage, escapeHtml } from "./dom-utils";
 

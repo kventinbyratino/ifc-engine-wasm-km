@@ -16,6 +16,7 @@ export interface DataControllerHooks {
   applySearchHighlight: (modelIdMap: ModelIdMap) => Promise<void>;
   fitToItems: (modelIdMap: ModelIdMap) => Promise<void>;
   refreshClashSelectors: () => void;
+  refreshFederationRegistry: () => void;
 }
 
 export function createDataController(ctx: BimAppContext, hooks: DataControllerHooks) {
@@ -92,6 +93,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
       fillSelectOptions(dataStoreyFilter, getUniqueValues(workspace.data.elementIndex, "storey"), "Все этажи");
       applyDataFilters();
       hooks.refreshClashSelectors();
+      hooks.refreshFederationRegistry();
       ctx.showToast(
         `BIM Data Index: ${getIndexedElementCount(workspace.data)} элементов · ${workspace.data.elementRelations.edges.length} связей`,
         "success",
@@ -124,6 +126,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     fillSelectOptions(dataStoreyFilter, [], "Все этажи");
     dataTableOutput.replaceChildren(createMessage("Загрузите IFC или fragment."));
     hooks.refreshClashSelectors();
+    hooks.refreshFederationRegistry();
   }
 
   function applyDataFilters() {

@@ -5,8 +5,8 @@ import type { BimAppContext } from "./app-context";
 
 export interface LibraryControllerOptions {
   ctx: BimAppContext;
-  loadIfc: (file: File) => Promise<void>;
-  loadFragBuffer: (buffer: ArrayBuffer, name: string) => Promise<void>;
+  loadIfc: (file: File, source?: { kind: "ifc" | "frag"; origin: "upload" | "example" | "library" | "url"; label: string; reference: string; restorable: boolean }) => Promise<void>;
+  loadFragBuffer: (buffer: ArrayBuffer, name: string, source?: { kind: "ifc" | "frag"; origin: "upload" | "example" | "library" | "url"; label: string; reference: string; restorable: boolean }) => Promise<unknown>;
   selectProfile: (profile: "pending" | "km" | "bim") => void;
   setActiveShareRecord: (record: FragmentRecord | null) => void;
 }
@@ -69,7 +69,13 @@ export function createLibraryController({
     ctx.setBusy(true, "Загрузка примера IFC");
     try {
       const blob = await fetchExampleBlob(example.filename);
-      await loadIfc(new File([blob], example.filename, { type: "application/octet-stream" }));
+      await loadIfc(new File([blob], example.filename, { type: "application/octet-stream" }), {
+        kind: "ifc",
+        origin: "example",
+        label: example.name,
+        reference: example.filename,
+        restorable: true,
+      });
     } catch (error) {
       ctx.showError(error);
     } finally {
@@ -173,7 +179,13 @@ export function createLibraryController({
     try {
       const response = await fetch(apiUrl(`/fragments/${record.id}/download`));
       if (!response.ok) throw new Error("Не удалось загрузить fragment");
-      await loadFragBuffer(await response.arrayBuffer(), record.name);
+      await loadFragBuffer(await response.arrayBuffer(), record.name, {
+        kind: "frag",
+        origin: "library",
+        label: record.name,
+        reference: record.id,
+        restorable: true,
+      });
       fileName.textContent = record.name;
       setActiveShareRecord(record);
       ctx.setStatus("FRAG загружен из библиотеки");

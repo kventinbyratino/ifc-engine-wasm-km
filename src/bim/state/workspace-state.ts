@@ -4,6 +4,7 @@ import type { ModelHealthReport } from "../checks/check-types";
 import type { ClashRecord } from "../clash/clash-types";
 import type { DrawingRecord } from "../drawings/drawings-panel";
 import type { SheetRecord } from "../sheets/sheet-types";
+import { createFederationRegistryState, type FederationRegistryState } from "../federation/federation-registry.ts";
 import {
   createViewerState,
   getSelectionCount,
@@ -35,6 +36,7 @@ export type WorkspaceState = {
   issues: IssuesWorkspaceState;
   clash: ClashWorkspaceState;
   drawings: DrawingsWorkspaceState;
+  federation: FederationRegistryState;
 };
 
 export function createWorkspaceState(): WorkspaceState {
@@ -45,6 +47,7 @@ export function createWorkspaceState(): WorkspaceState {
     issues: createIssuesState(),
     clash: createClashState(),
     drawings: createDrawingsState(),
+    federation: createFederationRegistryState(),
   };
 }
 

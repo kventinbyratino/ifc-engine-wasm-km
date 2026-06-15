@@ -1,7 +1,13 @@
 import * as THREE from "three";
 import { MAX_IFC_BYTES } from "../config";
+import { createFederationLoadQueue } from "../federation/federation-loader.ts";
+import { isolateFederationModel, removeFederationModel, restoreFederationVisibility, toggleFederationModelVisibility, updateFederationModelOpacity, getFederationModelById } from "../federation/federation-actions.ts";
+import { syncFederationRegistry } from "../federation/federation-registry.ts";
+import type { FederationLoadSource } from "../federation/federation-registry.ts";
 import { loadFragBuffer as loadFragmentsBuffer, loadIfcModel } from "../models/model-loader";
 import { isEmptySelection } from "../selection/selection";
+import { applyModelOpacity, applyModelVisibility } from "../viewer/viewer.ts";
+import { renderFederationPanel } from "../ui/federation-panel.ts";
 import type { BimAppContext } from "./app-context";
 
 export interface BimModelControllerOptions {
@@ -15,6 +21,8 @@ export interface BimModelControllerOptions {
   clearBBoxIndex: () => void;
   setActiveShareRecord: (record: null) => void;
   closeLibraryModal: () => void;
+  refreshFederationRegistry: () => void;
+  persistFederationRegistry: () => void;
 }
 
 export function createModelController({
@@ -28,6 +36,8 @@ export function createModelController({
   clearBBoxIndex,
   setActiveShareRecord,
   closeLibraryModal,
+  refreshFederationRegistry,
+  persistFederationRegistry,
 }: BimModelControllerOptions) {
   const { workspace, issueStore } = ctx;
   const { world, fragments, ifcLoader, highlighter, hider } = ctx.viewer;
@@ -47,14 +57,19 @@ export function createModelController({
     issuesBtn,
     clashBtn,
     drawingsBtn,
+    federationBtn,
+    federationPanel,
+    federationSummary,
+    federationOutput,
     dataPanel,
     checksPanel,
     issuesPanel,
     clashPanel,
     drawingsPanel,
   } = ctx.dom;
+  const loadQueue = createFederationLoadQueue();
 
-  async function loadIfc(file: File) {
+  async function loadIfc(file: File, source?: FederationLoadSource) {
     setActiveShareRecord(null);
     if (file.size > MAX_IFC_BYTES) {
       ctx.setStatus("IFC больше 200 МБ");
@@ -62,32 +77,43 @@ export function createModelController({
       return;
     }
 
-    ctx.setBusy(true, "Конвертация IFC в браузере");
-    fileName.textContent = file.name;
-    propertiesOutput.textContent = "IFC читается через web-ifc WASM. Серверная обработка не используется.";
+    await loadQueue.enqueue(async () => {
+      ctx.setBusy(true, "Конвертация IFC в браузере");
+      fileName.textContent = file.name;
+      propertiesOutput.textContent = "IFC читается через web-ifc WASM. Серверная обработка не используется.";
 
-    try {
-      const { modelId, sourceName } = await loadIfcModel({
-        file,
-        ifcLoader,
-        onProgress: (value, process) => {
-          ctx.setStatus(`${formatProcess(process)}: ${Math.round(value * 100)}%`);
-          ctx.setProgress(value);
-        },
-      });
+      try {
+        const { modelId, sourceName, source: resolvedSource } = await loadIfcModel({
+          file,
+          ifcLoader,
+          source: source ?? {
+            kind: "ifc",
+            origin: "upload",
+            label: file.name,
+            reference: file.name,
+            restorable: false,
+          },
+          onProgress: (value, process) => {
+            ctx.setStatus(`${formatProcess(process)}: ${Math.round(value * 100)}%`);
+            ctx.setProgress(value);
+          },
+        });
 
-      workspace.viewer.lastConvertedModelId = modelId;
-      workspace.viewer.lastSourceIfcName = sourceName;
-      saveFragmentBtn.hidden = false;
-      closeLibraryModal();
-      ctx.setStatus("IFC загружен и преобразован. Можно сохранить fragment");
-      ctx.showToast("IFC загружен и преобразован", "success");
-      ctx.setProgress(1);
-    } catch (error) {
-      ctx.showError(error);
-    } finally {
-      ctx.setBusy(false);
-    }
+        workspace.viewer.lastConvertedModelId = modelId;
+        workspace.viewer.lastSourceIfcName = sourceName;
+        saveFragmentBtn.hidden = false;
+        closeLibraryModal();
+        refreshFederationState();
+        ctx.setStatus(`IFC загружен и преобразован${resolvedSource.restorable ? " · федерация сохранена" : ""}`);
+        ctx.showToast("IFC загружен и преобразован", "success");
+        ctx.setProgress(1);
+      } catch (error) {
+        refreshFederationState();
+        ctx.showError(error);
+      } finally {
+        ctx.setBusy(false);
+      }
+    });
   }
 
   async function loadFrag(file: File) {
@@ -96,7 +122,13 @@ export function createModelController({
     fileName.textContent = file.name;
 
     try {
-      await loadFragBuffer(await file.arrayBuffer(), file.name);
+      await loadFragBuffer(await file.arrayBuffer(), file.name, {
+        kind: "frag",
+        origin: "upload",
+        label: file.name,
+        reference: file.name,
+        restorable: false,
+      });
       ctx.setStatus("FRAG загружен");
       ctx.showToast("FRAG загружен", "success");
       ctx.setProgress(1);
@@ -107,18 +139,51 @@ export function createModelController({
     }
   }
 
-  async function loadFragBuffer(buffer: ArrayBuffer, name: string) {
-    await clearModels({ keepStatus: true });
-    await loadFragmentsBuffer({
-      buffer,
-      name,
-      fragments,
-      camera: world.camera.three,
-      onProgress: (value, stage) => {
-        ctx.setStatus(`${formatFragmentStage(stage)}: ${Math.round(value * 100)}%`);
-        ctx.setProgress(value);
-      },
+  async function loadFragBuffer(buffer: ArrayBuffer, name: string, source?: FederationLoadSource) {
+    return loadQueue.enqueue(async () => {
+      ctx.setBusy(true, "Загрузка Fragments");
+      fileName.textContent = name;
+
+      try {
+        const result = await loadFragmentsBuffer({
+          buffer,
+          name,
+          fragments,
+          camera: world.camera.three,
+          source: source ?? {
+            kind: "frag",
+            origin: "upload",
+            label: name,
+            reference: name,
+            restorable: false,
+          },
+          onProgress: (value, stage) => {
+            ctx.setStatus(`${formatFragmentStage(stage)}: ${Math.round(value * 100)}%`);
+            ctx.setProgress(value);
+          },
+        });
+        refreshFederationState();
+        ctx.setStatus(`FRAG загружен${result.source.restorable ? " · федерация сохранена" : ""}`);
+        ctx.showToast("FRAG загружен", "success");
+        ctx.setProgress(1);
+        return result;
+      } catch (error) {
+        refreshFederationState();
+        throw error;
+      } finally {
+        ctx.setBusy(false);
+      }
     });
+  }
+
+  function refreshFederationState() {
+    syncFederationRegistry({
+      state: workspace.federation,
+      models: fragments.list,
+      records: workspace.data.elementIndex,
+    });
+    workspace.viewer.lastFederationSyncAt = new Date().toISOString();
+    persistFederationRegistry();
   }
 
   async function hideSelected() {
@@ -194,6 +259,9 @@ export function createModelController({
   }
 
   function refreshModelState() {
+    refreshFederationState();
+    applyFederationAppearance();
+    renderFederationState();
     const hasModels = fragments.list.size > 0;
     const capabilities = ctx.getCapabilities();
     const showBimEmptyState = !hasModels && workspace.viewer.activeProfile === "bim";
@@ -202,16 +270,104 @@ export function createModelController({
     loadIfcBtn.hidden = hasModels || showBimEmptyState;
     searchToggleBtn.hidden = !hasModels;
     homeViewBtn.hidden = !hasModels;
+    federationBtn.hidden = !hasModels || !capabilities.coordination;
     dataBrowserBtn.hidden = !hasModels || !capabilities.dataBrowser;
     checksBtn.hidden = !hasModels || !capabilities.qaQc;
     issuesBtn.hidden = !hasModels || !capabilities.issues;
     clashBtn.hidden = !hasModels || !capabilities.coordination;
     drawingsBtn.hidden = !hasModels || !capabilities.drawings;
+    if (!hasModels || !capabilities.coordination) federationPanel.hidden = true;
     if (!hasModels || !capabilities.dataBrowser) dataPanel.hidden = true;
     if (!hasModels || !capabilities.qaQc) checksPanel.hidden = true;
     if (!hasModels || !capabilities.issues) issuesPanel.hidden = true;
     if (!hasModels || !capabilities.coordination) clashPanel.hidden = true;
     if (!hasModels || !capabilities.drawings) drawingsPanel.hidden = true;
+  }
+
+  function renderFederationState() {
+    renderFederationPanel({
+      models: workspace.federation.models,
+      summary: ctx.dom.federationSummary,
+      output: ctx.dom.federationOutput,
+      actions: {
+        onClose: closeFederationPanel,
+        onShowAll: showAllFederationModels,
+        onToggleVisibility: toggleFederationModel,
+        onOpacityChange: setFederationModelOpacityValue,
+        onFocus: focusFederationModel,
+        onIsolate: isolateFederationModelAction,
+        onRemove: removeFederationModelFromScene,
+      },
+    });
+  }
+
+  function applyFederationAppearance() {
+    for (const model of workspace.federation.models) {
+      const runtime = fragments.list.get(model.modelId) as unknown as { object?: THREE.Object3D } | undefined;
+      applyModelVisibility(runtime, model.visible);
+      applyModelOpacity(runtime, model.opacity);
+    }
+  }
+
+  function toggleFederationPanel() {
+    federationPanel.hidden = !federationPanel.hidden;
+    if (!federationPanel.hidden) renderFederationState();
+  }
+
+  function closeFederationPanel() {
+    federationPanel.hidden = true;
+  }
+
+  function showAllFederationModels() {
+    restoreFederationVisibility(workspace.federation);
+    applyFederationAppearance();
+    persistFederationRegistry();
+    renderFederationState();
+    ctx.setStatus("Все модели федерации показаны");
+  }
+
+  function toggleFederationModel(modelId: string) {
+    toggleFederationModelVisibility(workspace.federation, modelId);
+    applyFederationAppearance();
+    persistFederationRegistry();
+    renderFederationState();
+  }
+
+  function setFederationModelOpacityValue(modelId: string, opacity: number) {
+    updateFederationModelOpacity(workspace.federation, modelId, opacity);
+    applyFederationAppearance();
+    persistFederationRegistry();
+    renderFederationState();
+  }
+
+  async function focusFederationModel(modelId: string) {
+    const runtime = fragments.list.get(modelId);
+    const object = runtime?.object;
+    if (!object) return;
+    object.updateWorldMatrix(true, true);
+    const box = new THREE.Box3().setFromObject(object);
+    if (box.isEmpty()) return;
+    await world.camera.controls.fitToBox(box, true, {
+      paddingLeft: 1,
+      paddingRight: 1,
+      paddingTop: 1,
+      paddingBottom: 1,
+    });
+  }
+
+  function isolateFederationModelAction(modelId: string) {
+    isolateFederationModel(workspace.federation, modelId);
+    applyFederationAppearance();
+    persistFederationRegistry();
+    renderFederationState();
+  }
+
+  async function removeFederationModelFromScene(modelId: string) {
+    await fragments.core.disposeModel(modelId);
+    removeFederationModel(workspace.federation, modelId);
+    applyFederationAppearance();
+    persistFederationRegistry();
+    refreshModelState();
   }
 
   return {
@@ -225,6 +381,14 @@ export function createModelController({
     fitToModels,
     resetHomeView,
     refreshModelState,
+    toggleFederationPanel,
+    closeFederationPanel,
+    showAllFederationModels,
+    toggleFederationModel,
+    setFederationModelOpacityValue,
+    focusFederationModel,
+    isolateFederationModelAction,
+    removeFederationModelFromScene,
   };
 }
 

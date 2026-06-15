@@ -38,7 +38,7 @@
 
 **Next:** Sprint 17 — Production LOD / progressive loading for large IFC models.
 
-**Later:** TBD.
+**Later:** Sprint 18 — Production drawings: interactive sheet viewport, model↔drawing links, GOST/SPDS title block.
 
 **Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Sprint 11; Sprint 12; Sprint 15; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
 
@@ -1029,6 +1029,47 @@ git diff --check
 - Viewer остаётся интерактивным при навигации по большим моделям.
 - Selection, filters, properties, overrides и export совместимы с LOD.
 - Есть понятные performance metrics и fallback для моделей без LOD artifacts.
+
+---
+
+### Sprint 18 — Production drawings: interactive sheet viewport, model links, GOST/SPDS frame (P0)
+
+**Status:** planned — convert the current drawing output from a static preview into an editable drawing/sheet workspace.
+
+**Цель:** сделать чертёж рабочим листом: интерактивный контур активного листа/viewport в окне оформления, двусторонняя связь модель↔чертёж и оформление листа по ГОСТ/СПДС.
+
+**Key requirement:** синяя рамка не должна висеть в 3D как непонятный overlay. Это должен быть интерактивный контур активного листа/viewport внутри окна оформления: пользователь мышкой двигает его и меняет размеры, а вид/проекция чертежа обновляется по этому viewport.
+
+**Tasks:**
+
+1. **Interactive sheet viewport frame**
+   - **Objective:** перенести контур активного листа/viewport в drawing/sheet editor и сделать его редактируемым мышкой.
+   - **Acceptance:** рамку можно выделить, двигать, менять размер за handles; изменения сохраняются в drawing state; в 3D не остаётся непонятного синего overlay.
+
+2. **Model ↔ drawing element links**
+   - **Objective:** связать линии/элементы чертежа с `modelId + localId/expressId`.
+   - **Acceptance:** клик в чертеже подсвечивает элемент в 3D; клик в 3D находит/подсвечивает элемент на чертеже.
+
+3. **GOST/SPDS sheet frame and title block**
+   - **Objective:** заменить упрощённый title block на рамку оформления по ГОСТ/СПДС.
+   - **Acceptance:** есть шаблон листа с полями, основной надписью, масштабом, листом, стадией, датой и наименованием; экспорт сохраняет оформление.
+
+4. **Drawing export compatibility**
+   - **Objective:** экспортировать лист вместе с viewport, связями и оформлением.
+   - **Acceptance:** SVG/PDF/DXF export не теряет рамку, штамп и геометрию чертежа.
+
+**Verification:**
+```bash
+node --test tests/drawings/*.test.*
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Активный viewport редактируется в окне оформления, а не как случайная 3D-рамка.
+- Есть двусторонняя связь модель↔чертёж.
+- Лист оформлен по ГОСТ/СПДС.
+- Экспорт сохраняет оформление и геометрию.
 
 ## 2. Refactor / architecture phases
 

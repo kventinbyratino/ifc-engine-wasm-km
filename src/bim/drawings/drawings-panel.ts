@@ -1,11 +1,11 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
-import type { ModelIdMap } from "../types";
-import { countSelection, isEmptySelection } from "../selection/selection";
-import type { DrawingAnnotation } from "./drawing-annotations";
-import type { DrawingDocument } from "./drawing-document";
-import type { DrawingProjection, DrawingSource, DrawingView } from "./drawing-types";
-import { cloneModelIdMap } from "./drawing-selection-sync";
+import type { ModelIdMap } from "../types.ts";
+import { countSelection, isEmptySelection } from "../selection/selection.ts";
+import type { DrawingAnnotation } from "./drawing-annotations.ts";
+import type { DrawingDocument } from "./drawing-document.ts";
+import type { DrawingProjection, DrawingSource, DrawingView } from "./drawing-types.ts";
+import { cloneModelIdMap } from "./drawing-selection-sync.ts";
 
 export type DrawingRecord = DrawingDocument;
 

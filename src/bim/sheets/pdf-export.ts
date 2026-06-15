@@ -1,5 +1,5 @@
-import type { SheetRecord } from "./sheet-types";
-import { renderSheetSvg } from "./sheet-board";
+import type { SheetRecord } from "./sheet-types.ts";
+import { renderSheetSvg } from "./sheet-board.ts";
 
 export function downloadSheetSvg(sheet: SheetRecord) {
   downloadText(`${sanitize(sheet.title)}-${sheet.format}.svg`, renderSheetSvg(sheet), "image/svg+xml");

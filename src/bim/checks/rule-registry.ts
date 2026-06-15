@@ -1,5 +1,5 @@
-import type { BimElementRecord } from "../data/element-index";
-import type { HealthCheckIssue, HealthCheckIssueType, HealthCheckSeverity } from "./check-types";
+import type { BimElementRecord } from "../data/element-index.ts";
+import type { HealthCheckIssue, HealthCheckIssueType, HealthCheckSeverity } from "./check-types.ts";
 
 export type HealthRuleGroup = "name" | "identity" | "structure" | "material";
 

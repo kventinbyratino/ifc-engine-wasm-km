@@ -1,4 +1,4 @@
-import type { ClashRecord } from "../clash/clash-types";
+import type { ClashRecord } from "../clash/clash-types.ts";
 
 export type ClashWorkspaceState = {
   clashes: ClashRecord[];

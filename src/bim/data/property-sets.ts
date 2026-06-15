@@ -1,5 +1,5 @@
-import type { RawItem } from "./extractors";
-import { attr } from "./extractors";
+import type { RawItem } from "./extractors.ts";
+import { attr } from "./extractors.ts";
 
 export function countPropertySets(item: RawItem | undefined) {
   if (!item) return 0;

@@ -1,4 +1,4 @@
-import type { IfcExample } from "./types";
+import type { IfcExample } from "./types.ts";
 
 export const IFC_EXAMPLES: IfcExample[] = [
   { name: "Renga House", filename: "Renga_House.ifc", sizeBytes: 1_317_373 },

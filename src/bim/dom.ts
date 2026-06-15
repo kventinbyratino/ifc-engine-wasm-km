@@ -1,10 +1,10 @@
-import { getChecksDom } from "./dom/checks-dom";
-import { getClashDom } from "./dom/clash-dom";
-import { getDataDom } from "./dom/data-dom";
-import { getDrawingsDom } from "./dom/drawings-dom";
+import { getChecksDom } from "./dom/checks-dom.ts";
+import { getClashDom } from "./dom/clash-dom.ts";
+import { getDataDom } from "./dom/data-dom.ts";
+import { getDrawingsDom } from "./dom/drawings-dom.ts";
 import { getFederationDom } from "./dom/federation-dom.ts";
-import { getIssuesDom } from "./dom/issues-dom";
-import { getViewerDom } from "./dom/viewer-dom";
+import { getIssuesDom } from "./dom/issues-dom.ts";
+import { getViewerDom } from "./dom/viewer-dom.ts";
 
 export type BimDomElements = ReturnType<typeof getDomElements>;
 

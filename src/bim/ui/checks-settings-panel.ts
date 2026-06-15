@@ -1,5 +1,5 @@
-import type { ModelHealthRuleRegistry } from "../checks/rules";
-import { escapeHtml } from "./dom-utils";
+import type { ModelHealthRuleRegistry } from "../checks/rules.ts";
+import { escapeHtml } from "./dom-utils.ts";
 
 export type ChecksSettingsPanelOptions = {
   registry: ModelHealthRuleRegistry;

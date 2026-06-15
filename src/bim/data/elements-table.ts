@@ -1,5 +1,5 @@
-import type { BimElementRecord } from "./element-record";
-import { escapeHtml } from "../ui/dom-utils";
+import type { BimElementRecord } from "./element-record.ts";
+import { escapeHtml } from "../ui/dom-utils.ts";
 
 export function renderElementsTable(options: {
   records: BimElementRecord[];

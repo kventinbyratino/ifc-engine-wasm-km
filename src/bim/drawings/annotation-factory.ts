@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
-import type { DrawingDocument } from "./drawing-document";
-import type { DrawingAnnotation, DrawingAnnotationType } from "./drawing-annotations";
-import { getDrawingFootprintBox } from "./annotation-geometry";
+import type { DrawingDocument } from "./drawing-document.ts";
+import type { DrawingAnnotation, DrawingAnnotationType } from "./drawing-annotations.ts";
+import { getDrawingFootprintBox } from "./annotation-geometry.ts";
 
 export function getDrawingAnnotationTypeLabel(type: DrawingAnnotationType) {
   const labels: Record<DrawingAnnotationType, string> = {

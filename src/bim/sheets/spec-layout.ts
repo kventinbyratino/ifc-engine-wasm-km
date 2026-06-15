@@ -1,4 +1,4 @@
-import type { SpecificationRow } from "../specs/spec-generator";
+import type { SpecificationRow } from "../specs/spec-generator.ts";
 
 export type SheetSize = { width: number; height: number };
 export type SpecLayoutRect = { x: number; y: number; width: number; height: number };

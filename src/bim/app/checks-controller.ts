@@ -1,4 +1,4 @@
-import type { HealthCheckIssue, HealthCheckIssueType } from "../checks/check-types";
+import type { HealthCheckIssue, HealthCheckIssueType } from "../checks/check-types.ts";
 import {
   addIDSPropertyRequirement,
   exportIDSSpecifications,
@@ -6,24 +6,24 @@ import {
   getLoadedIDSSpecificationCount,
   loadIDSSpecifications,
   runModelHealthChecks,
-} from "../checks/model-health";
+} from "../checks/model-health.ts";
 import {
   clearStoredChecksSettings,
   createDefaultChecksRuleRegistry,
   loadChecksRuleRegistry,
   saveStoredChecksSettings,
-} from "../checks/check-settings";
+} from "../checks/check-settings.ts";
 import {
   exportChecksCsv,
   exportChecksJson,
   formatChecksSummary,
   renderChecksPanel,
-} from "../ui/checks-panel";
-import { renderChecksSettingsPanel } from "../ui/checks-settings-panel";
-import { createMessage } from "../ui/dom-utils";
-import type { BimElementRecord } from "../data/element-index";
-import { getHealthIssueCount } from "../state/workspace-state";
-import type { BimAppContext } from "./app-context";
+} from "../ui/checks-panel.ts";
+import { renderChecksSettingsPanel } from "../ui/checks-settings-panel.ts";
+import { createMessage } from "../ui/dom-utils.ts";
+import type { BimElementRecord } from "../data/element-index.ts";
+import { getHealthIssueCount } from "../state/workspace-state.ts";
+import type { BimAppContext } from "./app-context.ts";
 
 export interface ChecksControllerHooks {
   canUseChecks: () => boolean;

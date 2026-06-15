@@ -1,5 +1,5 @@
-import type { BimElementRecord } from "../data/element-index";
-import type { BimIssue, BimIssueStatus, IssueDraft } from "./issue-types";
+import type { BimElementRecord } from "../data/element-index.ts";
+import type { BimIssue, BimIssueStatus, IssueDraft } from "./issue-types.ts";
 
 export type IssueClock = () => string;
 

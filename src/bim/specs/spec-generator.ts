@@ -1,4 +1,4 @@
-import type { BimElementRecord } from "../data/element-index";
+import type { BimElementRecord } from "../data/element-index.ts";
 
 export type SpecificationRow = {
   category: string;

@@ -1,10 +1,10 @@
-import type { ModelIdMap } from "../types";
-import { readModelIdsWithGeometry, readModelItems } from "./model-reader";
-import { buildElementRelationGraph, type ElementRelationSource } from "./element-relations";
-import { matchesElementRecord, normalizeElementIndexQuery } from "./search-index";
-import type { BimElementRecord, ElementRecord } from "./element-record";
-import { createElementRecord } from "./element-record-factory";
-import type { ElementIndexFilters } from "./element-index-types";
+import type { ModelIdMap } from "../types.ts";
+import { readModelIdsWithGeometry, readModelItems } from "./model-reader.ts";
+import { buildElementRelationGraph, type ElementRelationSource } from "./element-relations.ts";
+import { matchesElementRecord, normalizeElementIndexQuery } from "./search-index.ts";
+import type { BimElementRecord, ElementRecord } from "./element-record.ts";
+import { createElementRecord } from "./element-record-factory.ts";
+import type { ElementIndexFilters } from "./element-index-types.ts";
 
 export type { ElementRecord, BimElementRecord, ElementIndexFilters };
 

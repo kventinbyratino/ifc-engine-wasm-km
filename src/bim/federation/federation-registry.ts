@@ -1,4 +1,4 @@
-import type { BimElementRecord } from "../data/element-index";
+import type { BimElementRecord } from "../data/element-index.ts";
 import { createFederationFilterState, type FederationFilterState } from "./federation-filters.ts";
 import { summarizeFederatedModels, type FederatedModelSummary } from "./federation.ts";
 
@@ -29,6 +29,9 @@ export type FederationRegistryState = {
   filters: FederationFilterState;
   restoredFromStorage: boolean;
   lastSavedAt: string | null;
+  lastAction: string | null;
+  lastActionAt: string | null;
+  actionHistory: string[];
 };
 
 export function createFederationRegistryState(): FederationRegistryState {
@@ -37,6 +40,9 @@ export function createFederationRegistryState(): FederationRegistryState {
     filters: createFederationFilterState(),
     restoredFromStorage: false,
     lastSavedAt: null,
+    lastAction: null,
+    lastActionAt: null,
+    actionHistory: [],
   };
 }
 
@@ -123,6 +129,14 @@ export function markFederationRestored(state: FederationRegistryState, restoredF
 
 export function markFederationSaved(state: FederationRegistryState, timestamp = new Date().toISOString()) {
   state.lastSavedAt = timestamp;
+}
+
+export function noteFederationAction(state: FederationRegistryState, action: string, timestamp = new Date().toISOString()) {
+  const normalized = action.trim();
+  if (!normalized) return;
+  state.lastAction = normalized;
+  state.lastActionAt = timestamp;
+  state.actionHistory = [...state.actionHistory.slice(-4), normalized];
 }
 
 export function getRestorableFederationModels(state: FederationRegistryState) {

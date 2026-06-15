@@ -1,5 +1,5 @@
-import type { DrawingDocument } from "./drawing-document";
-import { drawingToDxf } from "./annotation-geometry";
+import type { DrawingDocument } from "./drawing-document.ts";
+import { drawingToDxf } from "./annotation-geometry.ts";
 
 export function downloadDrawingDxf(record: DrawingDocument) {
   const dxf = drawingToDxf(record);

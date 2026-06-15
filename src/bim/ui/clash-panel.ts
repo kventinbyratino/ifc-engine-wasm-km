@@ -1,7 +1,7 @@
 import type { FederatedModelSummary } from "../federation/federation.ts";
 import { renderFederationView } from "../federation/federation-view.ts";
-import type { ClashRecord } from "../clash/clash-types";
-import { createMessage, escapeHtml } from "./dom-utils";
+import type { ClashRecord } from "../clash/clash-types.ts";
+import { createMessage, escapeHtml } from "./dom-utils.ts";
 
 export type ClashPanelOptions = {
   models: FederatedModelSummary[];
@@ -14,7 +14,7 @@ export type ClashPanelOptions = {
 
 export function fillClashGroupSelect(
   select: HTMLSelectElement,
-  options: { models: FederatedModelSummary[]; categories: string[]; storeys: string[] },
+  options: { models: FederatedModelSummary[]; categories: string[]; storeys: string[]; disciplines: string[] },
 ) {
   const current = select.value;
   select.replaceChildren(new Option("Все элементы", "all"));
@@ -39,6 +39,13 @@ export function fillClashGroupSelect(
     const group = document.createElement("optgroup");
     group.label = "Этажи";
     for (const storey of options.storeys) group.append(new Option(storey, `storey:${storey}`));
+    select.append(group);
+  }
+
+  if (options.disciplines.length > 0) {
+    const group = document.createElement("optgroup");
+    group.label = "Дисциплины";
+    for (const discipline of options.disciplines) group.append(new Option(discipline, `discipline:${discipline}`));
     select.append(group);
   }
 

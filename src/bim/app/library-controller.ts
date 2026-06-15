@@ -1,7 +1,7 @@
-import { APP_BASE, API_BASE, IFC_EXAMPLES, MAX_FRAGMENT_BYTES } from "../config";
-import type { FragmentRecord, IfcExample } from "../types";
-import { createMessage, escapeHtml, formatBytes } from "../ui/dom-utils";
-import type { BimAppContext } from "./app-context";
+import { APP_BASE, API_BASE, IFC_EXAMPLES, MAX_FRAGMENT_BYTES } from "../config.ts";
+import type { FragmentRecord, IfcExample } from "../types.ts";
+import { createMessage, escapeHtml, formatBytes } from "../ui/dom-utils.ts";
+import type { BimAppContext } from "./app-context.ts";
 
 export interface LibraryControllerOptions {
   ctx: BimAppContext;

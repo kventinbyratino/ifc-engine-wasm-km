@@ -1,9 +1,9 @@
 export {
   renderElementsTable as renderElementTable,
   renderElementsTable,
-} from "./elements-table";
+} from "./elements-table.ts";
 export {
   exportElementsCsv,
   exportElementsJson,
   fillSelectOptions,
-} from "./exporters";
+} from "./exporters.ts";

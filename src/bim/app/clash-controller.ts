@@ -1,13 +1,13 @@
-import { countSelection } from "../selection/selection";
-import { detectHardClashes } from "../clash/clash-detector";
-import type { ClashRecord } from "../clash/clash-types";
+import { countSelection } from "../selection/selection.ts";
+import { detectHardClashes } from "../clash/clash-detector.ts";
+import type { ClashRecord } from "../clash/clash-types.ts";
 import { getClashGroupOptions, selectClashGroup, summarizeFederatedModels } from "../federation/federation.ts";
 import { applyFederationFilters } from "../federation/federation-filters.ts";
-import { BBoxIndex } from "../spatial/bbox-index";
-import { fillClashGroupSelect, renderClashPanel } from "../ui/clash-panel";
-import { createMessage } from "../ui/dom-utils";
-import type { ModelIdMap } from "../types";
-import type { BimAppContext } from "./app-context";
+import { BBoxIndex } from "../spatial/bbox-index.ts";
+import { fillClashGroupSelect, renderClashPanel } from "../ui/clash-panel.ts";
+import { createMessage } from "../ui/dom-utils.ts";
+import type { ModelIdMap } from "../types.ts";
+import type { BimAppContext } from "./app-context.ts";
 
 export interface ClashControllerHooks {
   canUseCoordination: () => boolean;
@@ -125,6 +125,7 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
         limit: 250,
         bboxIndex,
         signal: activeSignal,
+        crossModelOnly: true,
       });
       workspace.clash.clashes = result.clashes;
       renderClash();

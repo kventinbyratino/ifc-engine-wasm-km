@@ -1,4 +1,4 @@
-import type { SpecificationRow } from "../specs/spec-generator";
+import type { SpecificationRow } from "../specs/spec-generator.ts";
 
 export type SheetSpecBlock = {
   id: string;

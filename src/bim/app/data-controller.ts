@@ -1,20 +1,20 @@
-import { renderSelectedProperties } from "../properties/properties-panel";
-import { buildElementIndex, filterElementIndex, getUniqueValues, recordsToModelIdMap, type BimElementRecord } from "../data/element-index";
+import { renderSelectedProperties } from "../properties/properties-panel.ts";
+import { buildElementIndex, filterElementIndex, getUniqueValues, recordsToModelIdMap, type BimElementRecord } from "../data/element-index.ts";
 import {
   exportElementsCsv,
   exportElementsJson,
   fillSelectOptions,
   renderElementsTable,
-} from "../data/data-browser";
+} from "../data/data-browser.ts";
 import { summarizeFederatedModels } from "../federation/federation.ts";
 import {
   applyFederationFilters,
   normalizeFederationFilterState,
 } from "../federation/federation-filters.ts";
-import { createMessage } from "../ui/dom-utils";
-import type { ModelIdMap } from "../types";
-import { getFilteredElementCount, getIndexedElementCount } from "../state/workspace-state";
-import type { BimAppContext } from "./app-context";
+import { createMessage } from "../ui/dom-utils.ts";
+import type { ModelIdMap } from "../types.ts";
+import { getFilteredElementCount, getIndexedElementCount } from "../state/workspace-state.ts";
+import type { BimAppContext } from "./app-context.ts";
 
 export interface DataControllerHooks {
   canUseDataBrowser: () => boolean;

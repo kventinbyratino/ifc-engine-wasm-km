@@ -1,4 +1,4 @@
-import type { BimIssue } from "./issue-types";
+import type { BimIssue } from "./issue-types.ts";
 
 export function exportIssuesJson(issues: BimIssue[]) {
   downloadFile("bim-issues.json", JSON.stringify(issues, null, 2), "application/json");

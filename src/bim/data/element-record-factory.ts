@@ -1,7 +1,7 @@
-import { countPropertySets } from "./property-sets";
-import { attr, findMaterial, findStorey, stringifyValues, type RawItem } from "./property-extractor";
-import { buildSearchableIndex } from "./search-index";
-import type { BimElementRecord } from "./element-record";
+import { countPropertySets } from "./property-sets.ts";
+import { attr, findMaterial, findStorey, stringifyValues, type RawItem } from "./property-extractor.ts";
+import { buildSearchableIndex } from "./search-index.ts";
+import type { BimElementRecord } from "./element-record.ts";
 
 export function createElementRecord(modelId: string, localId: number, item: RawItem | undefined): BimElementRecord {
   const name = attr(item, "Name") || `#${localId}`;

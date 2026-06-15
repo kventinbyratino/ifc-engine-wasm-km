@@ -4,6 +4,7 @@ import {
   setFederationModelVisibility,
   type FederationModelRecord,
   type FederationRegistryState,
+  noteFederationAction as noteFederationActionInState,
 } from "./federation-registry.ts";
 
 export function getFederationModelById(state: FederationRegistryState, modelId: string) {
@@ -34,6 +35,10 @@ export function updateFederationModelOpacity(state: FederationRegistryState, mod
 
 export function removeFederationModel(state: FederationRegistryState, modelId: string) {
   removeFederationModelFromState(state, modelId);
+}
+
+export function noteFederationAction(state: FederationRegistryState, action: string) {
+  noteFederationActionInState(state, action);
 }
 
 export function cloneFederationModels(models: FederationModelRecord[]) {

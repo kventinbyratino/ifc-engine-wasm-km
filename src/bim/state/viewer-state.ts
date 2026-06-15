@@ -1,5 +1,5 @@
-import type { FragmentRecord, ModelIdMap, Profile } from "../types";
-import { countSelection } from "../selection/selection";
+import type { FragmentRecord, ModelIdMap, Profile } from "../types.ts";
+import { countSelection } from "../selection/selection.ts";
 
 export type ViewerWorkspaceState = {
   activeProfile: Profile;
@@ -8,6 +8,7 @@ export type ViewerWorkspaceState = {
   lastSourceIfcName: string;
   activeShareRecord: FragmentRecord | null;
   lastFederationSyncAt: string;
+  lastFederationSnapshotAt: string;
 };
 
 export function createViewerState(): ViewerWorkspaceState {
@@ -18,6 +19,7 @@ export function createViewerState(): ViewerWorkspaceState {
     lastSourceIfcName: "",
     activeShareRecord: null,
     lastFederationSyncAt: "",
+    lastFederationSnapshotAt: "",
   };
 }
 

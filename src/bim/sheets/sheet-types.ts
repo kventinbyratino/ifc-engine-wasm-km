@@ -1,5 +1,5 @@
-import type { DrawingDocument } from "../drawings/drawing-document";
-import type { SpecificationRow } from "../specs/spec-generator";
+import type { DrawingDocument } from "../drawings/drawing-document.ts";
+import type { SpecificationRow } from "../specs/spec-generator.ts";
 
 export type SheetFormat = "A4" | "A3" | "A2" | "A1" | "A0";
 

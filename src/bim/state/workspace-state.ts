@@ -1,25 +1,25 @@
-import type { FragmentRecord, ModelIdMap, Profile } from "../types";
-import type { BimElementRecord } from "../data/element-index";
-import type { ModelHealthReport } from "../checks/check-types";
-import type { ClashRecord } from "../clash/clash-types";
-import type { DrawingRecord } from "../drawings/drawings-panel";
-import type { SheetRecord } from "../sheets/sheet-types";
+import type { FragmentRecord, ModelIdMap, Profile } from "../types.ts";
+import type { BimElementRecord } from "../data/element-index.ts";
+import type { ModelHealthReport } from "../checks/check-types.ts";
+import type { ClashRecord } from "../clash/clash-types.ts";
+import type { DrawingRecord } from "../drawings/drawings-panel.ts";
+import type { SheetRecord } from "../sheets/sheet-types.ts";
 import { createFederationRegistryState, type FederationRegistryState } from "../federation/federation-registry.ts";
 import {
   createViewerState,
   getSelectionCount,
   isSelectionEmpty,
   type ViewerWorkspaceState,
-} from "./viewer-state";
+} from "./viewer-state.ts";
 import {
   createDataState,
   getFilteredElementCount,
   getIndexedElementCount,
   type DataWorkspaceState,
-} from "./data-state";
-import { createChecksState, getHealthIssueCount, type ChecksWorkspaceState } from "./checks-state";
-import { createIssuesState, hasActiveIssue, type IssuesWorkspaceState } from "./issues-state";
-import { createClashState, getClashCount, type ClashWorkspaceState } from "./clash-state";
+} from "./data-state.ts";
+import { createChecksState, getHealthIssueCount, type ChecksWorkspaceState } from "./checks-state.ts";
+import { createIssuesState, hasActiveIssue, type IssuesWorkspaceState } from "./issues-state.ts";
+import { createClashState, getClashCount, type ClashWorkspaceState } from "./clash-state.ts";
 import {
   createDrawingsState,
   getActiveDrawing,
@@ -27,7 +27,7 @@ import {
   getActiveSheet,
   getDrawingStats,
   type DrawingsWorkspaceState,
-} from "./drawings-state";
+} from "./drawings-state.ts";
 
 export type WorkspaceState = {
   viewer: ViewerWorkspaceState;
@@ -38,6 +38,8 @@ export type WorkspaceState = {
   drawings: DrawingsWorkspaceState;
   federation: FederationRegistryState;
 };
+
+export type FederationSnapshotWorkspaceState = Pick<ViewerWorkspaceState, "lastFederationSyncAt" | "lastFederationSnapshotAt">;
 
 export function createWorkspaceState(): WorkspaceState {
   return {

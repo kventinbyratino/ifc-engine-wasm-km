@@ -1,8 +1,8 @@
-import type { getDomElements } from "../dom";
-import type { createIssueStore } from "../issues/issues-store";
-import type { getProfileCapabilities } from "../profiles";
-import type { createWorkspaceState } from "../state/workspace-state";
-import type { createBimViewer } from "../viewer/viewer";
+import type { getDomElements } from "../dom.ts";
+import type { createIssueStore } from "../issues/issues-store.ts";
+import type { getProfileCapabilities } from "../profiles/index.ts";
+import type { createWorkspaceState } from "../state/workspace-state.ts";
+import type { createBimViewer } from "../viewer/viewer.ts";
 
 export type BimDomElements = ReturnType<typeof getDomElements>;
 export type BimViewer = Awaited<ReturnType<typeof createBimViewer>>;

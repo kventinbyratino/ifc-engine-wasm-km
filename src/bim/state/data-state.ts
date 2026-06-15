@@ -1,5 +1,5 @@
-import type { BimElementRecord } from "../data/element-index";
-import type { ElementRelationGraph } from "../data/relation-types";
+import type { BimElementRecord } from "../data/element-index.ts";
+import type { ElementRelationGraph } from "../data/relation-types.ts";
 
 export type DataWorkspaceState = {
   elementIndex: BimElementRecord[];

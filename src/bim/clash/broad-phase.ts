@@ -1,4 +1,4 @@
-import type { ElementBox } from "./clash-types";
+import type { ElementBox } from "./clash-types.ts";
 
 export function getCandidatePairs(a: ElementBox[], b: ElementBox[], tolerance: number) {
   const sortedA = [...a].sort((left, right) => left.box.min.x - right.box.min.x);

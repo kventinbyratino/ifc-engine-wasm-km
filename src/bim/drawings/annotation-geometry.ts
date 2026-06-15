@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type * as OBC from "@thatopen/components";
-import type { DrawingDocument } from "./drawing-document";
+import type { DrawingDocument } from "./drawing-document.ts";
 
 export function getDrawingFootprintBox(record: DrawingDocument) {
   const box = new THREE.Box3().setFromObject(record.drawing.three);

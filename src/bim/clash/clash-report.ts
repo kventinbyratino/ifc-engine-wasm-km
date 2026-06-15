@@ -1,6 +1,6 @@
-import type { BimElementRecord } from "../data/element-index";
-import type { ModelIdMap } from "../types";
-import type { ClashRecord, ClashSeverity } from "./clash-types";
+import type { BimElementRecord } from "../data/element-index.ts";
+import type { ModelIdMap } from "../types.ts";
+import type { ClashRecord, ClashSeverity } from "./clash-types.ts";
 
 export function createClashRecord(a: BimElementRecord, b: BimElementRecord, overlapVolume: number): ClashRecord {
   const id = createClashId(a, b);

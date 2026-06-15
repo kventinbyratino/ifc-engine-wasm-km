@@ -1,8 +1,8 @@
-import type { BimAppContext } from "./app-context";
-import type { DrawingInteractionController } from "../drawings/drawing-interaction";
-import type { BimIssue } from "../issues/issue-types";
-import type { ElementRecord } from "../data/element-record";
-import type { ModelHealthReport } from "../checks/check-types";
+import type { BimAppContext } from "./app-context.ts";
+import type { DrawingInteractionController } from "../drawings/drawing-interaction.ts";
+import type { BimIssue } from "../issues/issue-types.ts";
+import type { ElementRecord } from "../data/element-record.ts";
+import type { ModelHealthReport } from "../checks/check-types.ts";
 
 export interface BimUiWiringActions {
   search: {

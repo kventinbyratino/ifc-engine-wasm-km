@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
-import type { DrawingDocument } from "./drawing-document";
-import { createDrawingAnnotation, getDrawingAnnotationTypeLabel } from "./annotation-factory";
+import type { DrawingDocument } from "./drawing-document.ts";
+import { createDrawingAnnotation, getDrawingAnnotationTypeLabel } from "./annotation-factory.ts";
 
 export type DrawingAnnotationType = "linear" | "leader" | "callout" | "label";
 

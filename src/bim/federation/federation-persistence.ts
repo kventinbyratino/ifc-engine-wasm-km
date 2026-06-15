@@ -5,6 +5,7 @@ import {
   type FederationLoadSource,
   type FederationRegistryState,
 } from "./federation-registry.ts";
+import { cloneFederationFilterState, createFederationFilterState, type FederationFilterPreset, type FederationFilterState } from "./federation-filters.ts";
 
 export const FEDERATION_STORAGE_KEY = "ifc-wasm-viewer:federation:v1";
 export const FEDERATION_STORAGE_SCHEMA_VERSION = 1;
@@ -13,7 +14,11 @@ export type StoredFederationWorkspace = {
   schemaVersion: number;
   savedAt: string;
   models: FederationRegistryState["models"];
+  filters: FederationFilterState;
   restoredFromStorage: boolean;
+  lastAction: string | null;
+  lastActionAt: string | null;
+  actionHistory: string[];
 };
 
 export function saveFederationWorkspace(state: FederationRegistryState) {
@@ -51,7 +56,11 @@ export function serializeFederationWorkspace(state: FederationRegistryState): St
       ...model,
       source: serializeFederationSource(model.source),
     })),
+    filters: cloneFederationFilterState(state.filters),
     restoredFromStorage: state.restoredFromStorage,
+    lastAction: state.lastAction,
+    lastActionAt: state.lastActionAt,
+    actionHistory: [...state.actionHistory],
   };
 }
 
@@ -60,12 +69,20 @@ export function normalizeStoredFederationWorkspace(raw: unknown): StoredFederati
   const models = Array.isArray(raw.models) ? raw.models.map(normalizeStoredFederationModel).filter((model): model is FederationRegistryState["models"][number] => model !== null) : [];
   const state = createFederationRegistryState();
   state.models = models;
+  state.filters = normalizeStoredFederationFilters(raw.filters);
+  state.lastAction = normalizeString(raw.lastAction);
+  state.lastActionAt = normalizeString(raw.lastActionAt);
+  state.actionHistory = normalizeStringArray(raw.actionHistory).slice(-5);
   markFederationRestored(state, Boolean(raw.restoredFromStorage));
   return {
     schemaVersion: typeof raw.schemaVersion === "number" ? raw.schemaVersion : FEDERATION_STORAGE_SCHEMA_VERSION,
     savedAt: typeof raw.savedAt === "string" ? raw.savedAt : new Date().toISOString(),
     models: state.models,
+    filters: state.filters,
     restoredFromStorage: state.restoredFromStorage,
+    lastAction: state.lastAction,
+    lastActionAt: state.lastActionAt,
+    actionHistory: state.actionHistory,
   };
 }
 
@@ -74,8 +91,59 @@ export function restoreFederationState(state: FederationRegistryState, stored: S
     ...model,
     source: normalizeFederationSource(model.source),
   }));
+  state.filters = cloneFederationFilterState(stored.filters);
   state.restoredFromStorage = true;
   state.lastSavedAt = stored.savedAt;
+  state.lastAction = stored.lastAction;
+  state.lastActionAt = stored.lastActionAt;
+  state.actionHistory = [...stored.actionHistory];
+}
+
+function normalizeStoredFederationFilters(raw: unknown): FederationFilterState {
+  const state = createFederationFilterState();
+  if (!isRecord(raw)) return state;
+
+  state.activePresetId = normalizeString(raw.activePresetId) ?? state.activePresetId;
+  state.selectedModelIds = normalizeStringArray(raw.selectedModelIds);
+  state.selectedDisciplines = normalizeStringArray(raw.selectedDisciplines);
+  state.selectedStoreys = normalizeStringArray(raw.selectedStoreys);
+  state.selectedCategories = normalizeStringArray(raw.selectedCategories);
+
+  if (Array.isArray(raw.presets)) {
+    const presets = raw.presets.map(normalizeStoredFederationPreset).filter((preset): preset is FederationFilterPreset => preset !== null);
+    if (presets.length > 0) state.presets = presets;
+  }
+
+  if (!state.presets.some((preset) => preset.id === state.activePresetId)) {
+    state.activePresetId = state.presets[0]?.id ?? "all";
+  }
+
+  return state;
+}
+
+function normalizeStoredFederationPreset(raw: unknown): FederationFilterPreset | null {
+  if (!isRecord(raw) || typeof raw.id !== "string" || typeof raw.label !== "string") return null;
+  return {
+    id: raw.id.trim() || "preset",
+    label: raw.label.trim() || raw.id,
+    modelIds: normalizeStringArray(raw.modelIds),
+    disciplines: normalizeStringArray(raw.disciplines),
+    storeys: normalizeStringArray(raw.storeys),
+    categories: normalizeStringArray(raw.categories),
+  };
+}
+
+function normalizeString(value: unknown) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeStringArray(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+    .map((entry) => entry.trim());
 }
 
 function normalizeStoredFederationModel(raw: Record<string, unknown>) {

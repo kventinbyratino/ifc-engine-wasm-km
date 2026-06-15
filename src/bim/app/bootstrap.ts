@@ -1,36 +1,37 @@
 import workerUrl from "@thatopen/fragments/worker?url";
 import "../../styles.css";
-import { APP_BASE, API_BASE } from "../config";
-import { getDomElements } from "../dom";
-import { renderSelectedProperties } from "../properties/properties-panel";
-import { countSelection } from "../selection/selection";
-import { createWorkspaceState } from "../state/workspace-state";
-import { createDrawingInteractionController } from "../drawings/drawing-interaction";
-import { syncDrawingAnnotations, type DrawingAnnotationType } from "../drawings/drawing-annotations";
+import { APP_BASE, API_BASE } from "../config.ts";
+import { getDomElements } from "../dom.ts";
+import { renderSelectedProperties } from "../properties/properties-panel.ts";
+import { countSelection } from "../selection/selection.ts";
+import { createWorkspaceState } from "../state/workspace-state.ts";
+import { createDrawingInteractionController } from "../drawings/drawing-interaction.ts";
+import { syncDrawingAnnotations, type DrawingAnnotationType } from "../drawings/drawing-annotations.ts";
 import { syncFederationRegistry } from "../federation/federation-registry.ts";
 import { normalizeFederationFilterState } from "../federation/federation-filters.ts";
 import { summarizeFederatedModels } from "../federation/federation.ts";
-import { loadStoredFederationWorkspace, restoreFederationState, saveFederationWorkspace } from "../federation/federation-persistence.ts";
-import { bindBimUiEvents } from "./ui-wiring";
-import { createIssueStore } from "../issues/issues-store";
-import { getProfileCapabilities } from "../profiles";
-import { createMessage } from "../ui/dom-utils";
-import { errorToMessage, showToast } from "../ui/toast";
-import type { ModelIdMap } from "../types";
-import { createBimViewer } from "../viewer/viewer";
-import { mountSpatialTree } from "../tree/spatial-tree";
-import type { BimAppContext } from "./app-context";
-import { createControllerRegistry } from "./controller-registry";
-import { createProfileRouter } from "./profile-router";
-import { createModelController } from "./model-controller";
-import { createShareController } from "./share-controller";
-import { createLibraryController } from "./library-controller";
-import { createSearchController } from "./search-controller";
-import { createDataController } from "./data-controller";
-import { createChecksController } from "./checks-controller";
-import { createIssuesController } from "./issues-controller";
-import { createClashController } from "./clash-controller";
-import { createDrawingsController } from "./drawings-controller";
+import { loadStoredFederationWorkspace, restoreFederationState } from "../federation/federation-persistence.ts";
+import { loadStoredFederationSnapshot, restoreFederationSnapshot, saveFederationSnapshot } from "../federation/federation-snapshot.ts";
+import { bindBimUiEvents } from "./ui-wiring.ts";
+import { createIssueStore } from "../issues/issues-store.ts";
+import { getProfileCapabilities } from "../profiles/index.ts";
+import { createMessage } from "../ui/dom-utils.ts";
+import { errorToMessage, showToast } from "../ui/toast.ts";
+import type { ModelIdMap } from "../types.ts";
+import { createBimViewer } from "../viewer/viewer.ts";
+import { mountSpatialTree } from "../tree/spatial-tree.ts";
+import type { BimAppContext } from "./app-context.ts";
+import { createControllerRegistry } from "./controller-registry.ts";
+import { createProfileRouter } from "./profile-router.ts";
+import { createModelController } from "./model-controller.ts";
+import { createShareController } from "./share-controller.ts";
+import { createLibraryController } from "./library-controller.ts";
+import { createSearchController } from "./search-controller.ts";
+import { createDataController } from "./data-controller.ts";
+import { createChecksController } from "./checks-controller.ts";
+import { createIssuesController } from "./issues-controller.ts";
+import { createClashController } from "./clash-controller.ts";
+import { createDrawingsController } from "./drawings-controller.ts";
 
 export async function startBimApp() {
   const {
@@ -173,9 +174,13 @@ export async function startBimApp() {
   });
 
   const workspace = createWorkspaceState();
-  const storedFederationWorkspace = loadStoredFederationWorkspace();
+  const storedFederationSnapshot = loadStoredFederationSnapshot();
+  const storedFederationWorkspace = storedFederationSnapshot?.federation ?? loadStoredFederationWorkspace();
   if (storedFederationWorkspace) {
     restoreFederationState(workspace.federation, storedFederationWorkspace);
+  }
+  if (storedFederationSnapshot) {
+    restoreFederationSnapshot(workspace, storedFederationSnapshot);
   }
   const issueStore = createIssueStore();
   let activeOperation: AbortController | null = null;
@@ -255,9 +260,9 @@ export async function startBimApp() {
       workspace.data.elementIndex,
     );
     workspace.viewer.lastFederationSyncAt = new Date().toISOString();
-    saveFederationWorkspace(workspace.federation);
+    saveFederationSnapshot(workspace);
   };
-  const persistFederationRegistry = () => saveFederationWorkspace(workspace.federation);
+  const persistFederationRegistry = () => saveFederationSnapshot(workspace);
   const renderDrawingsPanel = () => controllerRegistry.render("drawings");
 
   const searchController = createSearchController(ctx);

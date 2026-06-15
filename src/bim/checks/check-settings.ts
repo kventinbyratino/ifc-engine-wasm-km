@@ -1,6 +1,6 @@
-import type { Profile } from "../types";
-import type { HealthCheckIssueType } from "./check-types";
-import { createDefaultModelHealthRuleRegistry, type ModelHealthRuleRegistry } from "./rules";
+import type { Profile } from "../types.ts";
+import type { HealthCheckIssueType } from "./check-types.ts";
+import { createDefaultModelHealthRuleRegistry, type ModelHealthRuleRegistry } from "./rules.ts";
 
 export const CHECKS_SETTINGS_STORAGE_SCHEMA_VERSION = 1;
 

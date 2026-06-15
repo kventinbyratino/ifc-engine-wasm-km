@@ -1,9 +1,9 @@
 import * as THREE from "three";
-import { countSelection, isEmptySelection, subtractModelIdMap } from "../selection/selection";
-import type { ModelIdMap } from "../types";
-import { createMessage, escapeHtml, getAttrText } from "../ui/dom-utils";
-import { dimHighlightStyle, searchHighlightStyle } from "../viewer/viewer";
-import type { BimAppContext } from "./app-context";
+import { countSelection, isEmptySelection, subtractModelIdMap } from "../selection/selection.ts";
+import type { ModelIdMap } from "../types.ts";
+import { createMessage, escapeHtml, getAttrText } from "../ui/dom-utils.ts";
+import { dimHighlightStyle, searchHighlightStyle } from "../viewer/viewer.ts";
+import type { BimAppContext } from "./app-context.ts";
 
 export function createSearchController(ctx: BimAppContext) {
   const { fragments, highlighter, world } = ctx.viewer;

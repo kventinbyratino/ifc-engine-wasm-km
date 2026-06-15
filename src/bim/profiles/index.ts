@@ -1,6 +1,6 @@
-import type { Profile, ProfileCapabilities } from "../types";
-import { bimProfileCapabilities } from "./bim";
-import { kmProfileCapabilities } from "./km";
+import type { Profile, ProfileCapabilities } from "../types.ts";
+import { bimProfileCapabilities } from "./bim.ts";
+import { kmProfileCapabilities } from "./km.ts";
 
 const pendingProfileCapabilities: ProfileCapabilities = {
   dataBrowser: false,

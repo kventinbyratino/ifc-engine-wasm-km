@@ -1,4 +1,4 @@
-import type { ProfileCapabilities } from "../types";
+import type { ProfileCapabilities } from "../types.ts";
 
 export const bimProfileCapabilities: ProfileCapabilities = {
   dataBrowser: true,

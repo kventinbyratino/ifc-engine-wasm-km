@@ -1,4 +1,4 @@
-import type { HealthRuleDefinition } from "./rule-registry";
+import type { HealthRuleDefinition } from "./rule-registry.ts";
 
 export const IDENTITY_RULES: HealthRuleDefinition[] = [
   {

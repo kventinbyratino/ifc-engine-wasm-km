@@ -1,4 +1,4 @@
-import type { ModelIdMap } from "../types";
+import type { ModelIdMap } from "../types.ts";
 
 export type DrawingSelectionSource = {
   id: string;

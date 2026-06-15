@@ -1,7 +1,7 @@
 import * as OBC from "@thatopen/components";
-import type { BimElementRecord } from "../data/element-index";
-import type { IDSPropertyRequirementDraft, IDSRequirementCheck, IDSValidationReport, ModelHealthReport } from "./check-types";
-import { createIssueFromRule, createRuleContext, MODEL_HEALTH_RULE_REGISTRY } from "./rules";
+import type { BimElementRecord } from "../data/element-index.ts";
+import type { IDSPropertyRequirementDraft, IDSRequirementCheck, IDSValidationReport, ModelHealthReport } from "./check-types.ts";
+import { createIssueFromRule, createRuleContext, MODEL_HEALTH_RULE_REGISTRY } from "./rules.ts";
 
 export function loadIDSSpecifications(components: OBC.Components, idsXml: string) {
   const ids = components.get(OBC.IDSSpecifications);

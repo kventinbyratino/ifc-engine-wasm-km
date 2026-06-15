@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
-import { addDrawingAnnotation, type DrawingAnnotationType } from "./drawing-annotations";
-import type { DrawingRecord } from "./drawings-panel";
+import { addDrawingAnnotation, type DrawingAnnotationType } from "./drawing-annotations.ts";
+import type { DrawingRecord } from "./drawings-panel.ts";
 
 export type DrawingInteractionController = {
   active: boolean;

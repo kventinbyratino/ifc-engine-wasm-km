@@ -1,1 +1,1 @@
-export { createFloorPlanDrawing } from "./drawing-manager";
+export { createFloorPlanDrawing } from "./drawing-manager.ts";

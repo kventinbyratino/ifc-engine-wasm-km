@@ -1,5 +1,5 @@
-import type { Profile } from "../types";
-import type { BimAppContext } from "./app-context";
+import type { Profile } from "../types.ts";
+import type { BimAppContext } from "./app-context.ts";
 
 export interface BimProfileRouterOptions {
   ctx: BimAppContext;

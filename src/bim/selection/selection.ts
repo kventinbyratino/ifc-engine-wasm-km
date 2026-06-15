@@ -1,4 +1,4 @@
-import type { ModelIdMap } from "../types";
+import type { ModelIdMap } from "../types.ts";
 
 export function countSelection(modelIdMap: ModelIdMap) {
   return Object.values(modelIdMap).reduce((sum, ids) => sum + ids.size, 0);

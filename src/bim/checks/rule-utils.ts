@@ -1,4 +1,4 @@
-import type { BimElementRecord } from "../data/element-index";
+import type { BimElementRecord } from "../data/element-index.ts";
 
 const NON_BUILDING_CATEGORIES = new Set(["IFCBUILDINGSTOREY", "IFCPROJECT", "IFCSITE", "IFCBUILDING"]);
 

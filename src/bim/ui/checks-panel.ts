@@ -1,6 +1,6 @@
-import type { BimElementRecord } from "../data/element-index";
-import { escapeHtml } from "../ui/dom-utils";
-import type { HealthCheckIssue, HealthCheckSeverity, ModelHealthReport } from "../checks/check-types";
+import type { BimElementRecord } from "../data/element-index.ts";
+import { escapeHtml } from "../ui/dom-utils.ts";
+import type { HealthCheckIssue, HealthCheckSeverity, ModelHealthReport } from "../checks/check-types.ts";
 
 export function renderChecksPanel(options: {
   report: ModelHealthReport | null;

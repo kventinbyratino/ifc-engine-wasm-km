@@ -1,4 +1,4 @@
-import type { BimElementRecord } from "../data/element-index";
+import type { BimElementRecord } from "../data/element-index.ts";
 
 export type FederatedModelSummary = {
   modelId: string;
@@ -41,7 +41,10 @@ export function getClashGroupOptions(records: BimElementRecord[]) {
   const storeys = [...new Set(records.map((record) => record.storey).filter(Boolean))].sort((a, b) =>
     a.localeCompare(b, "ru"),
   );
-  return { categories, storeys };
+  const disciplines = [...new Set(summarizeFederatedModels(records).map((model) => model.discipline).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "ru"),
+  );
+  return { categories, storeys, disciplines };
 }
 
 export function selectClashGroup(records: BimElementRecord[], selector: string) {
@@ -50,6 +53,10 @@ export function selectClashGroup(records: BimElementRecord[], selector: string) 
   if (kind === "category") return records.filter((record) => record.category === value);
   if (kind === "storey") return records.filter((record) => record.storey === value);
   if (kind === "model") return records.filter((record) => record.modelId === value);
+  if (kind === "discipline") {
+    const modelDiscipline = new Map(summarizeFederatedModels(records).map((model) => [model.modelId, model.discipline] as const));
+    return records.filter((record) => (modelDiscipline.get(record.modelId) ?? "BIM") === value);
+  }
   return records;
 }
 

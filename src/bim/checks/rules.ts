@@ -1,9 +1,9 @@
-import { createHealthRuleRegistry, createIssueFromRule, createRuleContext, getEnabledHealthRules, getHealthRuleControl, listHealthRuleControls, setHealthRuleEnabled, setHealthRulePriority, updateHealthRule, type HealthRuleDefinition, type HealthRuleGroup, type HealthRuleRegistryEntry, type HealthRuleControl } from "./rule-registry";
-import type { HealthCheckIssueType } from "./check-types";
-import { IDENTITY_RULES } from "./identity-rules";
-import { MATERIAL_RULES } from "./material-rules";
-import { NAME_RULES } from "./name-rules";
-import { STRUCTURE_RULES } from "./structure-rules";
+import { createHealthRuleRegistry, createIssueFromRule, createRuleContext, getEnabledHealthRules, getHealthRuleControl, listHealthRuleControls, setHealthRuleEnabled, setHealthRulePriority, updateHealthRule, type HealthRuleDefinition, type HealthRuleGroup, type HealthRuleRegistryEntry, type HealthRuleControl } from "./rule-registry.ts";
+import type { HealthCheckIssueType } from "./check-types.ts";
+import { IDENTITY_RULES } from "./identity-rules.ts";
+import { MATERIAL_RULES } from "./material-rules.ts";
+import { NAME_RULES } from "./name-rules.ts";
+import { STRUCTURE_RULES } from "./structure-rules.ts";
 
 export {
   createHealthRuleRegistry,
@@ -15,7 +15,7 @@ export {
   setHealthRuleEnabled,
   setHealthRulePriority,
   updateHealthRule,
-} from "./rule-registry";
+} from "./rule-registry.ts";
 
 export type RuleListOptions = {
   group?: HealthRuleGroup;

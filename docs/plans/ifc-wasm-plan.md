@@ -31,11 +31,11 @@
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 11 — cross-model coordination (P1).
+**Now:** Sprint 12 — performance pipeline and progressive loading (P0).
 
-**Next:** Sprint 12 — federation snapshot and export hardening (P2).
+**Next:** Sprint 13 — federation UX polish (P3).
 
-**Later:** Sprint 13 — federation UX polish (P3).
+**Later:** Sprint 14 — TBD.
 
 **Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
 
@@ -1159,6 +1159,8 @@ git diff --check
 - Можно ограничить clash проверку выбранными моделями.
 - Результаты сохраняют привязку к modelId и дисциплинам.
 
+**Status:** ✅ done and verified
+
 **Task 3: Save and restore federation snapshots**
 
 **Objective:** хранить снимок федерации: модели, видимость, цвета, фильтры и последние активные действия.
@@ -1179,6 +1181,8 @@ git diff --check
 **Acceptance:**
 - Снимок можно сохранить и восстановить без ручной перенастройки.
 - Snapshot помогает быстро вернуть рабочую конфигурацию проекта.
+
+**Status:** ✅ done and verified
 
 ---
 ### Sprint 12 — Performance pipeline and progressive loading (P0)

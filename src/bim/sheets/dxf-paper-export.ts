@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
-import type { SheetRecord } from "./sheet-types";
-import { SHEET_SIZES_MM } from "./sheet-types";
+import type { SheetRecord } from "./sheet-types.ts";
+import { SHEET_SIZES_MM } from "./sheet-types.ts";
 
 const DEFAULT_PAPER_MARGIN_MM = 10;
 const TITLE_BLOCK_HEIGHT_RATIO = 0.13;

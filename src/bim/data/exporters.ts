@@ -1,4 +1,4 @@
-import type { BimElementRecord } from "./element-record";
+import type { BimElementRecord } from "./element-record.ts";
 
 export function exportElementsJson(records: BimElementRecord[]) {
   downloadFile(

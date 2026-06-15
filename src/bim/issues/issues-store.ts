@@ -1,4 +1,4 @@
-import type { BimIssue, IssueDraft } from "./issue-types";
+import type { BimIssue, IssueDraft } from "./issue-types.ts";
 import { createIssueRecord, normalizeImportedIssues, removeIssue, updateIssueStatus, type IssueClock } from "./issue-repository.js";
 
 export function createIssueStore(options: { now?: IssueClock } = {}) {

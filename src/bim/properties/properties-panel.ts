@@ -1,7 +1,7 @@
 import * as CUI from "@thatopen/ui-obc";
-import type { ModelIdMap } from "../types";
-import { createMessage } from "../ui/dom-utils";
-import { limitSelection } from "../selection/selection";
+import type { ModelIdMap } from "../types.ts";
+import { createMessage } from "../ui/dom-utils.ts";
+import { limitSelection } from "../selection/selection.ts";
 
 export async function renderSelectedProperties(options: {
   components: unknown;

@@ -1,6 +1,6 @@
-import type { ModelHealthReport } from "../checks/check-types";
-import { createDefaultChecksRuleRegistry } from "../checks/check-settings";
-import type { ModelHealthRuleRegistry } from "../checks/rules";
+import type { ModelHealthReport } from "../checks/check-types.ts";
+import { createDefaultChecksRuleRegistry } from "../checks/check-settings.ts";
+import type { ModelHealthRuleRegistry } from "../checks/rules.ts";
 
 export type ChecksWorkspaceState = {
   healthReport: ModelHealthReport | null;

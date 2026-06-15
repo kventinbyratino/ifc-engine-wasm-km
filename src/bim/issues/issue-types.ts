@@ -1,4 +1,4 @@
-import type { BimElementRecord } from "../data/element-index";
+import type { BimElementRecord } from "../data/element-index.ts";
 
 export type BimIssueStatus = "open" | "in-review" | "closed";
 export type BimIssuePriority = "critical" | "high" | "medium" | "low";

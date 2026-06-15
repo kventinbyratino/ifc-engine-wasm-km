@@ -1,5 +1,5 @@
-import type { DrawingDocument } from "../drawings/drawing-document";
-import type { SheetRecord } from "../sheets/sheet-types";
+import type { DrawingDocument } from "../drawings/drawing-document.ts";
+import type { SheetRecord } from "../sheets/sheet-types.ts";
 
 export type DrawingsWorkspaceState = {
   drawings: DrawingDocument[];

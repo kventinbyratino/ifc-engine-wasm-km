@@ -1,5 +1,5 @@
-import type { BimIssue, BimIssueStatus } from "../issues/issue-types";
-import { escapeHtml } from "./dom-utils";
+import type { BimIssue, BimIssueStatus } from "../issues/issue-types.ts";
+import { escapeHtml } from "./dom-utils.ts";
 
 export function renderIssuesPanel(options: {
   issues: BimIssue[];

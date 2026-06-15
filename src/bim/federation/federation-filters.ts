@@ -1,4 +1,4 @@
-import type { BimElementRecord } from "../data/element-index";
+import type { BimElementRecord } from "../data/element-index.ts";
 import type { FederatedModelSummary } from "./federation.ts";
 
 export type FederationFilterPreset = {
@@ -212,6 +212,24 @@ export function captureFederationPreset(state: FederationFilterState, label: str
     storeys: state.selectedStoreys,
     categories: state.selectedCategories,
   });
+}
+
+export function cloneFederationFilterState(state: FederationFilterState): FederationFilterState {
+  return {
+    activePresetId: state.activePresetId,
+    selectedModelIds: [...state.selectedModelIds],
+    selectedDisciplines: [...state.selectedDisciplines],
+    selectedStoreys: [...state.selectedStoreys],
+    selectedCategories: [...state.selectedCategories],
+    presets: state.presets.map((preset) => ({
+      id: preset.id,
+      label: preset.label,
+      modelIds: [...preset.modelIds],
+      disciplines: [...preset.disciplines],
+      storeys: [...preset.storeys],
+      categories: [...preset.categories],
+    })),
+  };
 }
 
 function normalizePreset(preset: FederationFilterPreset): FederationFilterPreset {

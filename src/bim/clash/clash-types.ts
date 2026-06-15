@@ -1,7 +1,7 @@
 import type { Box3 } from "three";
-import type { BimElementRecord } from "../data/element-index";
-import type { BBoxIndex } from "../spatial/bbox-index";
-import type { ModelIdMap } from "../types";
+import type { BimElementRecord } from "../data/element-index.ts";
+import type { BBoxIndex } from "../spatial/bbox-index.ts";
+import type { ModelIdMap } from "../types.ts";
 
 export type FragmentsBBoxProvider = {
   getBBoxes(modelIdMap: ModelIdMap): Promise<Box3[]>;
@@ -27,6 +27,7 @@ export type ClashDetectionInput = {
   limit: number;
   bboxIndex?: BBoxIndex;
   signal?: AbortSignal;
+  crossModelOnly?: boolean;
 };
 
 export type ClashDetectionResult = {

@@ -1,5 +1,5 @@
-import type { HealthRuleDefinition } from "./rule-registry";
-import { hasMaterial, isBuildingElement } from "./rule-utils";
+import type { HealthRuleDefinition } from "./rule-registry.ts";
+import { hasMaterial, isBuildingElement } from "./rule-utils.ts";
 
 export const STRUCTURE_RULES: HealthRuleDefinition[] = [
   {

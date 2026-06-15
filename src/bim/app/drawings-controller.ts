@@ -1,14 +1,14 @@
-import { countSelection, isEmptySelection } from "../selection/selection";
-import { recordsToModelIdMap } from "../data/element-index";
+import { countSelection, isEmptySelection } from "../selection/selection.ts";
+import { recordsToModelIdMap } from "../data/element-index.ts";
 import {
   createTechnicalDrawing,
   createFloorPlanDrawing,
   disposeDrawing,
   fitCameraToDrawing,
   type DrawingRecord,
-} from "../drawings/drawing-manager";
-import { downloadDrawingDxf } from "../drawings/dxf-export";
-import { renderDrawingList } from "../ui/drawings-panel";
+} from "../drawings/drawing-manager.ts";
+import { downloadDrawingDxf } from "../drawings/dxf-export.ts";
+import { renderDrawingList } from "../ui/drawings-panel.ts";
 import {
   addDrawingAnnotation,
   clearDrawingAnnotations,
@@ -18,26 +18,26 @@ import {
   updateDrawingAnnotationText,
   type DrawingAnnotation,
   type DrawingAnnotationType,
-} from "../drawings/drawing-annotations";
+} from "../drawings/drawing-annotations.ts";
 import {
   clearStoredDrawingWorkspace,
   loadStoredDrawingWorkspace,
   replayStoredAnnotations,
   saveDrawingWorkspace,
   type StoredDrawingWorkspace,
-} from "../drawings/drawing-persistence";
-import { attachSheetDocument, createSheetDocument, removeSheetDocumentsForDrawing } from "../drawings/drawing-document";
-import { createSheet, renderSheetSvg } from "../sheets/sheet-board";
-import { downloadSheetPng, downloadSheetSvg, openSheetPdfPrint } from "../sheets/pdf-export";
-import { downloadSheetDxfPaperSpace } from "../sheets/dxf-paper-export";
-import type { SheetFormat, SheetRecord } from "../sheets/sheet-types";
-import { generateSpecification, specificationToCsv } from "../specs/spec-generator";
-import { createSpecBlocksFromRows } from "../sheets/spec-placement";
-import { getActiveDrawing, getActiveSheet, getDrawingStats, setActiveDrawing } from "../state/workspace-state";
-import type { ModelIdMap } from "../types";
-import type { BimAppContext } from "./app-context";
-import type { DrawingSource, DrawingView } from "../drawings/drawing-types";
-import { cloneModelIdMap, findBestMatchingDrawing } from "../drawings/drawing-selection-sync";
+} from "../drawings/drawing-persistence.ts";
+import { attachSheetDocument, createSheetDocument, removeSheetDocumentsForDrawing } from "../drawings/drawing-document.ts";
+import { createSheet, renderSheetSvg } from "../sheets/sheet-board.ts";
+import { downloadSheetPng, downloadSheetSvg, openSheetPdfPrint } from "../sheets/pdf-export.ts";
+import { downloadSheetDxfPaperSpace } from "../sheets/dxf-paper-export.ts";
+import type { SheetFormat, SheetRecord } from "../sheets/sheet-types.ts";
+import { generateSpecification, specificationToCsv } from "../specs/spec-generator.ts";
+import { createSpecBlocksFromRows } from "../sheets/spec-placement.ts";
+import { getActiveDrawing, getActiveSheet, getDrawingStats, setActiveDrawing } from "../state/workspace-state.ts";
+import type { ModelIdMap } from "../types.ts";
+import type { BimAppContext } from "./app-context.ts";
+import type { DrawingSource, DrawingView } from "../drawings/drawing-types.ts";
+import { cloneModelIdMap, findBestMatchingDrawing } from "../drawings/drawing-selection-sync.ts";
 
 export interface DrawingsControllerHooks {
   canUseDrawings: () => boolean;

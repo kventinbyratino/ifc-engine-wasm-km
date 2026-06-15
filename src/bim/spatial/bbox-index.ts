@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import type { BimElementRecord } from "../data/element-index";
-import type { ModelIdMap } from "../types";
+import type { BimElementRecord } from "../data/element-index.ts";
+import type { ModelIdMap } from "../types.ts";
 
 export type BBoxIndexRecord = {
   modelId: string;

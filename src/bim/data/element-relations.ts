@@ -1,6 +1,6 @@
-import type { BimElementRecord } from "./element-record";
-import { attr, type RawItem } from "./property-extractor";
-import type { ElementRelationEdge, ElementRelationEndpoint, ElementRelationGraph, ElementRelationType } from "./relation-types";
+import type { BimElementRecord } from "./element-record.ts";
+import { attr, type RawItem } from "./property-extractor.ts";
+import type { ElementRelationEdge, ElementRelationEndpoint, ElementRelationGraph, ElementRelationType } from "./relation-types.ts";
 
 const RELATION_FIELD_TYPES: Record<string, ElementRelationType> = {
   ContainedInStructure: "hosted_by",

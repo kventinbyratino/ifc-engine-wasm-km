@@ -1,6 +1,6 @@
-import { APP_BASE } from "../config";
-import type { FragmentRecord } from "../types";
-import type { BimAppContext } from "./app-context";
+import { APP_BASE } from "../config.ts";
+import type { FragmentRecord } from "../types.ts";
+import type { BimAppContext } from "./app-context.ts";
 
 export function createShareController(ctx: BimAppContext) {
   const { workspace } = ctx;

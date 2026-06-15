@@ -1,11 +1,11 @@
 import * as THREE from "three";
-import { isEmptySelection } from "../selection/selection";
-import type { HealthCheckIssue } from "../checks/check-types";
-import type { BimElementRecord } from "../data/element-index";
-import type { BimIssue } from "../issues/issue-types";
-import { exportIssuesBcfLikeJson, exportIssuesJson } from "../issues/bcf-export";
-import { renderIssuesPanel } from "../ui/issues-panel";
-import type { BimAppContext } from "./app-context";
+import { isEmptySelection } from "../selection/selection.ts";
+import type { HealthCheckIssue } from "../checks/check-types.ts";
+import type { BimElementRecord } from "../data/element-index.ts";
+import type { BimIssue } from "../issues/issue-types.ts";
+import { exportIssuesBcfLikeJson, exportIssuesJson } from "../issues/bcf-export.ts";
+import { renderIssuesPanel } from "../ui/issues-panel.ts";
+import type { BimAppContext } from "./app-context.ts";
 
 export interface IssuesControllerHooks {
   canUseIssues: () => boolean;

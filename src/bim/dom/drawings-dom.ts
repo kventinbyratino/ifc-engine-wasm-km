@@ -1,5 +1,5 @@
-import type { LoadingElement } from "../types";
-import { requiredElement } from "./dom-helpers";
+import type { LoadingElement } from "../types.ts";
+import { requiredElement } from "./dom-helpers.ts";
 
 export function getDrawingsDom() {
   return {

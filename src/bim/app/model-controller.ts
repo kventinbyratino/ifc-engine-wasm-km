@@ -1,16 +1,16 @@
 import * as THREE from "three";
-import { MAX_IFC_BYTES } from "../config";
+import { MAX_IFC_BYTES } from "../config.ts";
 import { createFederationLoadQueue } from "../federation/federation-loader.ts";
-import { isolateFederationModel, removeFederationModel, restoreFederationVisibility, toggleFederationModelVisibility, updateFederationModelOpacity, getFederationModelById } from "../federation/federation-actions.ts";
+import { isolateFederationModel, removeFederationModel, restoreFederationVisibility, toggleFederationModelVisibility, updateFederationModelOpacity, getFederationModelById, noteFederationAction } from "../federation/federation-actions.ts";
 import { applyFederationPreset, buildFederationFilterOptions, captureFederationPreset, removeFederationPreset, resetFederationFilters, setFederationFilterSelections } from "../federation/federation-filters.ts";
 import { summarizeFederatedModels } from "../federation/federation.ts";
 import { syncFederationRegistry } from "../federation/federation-registry.ts";
 import type { FederationLoadSource } from "../federation/federation-registry.ts";
-import { loadFragBuffer as loadFragmentsBuffer, loadIfcModel } from "../models/model-loader";
-import { isEmptySelection } from "../selection/selection";
+import { loadFragBuffer as loadFragmentsBuffer, loadIfcModel } from "../models/model-loader.ts";
+import { isEmptySelection } from "../selection/selection.ts";
 import { applyModelOpacity, applyModelVisibility } from "../viewer/viewer.ts";
 import { renderFederationPanel } from "../ui/federation-panel.ts";
-import type { BimAppContext } from "./app-context";
+import type { BimAppContext } from "./app-context.ts";
 
 export interface BimModelControllerOptions {
   ctx: BimAppContext;
@@ -188,6 +188,7 @@ export function createModelController({
       models: fragments.list,
       records: workspace.data.elementIndex,
     });
+    noteFederationAction(workspace.federation, "sync");
     workspace.viewer.lastFederationSyncAt = new Date().toISOString();
     persistFederationRegistry();
   }
@@ -318,6 +319,7 @@ export function createModelController({
   function updateFederationFilters(selections: Parameters<typeof setFederationFilterSelections>[1]) {
     setFederationFilterSelections(workspace.federation.filters, selections);
     workspace.federation.filters.activePresetId = "custom";
+    noteFederationAction(workspace.federation, "update-filters");
     renderFederationState();
     applyDataFilters();
     refreshClashSelectors();
@@ -326,6 +328,7 @@ export function createModelController({
 
   function applyFederationPresetAction(presetId: string) {
     if (!applyFederationPreset(workspace.federation.filters, presetId)) return;
+    noteFederationAction(workspace.federation, "apply-preset");
     renderFederationState();
     applyDataFilters();
     refreshClashSelectors();
@@ -341,11 +344,13 @@ export function createModelController({
       workspace.federation.filters.presets.push(preset);
     }
     workspace.federation.filters.activePresetId = preset.id;
+    noteFederationAction(workspace.federation, "save-preset");
     renderFederationState();
   }
 
   function deleteFederationPresetAction(presetId: string) {
     if (!removeFederationPreset(workspace.federation.filters, presetId)) return;
+    noteFederationAction(workspace.federation, "delete-preset");
     renderFederationState();
     applyDataFilters();
     refreshClashSelectors();
@@ -354,6 +359,7 @@ export function createModelController({
 
   function resetFederationFiltersAction() {
     resetFederationFilters(workspace.federation.filters);
+    noteFederationAction(workspace.federation, "reset-filters");
     renderFederationState();
     applyDataFilters();
     refreshClashSelectors();
@@ -379,6 +385,7 @@ export function createModelController({
 
   function showAllFederationModels() {
     restoreFederationVisibility(workspace.federation);
+    noteFederationAction(workspace.federation, "show-all");
     applyFederationAppearance();
     persistFederationRegistry();
     renderFederationState();
@@ -387,6 +394,7 @@ export function createModelController({
 
   function toggleFederationModel(modelId: string) {
     toggleFederationModelVisibility(workspace.federation, modelId);
+    noteFederationAction(workspace.federation, "toggle-visibility");
     applyFederationAppearance();
     persistFederationRegistry();
     renderFederationState();
@@ -394,6 +402,7 @@ export function createModelController({
 
   function setFederationModelOpacityValue(modelId: string, opacity: number) {
     updateFederationModelOpacity(workspace.federation, modelId, opacity);
+    noteFederationAction(workspace.federation, "set-opacity");
     applyFederationAppearance();
     persistFederationRegistry();
     renderFederationState();
@@ -403,6 +412,7 @@ export function createModelController({
     const runtime = fragments.list.get(modelId);
     const object = runtime?.object;
     if (!object) return;
+    noteFederationAction(workspace.federation, "focus");
     object.updateWorldMatrix(true, true);
     const box = new THREE.Box3().setFromObject(object);
     if (box.isEmpty()) return;
@@ -416,6 +426,7 @@ export function createModelController({
 
   function isolateFederationModelAction(modelId: string) {
     isolateFederationModel(workspace.federation, modelId);
+    noteFederationAction(workspace.federation, "isolate");
     applyFederationAppearance();
     persistFederationRegistry();
     renderFederationState();
@@ -424,6 +435,7 @@ export function createModelController({
   async function removeFederationModelFromScene(modelId: string) {
     await fragments.core.disposeModel(modelId);
     removeFederationModel(workspace.federation, modelId);
+    noteFederationAction(workspace.federation, "remove");
     applyFederationAppearance();
     persistFederationRegistry();
     refreshModelState();

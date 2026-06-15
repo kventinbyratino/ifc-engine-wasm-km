@@ -1,11 +1,11 @@
-import type { DrawingBuildOptions, DrawingRecord } from "./drawings-panel";
+import type { DrawingBuildOptions, DrawingRecord } from "./drawings-panel.ts";
 import {
   createTechnicalDrawing,
   disposeDrawing,
   fitCameraToDrawing,
   getDrawingSourceLabel,
   getDrawingViewLabel,
-} from "./drawings-panel";
+} from "./drawings-panel.ts";
 
 export type { DrawingBuildOptions, DrawingRecord };
 

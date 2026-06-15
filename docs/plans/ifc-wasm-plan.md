@@ -25,16 +25,16 @@
 - Phase 10 is complete and verified.
 - Phase 11 is complete and verified.
 - Phase 12 is complete and verified.
-- Phase 17 and Phase 18 are planned next.
+- Sprint 9, Sprint 10 and Sprint 11 are planned next.
 - Detailed roadmapped work continues below.
 
 ## 0. Priorities / working mode
 
-**Now:** Phase 17 — performance pipeline and progressive loading (P0).
+**Now:** Sprint 9 — federation loading and model registry (P0).
 
-**Next:** Phase 18 — IFC overrides, class remapping, and export (P1).
+**Next:** Sprint 10 — federation management controls (P1).
 
-**Later:** TBD.
+**Later:** Sprint 11 — cross-model coordination (P1).
 
 **Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
 
@@ -963,6 +963,214 @@ npm run build
 
 ---
 
+
+### Sprint 9 — Federation loading and model registry (P0)
+
+**Цель:** превратить текущую многомодельную сцену в управляемый федеративный workspace с очередью загрузки, registry и устойчивым восстановлением состава сцены.
+
+**Task 1: Introduce a federation registry state**
+
+**Objective:** хранить состав федерации как отдельную сущность со статусами, цветами, дисциплинами и видимостью моделей.
+
+**Files:**
+- Create: `src/bim/federation/federation-registry.ts`
+- Modify: `src/bim/state/workspace-state.ts`
+- Modify: `src/bim/state/viewer-state.ts`
+- Create: `tests/federation/federation-registry.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/federation/federation-registry.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Каждая загруженная модель представлена в registry.
+- Состояние модели включает имя, дисциплину, цвет, статус и видимость.
+
+**Task 2: Add queued loading for IFC/FRAG models**
+
+**Objective:** позволить добавлять несколько моделей подряд без потери уже загруженных моделей.
+
+**Files:**
+- Modify: `src/bim/app/model-controller.ts`
+- Modify: `src/bim/app/library-controller.ts`
+- Modify: `src/bim/models/model-loader.ts`
+- Create: `src/bim/federation/federation-loader.ts`
+- Create: `tests/federation/federation-loader.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/federation/federation-loader.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Новая модель добавляется в сцену, не очищая предыдущие.
+- Пользователь видит прогресс и ошибки по каждой модели отдельно.
+
+**Task 3: Restore federated scene composition on open**
+
+**Objective:** сохранять и восстанавливать состав федерации между сессиями.
+
+**Files:**
+- Create: `src/bim/federation/federation-persistence.ts`
+- Modify: `src/bim/app/bootstrap.ts`
+- Modify: `src/bim/app/library-controller.ts`
+- Create: `tests/federation/federation-persistence.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/federation/federation-persistence.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Список моделей можно восстановить из сохранённого состояния.
+- После reload федерация открывается в ожидаемом составе.
+
+---
+
+### Sprint 10 — Federation management controls (P1)
+
+**Цель:** дать пользователю явный контроль над каждой моделью в федерации: видимость, изоляция, фокус, opacity и быстрые действия.
+
+**Task 1: Build a federation side panel**
+
+**Objective:** показать список моделей с их статусами и быстрыми действиями.
+
+**Files:**
+- Create: `src/bim/ui/federation-panel.ts`
+- Modify: `src/bim/dom/viewer-dom.ts`
+- Modify: `src/bim/app/bootstrap.ts`
+- Create: `tests/federation/federation-panel.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/federation/federation-panel.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- В панели видны все модели федерации.
+- Для каждой модели доступны базовые действия.
+
+**Task 2: Add per-model visibility and opacity controls**
+
+**Objective:** разрешить скрывать, показывать и делать прозрачной отдельную модель.
+
+**Files:**
+- Modify: `src/bim/federation/federation-registry.ts`
+- Modify: `src/bim/viewer/viewer.ts`
+- Modify: `src/bim/app/model-controller.ts`
+- Create: `tests/federation/federation-visibility.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/federation/federation-visibility.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Видимость модели управляется отдельно от других моделей.
+- Opacity/visibility не ломают selection и clash flows.
+
+**Task 3: Add isolate, focus and remove actions**
+
+**Objective:** упростить работу с конкретной моделью в плотной федерации.
+
+**Files:**
+- Modify: `src/bim/app/model-controller.ts`
+- Modify: `src/bim/app/clash-controller.ts`
+- Modify: `src/bim/app/data-controller.ts`
+- Create: `tests/federation/federation-actions.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/federation/federation-actions.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Можно изолировать одну модель и вернуть сцену обратно.
+- Можно быстро удалить модель из текущей федерации без перезагрузки всей сцены.
+
+---
+
+### Sprint 11 — Cross-model coordination (P1)
+
+**Цель:** добавить полезные координационные сценарии поверх федерации: кросс-модельные clash, фильтры по дисциплинам и сохранение federation snapshot.
+
+**Task 1: Add federation-wide filters and presets**
+
+**Objective:** фильтровать федерацию по дисциплинам, моделям, этажам и пользовательским пресетам.
+
+**Files:**
+- Create: `src/bim/federation/federation-filters.ts`
+- Modify: `src/bim/app/clash-controller.ts`
+- Modify: `src/bim/app/data-controller.ts`
+- Create: `tests/federation/federation-filters.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/federation/federation-filters.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Набор моделей и фильтров можно быстро переключать.
+- Пресеты воспроизводимы и не зависят от текущего UI state.
+
+**Task 2: Support cross-model clash sets**
+
+**Objective:** считать clash не только внутри модели, но и между выбранными моделями или дисциплинами.
+
+**Files:**
+- Modify: `src/bim/clash/clash-candidates.ts`
+- Modify: `src/bim/clash/clash-detector.ts`
+- Modify: `src/bim/app/clash-controller.ts`
+- Create: `tests/federation/cross-model-clash.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/federation/cross-model-clash.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Можно ограничить clash проверку выбранными моделями.
+- Результаты сохраняют привязку к modelId и дисциплинам.
+
+**Task 3: Save and restore federation snapshots**
+
+**Objective:** хранить снимок федерации: модели, видимость, цвета, фильтры и последние активные действия.
+
+**Files:**
+- Create: `src/bim/federation/federation-snapshot.ts`
+- Modify: `src/bim/state/workspace-state.ts`
+- Modify: `src/bim/app/bootstrap.ts`
+- Create: `tests/federation/federation-snapshot.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/federation/federation-snapshot.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Снимок можно сохранить и восстановить без ручной перенастройки.
+- Snapshot помогает быстро вернуть рабочую конфигурацию проекта.
+
+---
 ### Phase 17 — Performance pipeline and progressive loading (P0)
 
 **Цель:** ускорить загрузку и отображение больших моделей за счёт progressive loading, LOD, видимости по камере и кеша в IndexedDB.

@@ -5,6 +5,7 @@ import type { ClashRecord } from "../clash/clash-types.ts";
 import type { DrawingRecord } from "../drawings/drawings-panel.ts";
 import type { SheetRecord } from "../sheets/sheet-types.ts";
 import { createFederationRegistryState, type FederationRegistryState } from "../federation/federation-registry.ts";
+import { MODEL_CACHE_SCHEMA_VERSION } from "../storage/indexeddb-schema.ts";
 import {
   createViewerState,
   getSelectionCount,
@@ -37,6 +38,10 @@ export type WorkspaceState = {
   clash: ClashWorkspaceState;
   drawings: DrawingsWorkspaceState;
   federation: FederationRegistryState;
+  storage: {
+    modelCacheSchemaVersion: number;
+    lastModelCacheCleanupAt: string;
+  };
 };
 
 export type FederationSnapshotWorkspaceState = Pick<ViewerWorkspaceState, "lastFederationSyncAt" | "lastFederationSnapshotAt">;
@@ -50,6 +55,10 @@ export function createWorkspaceState(): WorkspaceState {
     clash: createClashState(),
     drawings: createDrawingsState(),
     federation: createFederationRegistryState(),
+    storage: {
+      modelCacheSchemaVersion: MODEL_CACHE_SCHEMA_VERSION,
+      lastModelCacheCleanupAt: "",
+    },
   };
 }
 

@@ -130,6 +130,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     workspace.data.elementIndex = [];
     workspace.data.filteredElements = [];
     workspace.data.elementRelations = { edges: [], outgoing: {}, incoming: {} };
+    workspace.data.progressiveLoadPlan = null;
     dataSummary.textContent = "Загрузите модель";
     dataSearchInput.value = "";
     fillSelectOptions(dataCategoryFilter, [], "Все IFC Class");

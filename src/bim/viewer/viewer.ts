@@ -3,6 +3,7 @@ import * as BUI from "@thatopen/ui";
 import * as CUI from "@thatopen/ui-obc";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
+import type { VisibilityCameraQuery } from "../performance/visibility-index.ts";
 
 export type ModelLike = {
   object?: THREE.Object3D;
@@ -51,6 +52,14 @@ export function applyModelOpacity(model: ModelLike | null | undefined, opacity: 
       if (typeof material.needsUpdate === "boolean") material.needsUpdate = true;
     }
   });
+}
+
+export function getViewerCameraQuery(camera: THREE.Camera, target: THREE.Vector3 = new THREE.Vector3(), maxDistance = 80): VisibilityCameraQuery {
+  return {
+    position: [camera.position.x, camera.position.y, camera.position.z],
+    target: [target.x, target.y, target.z],
+    maxDistance,
+  };
 }
 
 export async function createBimViewer(options: {

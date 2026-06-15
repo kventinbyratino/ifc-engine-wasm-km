@@ -8,6 +8,7 @@
     "dev": "vite --host 127.0.0.1",
     "dev:node": "node scripts/dev-server.mjs",
     "build": "tsc --noEmit && vite build",
+    "test:performance": "node --test tests/performance/*.test.mjs tests/storage/model-cache.test.mjs",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {

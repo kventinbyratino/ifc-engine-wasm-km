@@ -1,4 +1,6 @@
 import type { FederationLoadSource, FederationLoadKind, FederationLoadOrigin } from "../federation/federation-registry.ts";
+import { createPerformanceMetricCollector, summarizeLoadPerformance, type LoadPerformanceSummary } from "../performance/performance-metrics.ts";
+import { createProgressiveLoadPlan, type ProgressiveLoadPlan } from "../performance/lod-loader.ts";
 
 export function createModelId(name: string) {
   const clean = name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_-]+/g, "_");
@@ -11,8 +13,11 @@ export async function loadIfcModel(options: {
   ifcLoader: any;
   onProgress: (value: number, process: string) => void;
   source?: Partial<FederationLoadSource> & { kind?: FederationLoadKind };
+  onPerformance?: (summary: LoadPerformanceSummary, plan: ProgressiveLoadPlan) => void;
 }) {
   const { file, ifcLoader, onProgress } = options;
+  const metrics = createPerformanceMetricCollector();
+  metrics.mark("load-start");
   const buffer = new Uint8Array(await file.arrayBuffer());
   const modelId = createModelId(file.name);
   const source = normalizeLoadSource({
@@ -36,14 +41,19 @@ export async function loadIfcModel(options: {
     },
     processData: {
       progressCallback: (value: number, data: { process: string }) => {
+        if (value > 0 && data.process === "geometries") metrics.mark("first-visible");
         onProgress(value, data.process);
       },
     },
   });
   loadingModel.catch((error: unknown) => console.error(error));
   await loadingModel;
+  metrics.mark("load-complete");
+  const progressivePlan = createProgressiveLoadPlan({ modelId, elementCount: buffer.byteLength, chunkSize: 1_000_000 });
+  metrics.setCounts({ elementCount: buffer.byteLength, visibleElementCount: buffer.byteLength, chunkCount: progressivePlan.totalChunks });
+  options.onPerformance?.(summarizeLoadPerformance(metrics.snapshot()), progressivePlan);
 
-  return { modelId, sourceName: file.name, source };
+  return { modelId, sourceName: file.name, source, performance: summarizeLoadPerformance(metrics.snapshot()), progressivePlan };
 }
 
 export async function loadFragBuffer(options: {
@@ -53,8 +63,11 @@ export async function loadFragBuffer(options: {
   camera: unknown;
   onProgress: (value: number, stage: string) => void;
   source?: Partial<FederationLoadSource> & { kind?: FederationLoadKind };
+  onPerformance?: (summary: LoadPerformanceSummary, plan: ProgressiveLoadPlan) => void;
 }) {
   const { buffer, name, fragments, camera, onProgress } = options;
+  const metrics = createPerformanceMetricCollector();
+  metrics.mark("load-start");
   const modelId = createModelId(name);
   const source = normalizeLoadSource({
     kind: "frag",
@@ -75,14 +88,19 @@ export async function loadFragBuffer(options: {
     },
     onProgress: (event: { stage: string; progress: number }) => {
       const value = event.stage === "done" ? 1 : event.progress;
+      if (value > 0 && event.stage !== "done") metrics.mark("first-visible");
       onProgress(value, event.stage);
     },
   });
   loadingModel.catch((error: unknown) => console.error(error));
   await loadingModel;
   await fragments.core.update(true);
+  metrics.mark("load-complete");
+  const progressivePlan = createProgressiveLoadPlan({ modelId, elementCount: buffer.byteLength, chunkSize: 1_000_000 });
+  metrics.setCounts({ elementCount: buffer.byteLength, visibleElementCount: buffer.byteLength, chunkCount: progressivePlan.totalChunks });
+  options.onPerformance?.(summarizeLoadPerformance(metrics.snapshot()), progressivePlan);
 
-  return { modelId, sourceName: name, source };
+  return { modelId, sourceName: name, source, performance: summarizeLoadPerformance(metrics.snapshot()), progressivePlan };
 }
 
 function normalizeLoadSource(source: Partial<FederationLoadSource> & { kind: FederationLoadKind; label: string; reference: string; origin?: FederationLoadOrigin; restorable?: boolean }): FederationLoadSource {

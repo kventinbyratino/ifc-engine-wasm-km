@@ -1,10 +1,13 @@
 import type { BimElementRecord } from "../data/element-index.ts";
 import type { ElementRelationGraph } from "../data/relation-types.ts";
 
+import type { ProgressiveLoadPlan } from "../performance/lod-loader.ts";
+
 export type DataWorkspaceState = {
   elementIndex: BimElementRecord[];
   filteredElements: BimElementRecord[];
   elementRelations: ElementRelationGraph;
+  progressiveLoadPlan: ProgressiveLoadPlan | null;
 };
 
 export function createDataState(): DataWorkspaceState {
@@ -12,6 +15,7 @@ export function createDataState(): DataWorkspaceState {
     elementIndex: [],
     filteredElements: [],
     elementRelations: { edges: [], outgoing: {}, incoming: {} },
+    progressiveLoadPlan: null,
   };
 }
 

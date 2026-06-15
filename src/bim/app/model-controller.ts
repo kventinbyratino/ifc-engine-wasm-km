@@ -89,7 +89,7 @@ export function createModelController({
       propertiesOutput.textContent = "IFC читается через web-ifc WASM. Серверная обработка не используется.";
 
       try {
-        const { modelId, sourceName, source: resolvedSource } = await loadIfcModel({
+        const result = await loadIfcModel({
           file,
           ifcLoader,
           source: source ?? {
@@ -105,12 +105,13 @@ export function createModelController({
           },
         });
 
-        workspace.viewer.lastConvertedModelId = modelId;
-        workspace.viewer.lastSourceIfcName = sourceName;
+        workspace.viewer.lastConvertedModelId = result.modelId;
+        workspace.viewer.lastSourceIfcName = result.sourceName;
+        workspace.data.progressiveLoadPlan = result.progressivePlan;
         saveFragmentBtn.hidden = false;
         closeLibraryModal();
         refreshFederationState();
-        ctx.setStatus(`IFC загружен и преобразован${resolvedSource.restorable ? " · федерация сохранена" : ""}`);
+        ctx.setStatus(`IFC загружен и преобразован${result.source.restorable ? " · федерация сохранена" : ""}`);
         ctx.showToast("IFC загружен и преобразован", "success");
         ctx.setProgress(1);
       } catch (error) {
@@ -169,6 +170,7 @@ export function createModelController({
           },
         });
         refreshFederationState();
+        workspace.data.progressiveLoadPlan = result.progressivePlan;
         ctx.setStatus(`FRAG загружен${result.source.restorable ? " · федерация сохранена" : ""}`);
         ctx.showToast("FRAG загружен", "success");
         ctx.setProgress(1);
@@ -270,6 +272,8 @@ export function createModelController({
     applyFederationAppearance();
     renderFederationState();
     const hasModels = fragments.list.size > 0;
+    workspace.viewer.visibleChunkIds = workspace.data.progressiveLoadPlan?.stages.flatMap((stage) => stage.chunkIds) ?? [];
+    workspace.viewer.lastVisibilityUpdateAt = hasModels ? new Date().toISOString() : "";
     const capabilities = ctx.getCapabilities();
     const showBimEmptyState = !hasModels && workspace.viewer.activeProfile === "bim";
     modelCount.textContent = String(fragments.list.size);

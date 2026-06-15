@@ -26,18 +26,20 @@
 - Phase 11 is complete and verified.
 - Phase 12 is complete and verified.
 - Sprint 9 is complete and verified.
-- Sprint 10 is complete and verified. Sprint 11 is planned next.
+- Sprint 10 is complete and verified.
+- Sprint 11 is complete and verified.
+- Sprint 12 is complete and verified.
 - Detailed roadmapped work continues below.
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 12 — performance pipeline and progressive loading (P0).
+**Now:** Sprint 13 — IFC overrides, class remapping, and export (P1).
 
-**Next:** Sprint 13 — federation UX polish (P3).
+**Next:** Sprint 14 — TBD.
 
-**Later:** Sprint 14 — TBD.
+**Later:** Sprint 15 — TBD.
 
-**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
+**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Sprint 11; Sprint 12; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
 
 **Definition of done for any item:** scoped files are listed, acceptance is clear, verification commands pass, and `git diff --check` is clean.
 
@@ -1210,6 +1212,8 @@ git diff --check
 - Есть измеримые метрики для baseline.
 - Понятно, что считать регрессией по загрузке и первому рендеру.
 
+**Status:** ✅ done and verified
+
 **Task 2: Build a spatial visibility index**
 
 **Objective:** определять, какие части модели должны быть загружены и отрисованы в текущем положении камеры.
@@ -1231,6 +1235,8 @@ git diff --check
 - Для текущей камеры вычисляется список видимых сущностей/чанков.
 - Скрытые части не участвуют в основном рендер-пайплайне.
 
+**Status:** ✅ done and verified
+
 **Task 3: Add progressive chunk / LOD loading**
 
 **Objective:** сначала показывать грубое представление, затем догружать более детальные данные.
@@ -1251,6 +1257,8 @@ git diff --check
 **Acceptance:**
 - Малые модели грузятся как раньше.
 - Большие модели получают progressive loading без поломки viewer.
+
+**Status:** ✅ done and verified
 
 **Task 4: Cache loaded chunks in IndexedDB**
 
@@ -1274,6 +1282,8 @@ git diff --check
 - Повторная загрузка использует кеш.
 - Версия схемы кеша позволяет безопасно сбрасывать устаревшие данные.
 
+**Status:** ✅ done and verified
+
 **Task 5: Add an end-to-end performance gate**
 
 **Objective:** не допускать регрессий по времени загрузки и первому отображению.
@@ -1292,6 +1302,8 @@ git diff --check
 **Acceptance:**
 - Есть smoke-проверка на загрузку большой модели.
 - Можно сравнивать прогресс по стабильным метрикам.
+
+**Status:** ✅ done and verified
 
 ---
 

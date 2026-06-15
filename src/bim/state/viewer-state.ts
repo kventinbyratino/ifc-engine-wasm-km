@@ -9,6 +9,8 @@ export type ViewerWorkspaceState = {
   activeShareRecord: FragmentRecord | null;
   lastFederationSyncAt: string;
   lastFederationSnapshotAt: string;
+  visibleChunkIds: string[];
+  lastVisibilityUpdateAt: string;
 };
 
 export function createViewerState(): ViewerWorkspaceState {
@@ -20,6 +22,8 @@ export function createViewerState(): ViewerWorkspaceState {
     activeShareRecord: null,
     lastFederationSyncAt: "",
     lastFederationSnapshotAt: "",
+    visibleChunkIds: [],
+    lastVisibilityUpdateAt: "",
   };
 }
 

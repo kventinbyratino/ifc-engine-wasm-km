@@ -1,4 +1,6 @@
 import type { BimElementRecord } from "./element-record.ts";
+import type { IfcOverride } from "../ifc-overrides/override-types.ts";
+import { buildIfcExportPackage as buildIfcExportDocument, downloadIfcExportPackage } from "../export/ifc-export.ts";
 
 export function exportElementsJson(records: BimElementRecord[]) {
   downloadFile(
@@ -28,6 +30,14 @@ export function fillSelectOptions(select: HTMLSelectElement, values: string[], l
   const currentValue = select.value;
   select.replaceChildren(new Option(label, ""), ...values.map((value) => new Option(value, value)));
   if (values.includes(currentValue)) select.value = currentValue;
+}
+
+export function exportIfcExportPackage(records: BimElementRecord[], overrides: IfcOverride[]) {
+  return downloadIfcExportPackage(records, overrides);
+}
+
+export function buildIfcExportPackage(records: BimElementRecord[], overrides: IfcOverride[]) {
+  return buildIfcExportDocument(records, overrides);
 }
 
 function stripSearchable(record: BimElementRecord) {

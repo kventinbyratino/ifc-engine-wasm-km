@@ -165,7 +165,13 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     const modelIdMap = recordsToModelIdMap([record]);
     await hooks.applySearchHighlight(modelIdMap);
     await hooks.fitToItems(modelIdMap);
-    await renderSelectedProperties({ components, modelIdMap, output: propertiesOutput });
+    await renderSelectedProperties({
+      components,
+      modelIdMap,
+      output: propertiesOutput,
+      pendingOverrideCount: workspace.ifcOverrides.pendingCount,
+      onSaveOverride: ctx.savePropertyOverride,
+    });
     workspace.viewer.activeSelection = modelIdMap;
     selectionCount.textContent = "1";
   }

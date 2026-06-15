@@ -1,0 +1,56 @@
+{
+  "records": [
+    {
+      "modelId": "model-a",
+      "localId": 1,
+      "name": "Wall 01",
+      "category": "IFCWALL",
+      "globalId": "gid-1",
+      "typeName": "WallType",
+      "storey": "Level 01",
+      "number": "A1",
+      "materialName": "Concrete",
+      "psetCount": 1,
+      "searchable": "wall 01 ifcwall gid-1"
+    },
+    {
+      "modelId": "model-a",
+      "localId": 2,
+      "name": "Door 01",
+      "category": "IFCDOOR",
+      "globalId": "gid-2",
+      "typeName": "DoorType",
+      "storey": "Level 01",
+      "number": "D1",
+      "materialName": "Steel",
+      "psetCount": 1,
+      "searchable": "door 01 ifcdoor gid-2"
+    }
+  ],
+  "overrides": [
+    {
+      "kind": "property",
+      "key": "property:model-a:1:Pset_WallCommon:FireRating",
+      "modelId": "model-a",
+      "localId": 1,
+      "propertySet": "Pset_WallCommon",
+      "propertyName": "FireRating",
+      "value": "EI60",
+      "status": "pending",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "kind": "class",
+      "key": "class:model-a:1",
+      "modelId": "model-a",
+      "localId": 1,
+      "fromClass": "IFCWALL",
+      "toClass": "IFCWALLSTANDARDCASE",
+      "reason": "upgrade wall to standard case",
+      "status": "pending",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  ]
+}

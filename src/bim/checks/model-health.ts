@@ -1,5 +1,6 @@
 import * as OBC from "@thatopen/components";
 import type { BimElementRecord } from "../data/element-index.ts";
+import { summarizeClassMappings, type ClassMappingRule } from "../ifc-overrides/class-mapping.ts";
 import type { IDSPropertyRequirementDraft, IDSRequirementCheck, IDSValidationReport, ModelHealthReport } from "./check-types.ts";
 import { createIssueFromRule, createRuleContext, MODEL_HEALTH_RULE_REGISTRY } from "./rules.ts";
 
@@ -46,12 +47,18 @@ export function exportIDSSpecifications(components: OBC.Components, title: strin
   });
 }
 
-export function runModelHealthChecks(elementIndex: BimElementRecord[], registry = MODEL_HEALTH_RULE_REGISTRY): ModelHealthReport {
+export function runModelHealthChecks(
+  elementIndex: BimElementRecord[],
+  registry = MODEL_HEALTH_RULE_REGISTRY,
+  classMappings: ClassMappingRule[] = [],
+): ModelHealthReport {
   const context = createRuleContext(elementIndex);
   const enabledRules = registry.getEnabledRules();
   const issues = elementIndex.flatMap((record) =>
     enabledRules.filter((rule) => rule.applies(record, context)).map((rule) => createIssueFromRule(record, rule, context)),
   );
+
+  const classCompatibility = summarizeClassMappings(classMappings);
 
   return {
     title: "Model Health Checks v2",
@@ -64,6 +71,7 @@ export function runModelHealthChecks(elementIndex: BimElementRecord[], registry 
       info: issues.filter((issue) => issue.severity === "info").length,
       issueCount: issues.length,
     },
+    classCompatibility,
   };
 }
 

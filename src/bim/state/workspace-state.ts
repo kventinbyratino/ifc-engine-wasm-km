@@ -6,6 +6,7 @@ import type { DrawingRecord } from "../drawings/drawings-panel.ts";
 import type { SheetRecord } from "../sheets/sheet-types.ts";
 import { createFederationRegistryState, type FederationRegistryState } from "../federation/federation-registry.ts";
 import { MODEL_CACHE_SCHEMA_VERSION } from "../storage/indexeddb-schema.ts";
+import { createEmptyIfcOverrideState, type IfcOverrideState } from "../ifc-overrides/override-types.ts";
 import {
   createViewerState,
   getSelectionCount,
@@ -33,6 +34,7 @@ import {
 export type WorkspaceState = {
   viewer: ViewerWorkspaceState;
   data: DataWorkspaceState;
+  ifcOverrides: IfcOverrideState;
   checks: ChecksWorkspaceState;
   issues: IssuesWorkspaceState;
   clash: ClashWorkspaceState;
@@ -50,6 +52,7 @@ export function createWorkspaceState(): WorkspaceState {
   return {
     viewer: createViewerState(),
     data: createDataState(),
+    ifcOverrides: createEmptyIfcOverrideState(),
     checks: createChecksState(),
     issues: createIssuesState(),
     clash: createClashState(),

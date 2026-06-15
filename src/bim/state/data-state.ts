@@ -2,12 +2,14 @@ import type { BimElementRecord } from "../data/element-index.ts";
 import type { ElementRelationGraph } from "../data/relation-types.ts";
 
 import type { ProgressiveLoadPlan } from "../performance/lod-loader.ts";
+import { createEmptyIfcOverrideState, type IfcOverrideState } from "../ifc-overrides/override-types.ts";
 
 export type DataWorkspaceState = {
   elementIndex: BimElementRecord[];
   filteredElements: BimElementRecord[];
   elementRelations: ElementRelationGraph;
   progressiveLoadPlan: ProgressiveLoadPlan | null;
+  pendingIfcOverrideCount: number;
 };
 
 export function createDataState(): DataWorkspaceState {
@@ -16,6 +18,7 @@ export function createDataState(): DataWorkspaceState {
     filteredElements: [],
     elementRelations: { edges: [], outgoing: {}, incoming: {} },
     progressiveLoadPlan: null,
+    pendingIfcOverrideCount: createEmptyIfcOverrideState().pendingCount,
   };
 }
 

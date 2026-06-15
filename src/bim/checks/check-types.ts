@@ -1,4 +1,5 @@
 import type { BimElementRecord } from "../data/element-index.ts";
+import type { ClassMappingSummary } from "../ifc-overrides/class-mapping.ts";
 
 export type IDSReportStatus = "pass" | "fail";
 
@@ -82,4 +83,5 @@ export type ModelHealthReport = {
   createdAt: string;
   issues: HealthCheckIssue[];
   summary: HealthCheckSummary;
+  classCompatibility?: ClassMappingSummary;
 };

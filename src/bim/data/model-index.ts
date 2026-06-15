@@ -5,6 +5,7 @@ import { matchesElementRecord, normalizeElementIndexQuery } from "./search-index
 import type { BimElementRecord, ElementRecord } from "./element-record.ts";
 import { createElementRecord } from "./element-record-factory.ts";
 import type { ElementIndexFilters } from "./element-index-types.ts";
+import { applyClassRemapping, type ClassMappingRule } from "../ifc-overrides/class-mapping.ts";
 
 export type { ElementRecord, BimElementRecord, ElementIndexFilters };
 
@@ -12,6 +13,7 @@ export async function buildModelIndex(options: {
   fragments: { list: Map<string, unknown> };
   onProgress?: (processed: number, total: number) => void;
   signal?: AbortSignal;
+  classMappings?: ClassMappingRule[];
 }) {
   const records: BimElementRecord[] = [];
   const sources: ElementRelationSource[] = [];
@@ -52,8 +54,10 @@ export async function buildModelIndex(options: {
     }
   }
 
+  const remappedRecords = options.classMappings?.length ? applyClassRemapping(records, options.classMappings) : records;
+
   return {
-    records,
+    records: remappedRecords,
     relations: buildElementRelationGraph(sources),
   };
 }

@@ -1311,6 +1311,8 @@ git diff --check
 
 **Цель:** добавить неразрушающее редактирование параметров IFC, замену классов и экспорт изменений обратно в IFC.
 
+**Sprint status:** completed — all five tasks implemented and verified with `node --test`, `npm run build`, and `git diff --check`.
+
 **Task 1: Define the override data model**
 
 **Objective:** хранить пользовательские правки отдельно от исходной IFC-модели.
@@ -1419,7 +1421,7 @@ git diff --check
 - **Current canonical plan file:** `docs/plans/ifc-wasm-plan.md`
 - **Old split plan files removed**; this file is now the single source of truth for the IFC WASM plan.
 
-- **Next sprint to execute:** Sprint 12.
+- **Current sprint status:** Sprint 13 completed; next sprint TBD.
 
 ## 4. Recommended verification loop
 

@@ -14,6 +14,7 @@ import { loadStoredFederationWorkspace, restoreFederationState } from "../federa
 import { loadStoredFederationSnapshot, restoreFederationSnapshot, saveFederationSnapshot } from "../federation/federation-snapshot.ts";
 import { bindBimUiEvents } from "./ui-wiring.ts";
 import { createIssueStore } from "../issues/issues-store.ts";
+import { createIfcOverrideStore } from "../ifc-overrides/override-store.ts";
 import { getProfileCapabilities } from "../profiles/index.ts";
 import { createMessage } from "../ui/dom-utils.ts";
 import { errorToMessage, showToast } from "../ui/toast.ts";
@@ -183,12 +184,34 @@ export async function startBimApp() {
     restoreFederationSnapshot(workspace, storedFederationSnapshot);
   }
   const issueStore = createIssueStore();
+  const ifcOverrideStore = createIfcOverrideStore();
+  const syncIfcOverrideState = () => {
+    const snapshot = ifcOverrideStore.snapshot();
+    workspace.ifcOverrides = snapshot;
+    workspace.data.pendingIfcOverrideCount = snapshot.pendingCount;
+  };
+  syncIfcOverrideState();
+  async function savePropertyOverride(draft: Parameters<typeof ifcOverrideStore.setPropertyOverride>[0]) {
+    ifcOverrideStore.setPropertyOverride(draft);
+    syncIfcOverrideState();
+    await renderSelectedProperties({
+      components,
+      modelIdMap: workspace.viewer.activeSelection,
+      output: propertiesOutput,
+      pendingOverrideCount: workspace.ifcOverrides.pendingCount,
+      onSaveOverride: savePropertyOverride,
+    });
+    showToast(`Saved pending override for ${draft.propertySet}.${draft.propertyName}`, "success");
+  }
   let activeOperation: AbortController | null = null;
   const ctx: BimAppContext = {
     dom: getDomElements(),
     viewer: { components, world, fragments, ifcLoader, highlighter, hider },
     workspace,
     issueStore,
+    ifcOverrideStore,
+    syncIfcOverrideState,
+    savePropertyOverride,
     getCapabilities: () => getProfileCapabilities(workspace.viewer.activeProfile),
     setStatus: (message) => {
       statusText.textContent = message;
@@ -615,7 +638,13 @@ export async function startBimApp() {
   highlighter.events.select.onHighlight.add(async (modelIdMap) => {
     workspace.viewer.activeSelection = modelIdMap;
     selectionCount.textContent = String(countSelection(modelIdMap));
-    await renderSelectedProperties({ components, modelIdMap, output: propertiesOutput });
+    await renderSelectedProperties({
+      components,
+      modelIdMap,
+      output: propertiesOutput,
+      pendingOverrideCount: workspace.ifcOverrides.pendingCount,
+      onSaveOverride: savePropertyOverride,
+    });
     syncDrawingSelectionFromModel(modelIdMap);
   });
 
@@ -648,7 +677,13 @@ export async function startBimApp() {
   async function setModelSelection(modelIdMap: ModelIdMap) {
     workspace.viewer.activeSelection = modelIdMap;
     selectionCount.textContent = String(countSelection(modelIdMap));
-    await renderSelectedProperties({ components, modelIdMap, output: propertiesOutput });
+    await renderSelectedProperties({
+      components,
+      modelIdMap,
+      output: propertiesOutput,
+      pendingOverrideCount: workspace.ifcOverrides.pendingCount,
+      onSaveOverride: savePropertyOverride,
+    });
   }
 
   function setBusy(isBusy: boolean, message?: string) {

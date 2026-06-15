@@ -1,5 +1,6 @@
 import type { getDomElements } from "../dom.ts";
 import type { createIssueStore } from "../issues/issues-store.ts";
+import type { createIfcOverrideStore } from "../ifc-overrides/override-store.ts";
 import type { getProfileCapabilities } from "../profiles/index.ts";
 import type { createWorkspaceState } from "../state/workspace-state.ts";
 import type { createBimViewer } from "../viewer/viewer.ts";
@@ -8,6 +9,7 @@ export type BimDomElements = ReturnType<typeof getDomElements>;
 export type BimViewer = Awaited<ReturnType<typeof createBimViewer>>;
 export type BimWorkspace = ReturnType<typeof createWorkspaceState>;
 export type BimIssueStore = ReturnType<typeof createIssueStore>;
+export type BimIfcOverrideStore = ReturnType<typeof createIfcOverrideStore>;
 export type ProfileCapabilities = ReturnType<typeof getProfileCapabilities>;
 
 export interface BimAppContext {
@@ -15,6 +17,9 @@ export interface BimAppContext {
   viewer: BimViewer;
   workspace: BimWorkspace;
   issueStore: BimIssueStore;
+  ifcOverrideStore: BimIfcOverrideStore;
+  syncIfcOverrideState: () => void;
+  savePropertyOverride: (draft: import("../ifc-overrides/override-types.ts").IfcPropertyOverrideDraft) => Promise<void>;
   getCapabilities: () => ProfileCapabilities;
   setStatus: (message: string) => void;
   setBusy: (isBusy: boolean, message?: string) => void;

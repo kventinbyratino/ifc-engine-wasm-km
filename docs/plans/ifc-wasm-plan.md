@@ -36,7 +36,7 @@
 
 **Now:** Sprint 16 — Backend conversion for IFC files over 200 MB.
 
-**Next:** Production LOD / progressive loading for large IFC models.
+**Next:** Sprint 17 — Production LOD / progressive loading for large IFC models.
 
 **Later:** TBD.
 
@@ -964,6 +964,71 @@ git diff --check
 - Пользователь видит progress и может открыть результат после conversion.
 - Исходный IFC сохранён для полноценного экспорта с overrides.
 - Ошибки conversion понятны пользователю и логируются на backend.
+
+---
+
+### Sprint 17 — Production LOD / progressive loading for large IFC models (P0)
+
+**Status:** planned — turn the current LOD/progressive-loading skeleton into a production flow for large models after backend conversion is in place.
+
+**Цель:** ускорить открытие и навигацию по большим IFC: сначала показывать лёгкий coarse view/зоны, затем догружать детализацию по камере, этажам, видимости и пользовательскому фокусу.
+
+**Architecture:** backend-generated artifacts expose a chunk/LOD manifest; frontend builds a spatial visibility index, loads coarse chunks first, then streams/draws detailed fragments only for visible/near/selected areas. The existing viewer, federation registry, filters, selection, overrides and export flow must continue to work against stable `modelId + localId` identities.
+
+**Files:**
+- Modify: `src/bim/performance/lod-loader.ts`
+- Modify: `src/bim/performance/visibility-index.ts`
+- Modify: `src/bim/viewer/viewer.ts`
+- Modify: `src/bim/models/model-loader.ts`
+- Modify: `src/bim/federation/federation-registry.ts`
+- Modify/Create: `src/bim/performance/chunk-cache.ts`
+- Modify/Create: `src/bim/performance/lod-manifest.ts`
+- Create: `tests/performance/lod-loader*.test.*`
+- Create: `tests/performance/visibility-index*.test.*`
+
+**Tasks:**
+
+1. **Define LOD architecture and data contract**
+   - **Objective:** описать уровни детализации, chunk manifest, связи chunk → element IDs → model IDs.
+   - **Acceptance:** есть контракт coarse/detail chunks, stable IDs, metadata для этажей/зон/категорий и fallback для моделей без LOD.
+
+2. **Build spatial chunk index**
+   - **Objective:** индексировать bounding boxes/chunks для быстрого определения видимых и близких частей модели.
+   - **Acceptance:** visibility index умеет query по camera/frustum/floor/selection и не требует полного обхода всех элементов каждый кадр.
+
+3. **Implement coarse-first loading**
+   - **Objective:** быстро показать лёгкую сцену до загрузки полной детализации.
+   - **Acceptance:** viewer показывает первый coarse результат раньше detailed chunks; UI явно показывает состояние догрузки.
+
+4. **Implement camera-based detail loading**
+   - **Objective:** догружать/выгружать детализацию по камере, этажу, зоне и selection focus.
+   - **Acceptance:** при навигации подгружаются нужные chunks, дальние/невидимые chunks могут выгружаться или понижаться в детализации.
+
+5. **Add fragments/chunk cache**
+   - **Objective:** кешировать загруженные chunks, чтобы повторная навигация не перекачивала и не пересоздавала данные без необходимости.
+   - **Acceptance:** есть cache policy, memory budget и понятное поведение при eviction.
+
+6. **Keep BIM tools compatible with LOD**
+   - **Objective:** сохранить фильтры, selection, properties, overrides и export поверх LOD/chunked scene.
+   - **Acceptance:** selection/properties работают на detailed chunks; overrides остаются привязаны к source model IDs, а не к временным chunk objects.
+
+7. **Add performance benchmarks**
+   - **Objective:** измерить time-to-first-scene, detail-load latency, memory, chunk cache hit rate.
+   - **Acceptance:** есть тесты/метрики для small model, backend-converted large model и degradation/fallback path.
+
+**Verification:**
+```bash
+node --test tests/performance/lod-loader*.test.* tests/performance/visibility-index*.test.*
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Большая модель получает coarse-first display вместо ожидания полной детализации.
+- Детализация догружается по камере/этажу/зоне/selection.
+- Viewer остаётся интерактивным при навигации по большим моделям.
+- Selection, filters, properties, overrides и export совместимы с LOD.
+- Есть понятные performance metrics и fallback для моделей без LOD artifacts.
 
 ## 2. Refactor / architecture phases
 

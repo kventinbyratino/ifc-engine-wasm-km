@@ -1046,17 +1046,34 @@ git diff --check
    - **Objective:** перенести контур активного листа/viewport в drawing/sheet editor и сделать его редактируемым мышкой.
    - **Acceptance:** рамку можно выделить, двигать, менять размер за handles; изменения сохраняются в drawing state; в 3D не остаётся непонятного синего overlay.
 
-2. **Model ↔ drawing element links**
-   - **Objective:** связать линии/элементы чертежа с `modelId + localId/expressId`.
-   - **Acceptance:** клик в чертеже подсвечивает элемент в 3D; клик в 3D находит/подсвечивает элемент на чертеже.
+2. **Drawing element identity map**
+   - **Objective:** при генерации чертежа сохранить соответствие каждой линии/проекции исходному `modelId + localId/expressId`.
+   - **Files:** `src/bim/drawings/drawing-types.ts`, `src/bim/drawings/drawing-manager.ts`, `src/bim/drawings/floor-plan.ts`.
+   - **Acceptance:** drawing geometry хранит source IDs; для элементов без связи есть явный fallback `unlinked`, а не молчаливый разрыв.
 
-3. **GOST/SPDS sheet frame and title block**
-   - **Objective:** заменить упрощённый title block на рамку оформления по ГОСТ/СПДС.
-   - **Acceptance:** есть шаблон листа с полями, основной надписью, масштабом, листом, стадией, датой и наименованием; экспорт сохраняет оформление.
+3. **Drawing → model selection sync**
+   - **Objective:** клик по элементу чертежа должен выбирать и подсвечивать соответствующий объект в 3D.
+   - **Files:** `src/bim/ui/drawings-panel.ts`, `src/bim/app/ui-wiring.ts`, `src/bim/selection/*`, `src/bim/viewer/viewer.ts`.
+   - **Acceptance:** клик на линии/элементе чертежа вызывает selection в модели; свойства/панель данных показывают выбранный BIM-элемент.
 
-4. **Drawing export compatibility**
-   - **Objective:** экспортировать лист вместе с viewport, связями и оформлением.
-   - **Acceptance:** SVG/PDF/DXF export не теряет рамку, штамп и геометрию чертежа.
+4. **Model → drawing selection sync**
+   - **Objective:** клик по объекту в 3D должен находить и подсвечивать связанные линии/область на активном чертеже.
+   - **Files:** `src/bim/drawings/drawing-manager.ts`, `src/bim/ui/drawings-panel.ts`, `src/bim/federation/federation-registry.ts`.
+   - **Acceptance:** выбранный в 3D элемент подсвечивается на чертеже, если он попадает в текущий viewport; если не попадает — UI показывает понятный статус.
+
+5. **GOST/SPDS sheet format presets**
+   - **Objective:** добавить форматы листов и поля оформления по ГОСТ/СПДС вместо произвольного canvas/title block.
+   - **Files:** `src/bim/drawings/sheet-format.ts`, `src/bim/drawings/drawing-types.ts`.
+   - **Acceptance:** доступны A4/A3/A2/A1/A0 presets с корректными полями и рабочей областью листа.
+
+6. **GOST/SPDS title block template**
+   - **Objective:** добавить основную надпись СПДС/ГОСТ со структурированными полями.
+   - **Files:** `src/bim/drawings/spds-title-block.ts`, `src/bim/ui/drawings-panel.ts`.
+   - **Acceptance:** лист содержит штамп с наименованием, стадией, листом, масштабом, датой, организацией/проектом; поля редактируются в UI/state.
+
+7. **Sheet export with links and GOST/SPDS frame**
+   - **Objective:** экспортировать лист вместе с viewport, связями, рамкой и штампом.
+   - **Acceptance:** SVG/PDF/DXF export не теряет рамку, штамп, геометрию чертежа и source metadata для связей.
 
 **Verification:**
 ```bash

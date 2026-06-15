@@ -18,7 +18,8 @@ export async function loadIfcModel(options: {
   const { file, ifcLoader, onProgress } = options;
   const metrics = createPerformanceMetricCollector();
   metrics.mark("load-start");
-  const buffer = new Uint8Array(await file.arrayBuffer());
+  const sourceBuffer = await file.arrayBuffer();
+  const buffer = new Uint8Array(sourceBuffer);
   const modelId = createModelId(file.name);
   const source = normalizeLoadSource({
     kind: "ifc",
@@ -53,7 +54,18 @@ export async function loadIfcModel(options: {
   metrics.setCounts({ elementCount: buffer.byteLength, visibleElementCount: buffer.byteLength, chunkCount: progressivePlan.totalChunks });
   options.onPerformance?.(summarizeLoadPerformance(metrics.snapshot()), progressivePlan);
 
-  return { modelId, sourceName: file.name, source, performance: summarizeLoadPerformance(metrics.snapshot()), progressivePlan };
+  return {
+    modelId,
+    sourceName: file.name,
+    source,
+    sourceIfc: {
+      modelId,
+      fileName: file.name,
+      buffer: sourceBuffer.slice(0),
+    },
+    performance: summarizeLoadPerformance(metrics.snapshot()),
+    progressivePlan,
+  };
 }
 
 export async function loadFragBuffer(options: {

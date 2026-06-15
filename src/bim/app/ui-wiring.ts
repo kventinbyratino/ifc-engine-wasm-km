@@ -18,7 +18,7 @@ export interface BimUiWiringActions {
     highlightFilteredElements: () => Promise<void>;
     exportElementsCsv: (records: ElementRecord[]) => void;
     exportElementsJson: (records: ElementRecord[]) => void;
-    exportIfcFile: (records: ElementRecord[]) => void;
+    exportIfcFile: (records: ElementRecord[]) => Promise<void>;
   };
   checks: {
     toggleChecksPanel: () => void;
@@ -215,7 +215,7 @@ export function bindBimUiEvents(
   highlightFilteredBtn.onclick = () => void data.highlightFilteredElements();
   exportCsvBtn.onclick = () => data.exportElementsCsv(ctx.workspace.data.filteredElements);
   exportJsonBtn.onclick = () => data.exportElementsJson(ctx.workspace.data.filteredElements);
-  exportIfcBtn.onclick = () => data.exportIfcFile(ctx.workspace.data.filteredElements);
+  exportIfcBtn.onclick = () => void data.exportIfcFile(ctx.workspace.data.filteredElements);
   closeChecksPanelBtn.onclick = () => checks.closeChecksPanel();
   idsFileInput.onchange = () => void checks.loadIDSFile();
   addIdsRequirementBtn.onclick = () => checks.addIDSRequirementFromForm();

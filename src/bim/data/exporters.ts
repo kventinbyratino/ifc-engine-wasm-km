@@ -1,6 +1,7 @@
 import type { BimElementRecord } from "./element-record.ts";
 import type { IfcOverride } from "../ifc-overrides/override-types.ts";
 import { buildIfcExportPackage as buildIfcExportDocument, downloadIfcExportPackage } from "../export/ifc-export.ts";
+import { buildFullModifiedIfcExport, downloadFullModifiedIfcExport, type SourceIfcModel } from "../export/ifc-full-export.ts";
 import { buildModifiedIfcExport, downloadModifiedIfcExport } from "../export/ifc-writer.ts";
 
 export function exportElementsJson(records: BimElementRecord[]) {
@@ -41,11 +42,13 @@ export function buildIfcExportPackage(records: BimElementRecord[], overrides: If
   return buildIfcExportDocument(records, overrides);
 }
 
-export function exportIfcFile(records: BimElementRecord[], overrides: IfcOverride[], fileName?: string) {
+export function exportIfcFile(records: BimElementRecord[], overrides: IfcOverride[], sources?: Record<string, SourceIfcModel>, fileName?: string) {
+  if (sources) return downloadFullModifiedIfcExport({ records, overrides, sources, fileName });
   return downloadModifiedIfcExport({ records, overrides, fileName });
 }
 
-export function buildIfcFileExport(records: BimElementRecord[], overrides: IfcOverride[], fileName?: string) {
+export function buildIfcFileExport(records: BimElementRecord[], overrides: IfcOverride[], fileName?: string, sources?: Record<string, SourceIfcModel>) {
+  if (sources) return buildFullModifiedIfcExport({ records, overrides, sources, fileName });
   return buildModifiedIfcExport({ records, overrides, fileName });
 }
 

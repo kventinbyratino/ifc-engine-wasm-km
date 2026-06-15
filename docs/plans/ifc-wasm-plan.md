@@ -849,7 +849,7 @@ git diff --check
 
 ### Sprint 15 — Real IFC export to a new modified file (P0)
 
-**Status:** выполнено — добавлен клиентский IFC4 STEP writer, кнопка `IFC` в data browser скачивает новый `.ifc` файл с pending overrides, а roundtrip fixture/tests проверяют GUID, структуру и применённые class/property overrides.
+**Status:** выполнено — экспорт переведён на полноценный source-based IFC path: при загрузке `.ifc` сохраняются исходные bytes, кнопка `IFC` в data browser открывает исходную модель через `web-ifc`, применяет pending property/class overrides, сохраняет полный `.ifc` через `SaveModel` и проверяет roundtrip. Упрощённый writer оставлен как fallback/fixture path.
 
 **Цель:** научить BIM-профиль собирать и скачивать *новый* IFC-файл с применёнными overrides, сохраняя исходные GUID, структуру и пользовательские правки без мутации оригинального источника.
 
@@ -861,8 +861,12 @@ git diff --check
 - Modify: `src/bim/data/exporters.ts`
 - Modify: `src/bim/app/bootstrap.ts`
 - Modify: `src/bim/app.ts`
+- Modify: `src/bim/models/model-loader.ts`
+- Modify: `src/bim/state/data-state.ts`
+- Create: `src/bim/export/ifc-full-export.ts`
 - Modify: `tests/export/ifc-export.test.mjs`
 - Create: `tests/export/ifc-writer.test.mjs`
+- Create: `tests/export/ifc-full-export.test.mjs`
 - Create: `tests/fixtures/ifc/modified-roundtrip.ifc`
 
 **Tasks:**
@@ -873,7 +877,7 @@ git diff --check
 
 **Verification:**
 ```bash
-node --test tests/export/ifc-export.test.mjs tests/export/ifc-writer.test.mjs
+node --test tests/export/ifc-export.test.mjs tests/export/ifc-writer.test.mjs tests/export/ifc-full-export.test.mjs
 npm run build
 git diff --check
 ```

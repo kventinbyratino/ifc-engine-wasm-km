@@ -107,6 +107,7 @@ export function createModelController({
 
         workspace.viewer.lastConvertedModelId = result.modelId;
         workspace.viewer.lastSourceIfcName = result.sourceName;
+        workspace.data.sourceIfcFiles[result.modelId] = result.sourceIfc;
         workspace.data.progressiveLoadPlan = result.progressivePlan;
         saveFragmentBtn.hidden = false;
         closeLibraryModal();

@@ -132,6 +132,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     workspace.data.filteredElements = [];
     workspace.data.elementRelations = { edges: [], outgoing: {}, incoming: {} };
     workspace.data.progressiveLoadPlan = null;
+    workspace.data.sourceIfcFiles = {};
     dataSummary.textContent = "Загрузите модель";
     dataSearchInput.value = "";
     fillSelectOptions(dataCategoryFilter, [], "Все IFC Class");
@@ -203,7 +204,14 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     highlightFilteredElements,
     exportElementsCsv,
     exportElementsJson,
-    exportIfcFile: (records: BimElementRecord[]) => downloadIfcFile(records, workspace.ifcOverrides.pendingOverrides),
+    exportIfcFile: async (records: BimElementRecord[]) => {
+      try {
+        const file = await downloadIfcFile(records, workspace.ifcOverrides.pendingOverrides, workspace.data.sourceIfcFiles);
+        ctx.showToast(`IFC export: ${file.fileName}`, "success");
+      } catch (error) {
+        ctx.showToast(error instanceof Error ? error.message : String(error), "error");
+      }
+    },
   };
 }
 

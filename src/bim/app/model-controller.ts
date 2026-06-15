@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { MAX_IFC_BYTES } from "../config";
 import { createFederationLoadQueue } from "../federation/federation-loader.ts";
 import { isolateFederationModel, removeFederationModel, restoreFederationVisibility, toggleFederationModelVisibility, updateFederationModelOpacity, getFederationModelById } from "../federation/federation-actions.ts";
+import { applyFederationPreset, buildFederationFilterOptions, captureFederationPreset, removeFederationPreset, resetFederationFilters, setFederationFilterSelections } from "../federation/federation-filters.ts";
+import { summarizeFederatedModels } from "../federation/federation.ts";
 import { syncFederationRegistry } from "../federation/federation-registry.ts";
 import type { FederationLoadSource } from "../federation/federation-registry.ts";
 import { loadFragBuffer as loadFragmentsBuffer, loadIfcModel } from "../models/model-loader";
@@ -16,6 +18,8 @@ export interface BimModelControllerOptions {
   clearDrawings: () => void;
   renderIssues: () => void;
   renderClash: () => void;
+  applyDataFilters: () => void;
+  refreshClashSelectors: () => void;
   resetDataIndex: () => void;
   resetChecks: () => void;
   clearBBoxIndex: () => void;
@@ -31,6 +35,8 @@ export function createModelController({
   clearDrawings,
   renderIssues,
   renderClash,
+  applyDataFilters,
+  refreshClashSelectors,
   resetDataIndex,
   resetChecks,
   clearBBoxIndex,
@@ -285,10 +291,13 @@ export function createModelController({
   }
 
   function renderFederationState() {
+    const federationModels = summarizeFederatedModels(workspace.data.elementIndex);
     renderFederationPanel({
       models: workspace.federation.models,
       summary: ctx.dom.federationSummary,
       output: ctx.dom.federationOutput,
+      filters: workspace.federation.filters,
+      filterOptions: buildFederationFilterOptions(federationModels, workspace.data.elementIndex, workspace.federation.filters),
       actions: {
         onClose: closeFederationPanel,
         onShowAll: showAllFederationModels,
@@ -297,8 +306,58 @@ export function createModelController({
         onFocus: focusFederationModel,
         onIsolate: isolateFederationModelAction,
         onRemove: removeFederationModelFromScene,
+        onUpdateFilters: updateFederationFilters,
+        onApplyPreset: applyFederationPresetAction,
+        onSavePreset: saveFederationPresetAction,
+        onDeletePreset: deleteFederationPresetAction,
+        onResetFilters: resetFederationFiltersAction,
       },
     });
+  }
+
+  function updateFederationFilters(selections: Parameters<typeof setFederationFilterSelections>[1]) {
+    setFederationFilterSelections(workspace.federation.filters, selections);
+    workspace.federation.filters.activePresetId = "custom";
+    renderFederationState();
+    applyDataFilters();
+    refreshClashSelectors();
+    renderClash();
+  }
+
+  function applyFederationPresetAction(presetId: string) {
+    if (!applyFederationPreset(workspace.federation.filters, presetId)) return;
+    renderFederationState();
+    applyDataFilters();
+    refreshClashSelectors();
+    renderClash();
+  }
+
+  function saveFederationPresetAction(label: string) {
+    const preset = captureFederationPreset(workspace.federation.filters, label);
+    const existing = workspace.federation.filters.presets.findIndex((item) => item.id === preset.id);
+    if (existing >= 0) {
+      workspace.federation.filters.presets[existing] = preset;
+    } else {
+      workspace.federation.filters.presets.push(preset);
+    }
+    workspace.federation.filters.activePresetId = preset.id;
+    renderFederationState();
+  }
+
+  function deleteFederationPresetAction(presetId: string) {
+    if (!removeFederationPreset(workspace.federation.filters, presetId)) return;
+    renderFederationState();
+    applyDataFilters();
+    refreshClashSelectors();
+    renderClash();
+  }
+
+  function resetFederationFiltersAction() {
+    resetFederationFilters(workspace.federation.filters);
+    renderFederationState();
+    applyDataFilters();
+    refreshClashSelectors();
+    renderClash();
   }
 
   function applyFederationAppearance() {

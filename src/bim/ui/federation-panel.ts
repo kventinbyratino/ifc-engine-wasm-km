@@ -1,4 +1,11 @@
 import type { FederationModelRecord } from "../federation/federation-registry.ts";
+import {
+  filterFederationModels,
+  getFederationPreset,
+  type FederationFilterOptions,
+  type FederationFilterSelections,
+  type FederationFilterState,
+} from "../federation/federation-filters.ts";
 import { escapeHtml } from "./dom-utils.ts";
 
 export type FederationPanelSnapshot = {
@@ -28,9 +35,14 @@ export type FederationPanelActions = {
   onFocus: (modelId: string) => void;
   onIsolate: (modelId: string) => void;
   onRemove: (modelId: string) => void;
+  onUpdateFilters: (selections: FederationFilterSelections) => void;
+  onApplyPreset: (presetId: string) => void;
+  onSavePreset: (label: string) => void;
+  onDeletePreset: (presetId: string) => void;
+  onResetFilters: () => void;
 };
 
-export function buildFederationPanelSnapshot(models: FederationModelRecord[]): FederationPanelSnapshot {
+export function buildFederationPanelSnapshot(models: FederationModelRecord[]) {
   const totalModels = models.length;
   const visibleModels = models.filter((model) => model.visible).length;
   const totalElements = models.reduce((sum, model) => sum + model.elementCount, 0);
@@ -70,30 +82,111 @@ export function renderFederationPanel(options: {
   models: FederationModelRecord[];
   summary: HTMLElement;
   output: HTMLElement;
+  filters: FederationFilterState;
+  filterOptions: FederationFilterOptions;
   actions: FederationPanelActions;
 }) {
-  const snapshot = buildFederationPanelSnapshot(options.models);
-  options.summary.textContent = snapshot.totalModels
-    ? `${snapshot.totalElements} elements · ${snapshot.visibleModels} visible`
+  const filteredModels = filterFederationModels(options.models, options.filters);
+  const snapshot = buildFederationPanelSnapshot(filteredModels);
+  const activePreset = getFederationPreset(options.filters, options.filters.activePresetId) ??
+    getFederationPreset(options.filters, "all") ??
+    { label: "Пользовательский набор", id: "custom", modelIds: [], disciplines: [], storeys: [], categories: [] };
+
+  options.summary.textContent = options.models.length
+    ? `${snapshot.headline} · preset: ${activePreset.label}`
     : snapshot.emptyMessage;
 
   const wrapper = document.createElement("div");
   wrapper.className = "federation-list";
 
-  const header = document.createElement("div");
-  header.className = "federation-toolbar";
+  const toolbar = document.createElement("div");
+  toolbar.className = "federation-toolbar federation-toolbar--stacked";
 
-  const showAllButton = document.createElement("button");
-  showAllButton.type = "button";
-  showAllButton.className = "data-action";
-  showAllButton.textContent = "Показать все";
-  showAllButton.onclick = () => options.actions.onShowAll();
+  const presetRow = document.createElement("div");
+  presetRow.className = "federation-preset-row";
 
-  header.append(showAllButton);
-  wrapper.append(header);
+  const presetSelect = document.createElement("select");
+  presetSelect.className = "data-select federation-preset-select";
+  presetSelect.setAttribute("aria-label", "Пресет федерации");
+  for (const preset of options.filterOptions.presets) {
+    presetSelect.append(new Option(preset.label, preset.id, false, preset.id === options.filters.activePresetId));
+  }
+  presetSelect.value = options.filters.activePresetId;
+
+  const applyPresetButton = document.createElement("button");
+  applyPresetButton.type = "button";
+  applyPresetButton.className = "data-action";
+  applyPresetButton.textContent = "Применить";
+  applyPresetButton.onclick = () => options.actions.onApplyPreset(presetSelect.value);
+
+  const savePresetButton = document.createElement("button");
+  savePresetButton.type = "button";
+  savePresetButton.className = "data-action";
+  savePresetButton.textContent = "Сохранить";
+  savePresetButton.onclick = () => {
+    const label = window.prompt("Название пресета федерации", activePreset.label || "Мой пресет");
+    if (!label) return;
+    options.actions.onSavePreset(label);
+  };
+
+  const deletePresetButton = document.createElement("button");
+  deletePresetButton.type = "button";
+  deletePresetButton.className = "data-action data-action-secondary";
+  deletePresetButton.textContent = "Удалить";
+  deletePresetButton.onclick = () => options.actions.onDeletePreset(presetSelect.value);
+
+  const resetPresetButton = document.createElement("button");
+  resetPresetButton.type = "button";
+  resetPresetButton.className = "data-action data-action-secondary";
+  resetPresetButton.textContent = "Сброс";
+  resetPresetButton.onclick = () => options.actions.onResetFilters();
+
+  presetRow.append(presetSelect, applyPresetButton, savePresetButton, deletePresetButton, resetPresetButton);
+  toolbar.append(presetRow);
+
+  const filterGrid = document.createElement("div");
+  filterGrid.className = "federation-filter-grid";
+
+  filterGrid.append(
+    createMultiSelect("Модели", options.filterOptions.models, options.filters.selectedModelIds, (values) => {
+      options.actions.onUpdateFilters({
+        selectedModelIds: values,
+        selectedDisciplines: options.filters.selectedDisciplines,
+        selectedStoreys: options.filters.selectedStoreys,
+        selectedCategories: options.filters.selectedCategories,
+      });
+    }),
+    createMultiSelect("Дисциплины", options.filterOptions.disciplines, options.filters.selectedDisciplines, (values) => {
+      options.actions.onUpdateFilters({
+        selectedModelIds: options.filters.selectedModelIds,
+        selectedDisciplines: values,
+        selectedStoreys: options.filters.selectedStoreys,
+        selectedCategories: options.filters.selectedCategories,
+      });
+    }),
+    createMultiSelect("Этажи", options.filterOptions.storeys, options.filters.selectedStoreys, (values) => {
+      options.actions.onUpdateFilters({
+        selectedModelIds: options.filters.selectedModelIds,
+        selectedDisciplines: options.filters.selectedDisciplines,
+        selectedStoreys: values,
+        selectedCategories: options.filters.selectedCategories,
+      });
+    }),
+    createMultiSelect("IFC Class", options.filterOptions.categories, options.filters.selectedCategories, (values) => {
+      options.actions.onUpdateFilters({
+        selectedModelIds: options.filters.selectedModelIds,
+        selectedDisciplines: options.filters.selectedDisciplines,
+        selectedStoreys: options.filters.selectedStoreys,
+        selectedCategories: values,
+      });
+    }),
+  );
+
+  toolbar.append(filterGrid);
+  wrapper.append(toolbar);
 
   if (snapshot.cards.length === 0) {
-    wrapper.append(createEmptyState(snapshot.emptyMessage));
+    wrapper.append(createEmptyState(options.models.length === 0 ? snapshot.emptyMessage : "Фильтр не вернул моделей."));
     options.output.replaceChildren(wrapper);
     return;
   }
@@ -162,6 +255,38 @@ export function renderFederationPanel(options: {
   }
 
   options.output.replaceChildren(wrapper);
+}
+
+function createMultiSelect(
+  label: string,
+  options: Array<string | { value: string; label: string }>,
+  selected: string[],
+  onChange: (values: string[]) => void,
+) {
+  const field = document.createElement("label");
+  field.className = "federation-filter-field";
+
+  const title = document.createElement("span");
+  title.textContent = label;
+
+  const select = document.createElement("select");
+  select.className = "data-select federation-filter-select";
+  select.multiple = true;
+  select.size = Math.min(Math.max(options.length || 1, 4), 8);
+
+  const selectedSet = new Set(selected);
+  for (const entry of options) {
+    const value = typeof entry === "string" ? entry : entry.value;
+    const text = typeof entry === "string" ? entry : entry.label;
+    select.append(new Option(text, value, false, selectedSet.has(value)));
+  }
+
+  select.onchange = () => {
+    onChange([...select.selectedOptions].map((option) => option.value));
+  };
+
+  field.append(title, select);
+  return field;
 }
 
 function createEmptyState(text: string) {

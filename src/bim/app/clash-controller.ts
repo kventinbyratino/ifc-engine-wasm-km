@@ -2,6 +2,7 @@ import { countSelection } from "../selection/selection";
 import { detectHardClashes } from "../clash/clash-detector";
 import type { ClashRecord } from "../clash/clash-types";
 import { getClashGroupOptions, selectClashGroup, summarizeFederatedModels } from "../federation/federation.ts";
+import { applyFederationFilters } from "../federation/federation-filters.ts";
 import { BBoxIndex } from "../spatial/bbox-index";
 import { fillClashGroupSelect, renderClashPanel } from "../ui/clash-panel";
 import { createMessage } from "../ui/dom-utils";
@@ -64,14 +65,25 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
 
   function refreshClashSelectors() {
     const models = summarizeFederatedModels(workspace.data.elementIndex);
-    const groups = getClashGroupOptions(workspace.data.elementIndex);
-    fillClashGroupSelect(clashGroupASelect, { models, ...groups });
-    fillClashGroupSelect(clashGroupBSelect, { models, ...groups });
+    const federatedRecords = applyFederationFilters(
+      workspace.data.elementIndex,
+      models,
+      workspace.federation.filters,
+    );
+    const groups = getClashGroupOptions(federatedRecords);
+    fillClashGroupSelect(clashGroupASelect, { models: summarizeFederatedModels(federatedRecords), ...groups });
+    fillClashGroupSelect(clashGroupBSelect, { models: summarizeFederatedModels(federatedRecords), ...groups });
   }
 
   function renderClash() {
+    const models = summarizeFederatedModels(workspace.data.elementIndex);
+    const federatedRecords = applyFederationFilters(
+      workspace.data.elementIndex,
+      models,
+      workspace.federation.filters,
+    );
     renderClashPanel({
-      models: summarizeFederatedModels(workspace.data.elementIndex),
+      models: summarizeFederatedModels(federatedRecords),
       clashes: workspace.clash.clashes,
       output: clashOutput,
       summary: clashSummary,
@@ -95,8 +107,14 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
 
       const activeSignal = ctx.startOperation("Clash detection");
       signal = activeSignal;
-      const groupA = selectClashGroup(workspace.data.elementIndex, clashGroupASelect.value);
-      const groupB = selectClashGroup(workspace.data.elementIndex, clashGroupBSelect.value);
+      const models = summarizeFederatedModels(workspace.data.elementIndex);
+      const federatedRecords = applyFederationFilters(
+        workspace.data.elementIndex,
+        models,
+        workspace.federation.filters,
+      );
+      const groupA = selectClashGroup(federatedRecords, clashGroupASelect.value);
+      const groupB = selectClashGroup(federatedRecords, clashGroupBSelect.value);
       const tolerance = Math.max(0, Number(clashToleranceInput.value) || 0);
       clashSummary.textContent = `Проверка пар: ${Math.min(groupA.length, 250)} × ${Math.min(groupB.length, 250)}`;
 

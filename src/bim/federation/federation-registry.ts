@@ -1,4 +1,5 @@
 import type { BimElementRecord } from "../data/element-index";
+import { createFederationFilterState, type FederationFilterState } from "./federation-filters.ts";
 import { summarizeFederatedModels, type FederatedModelSummary } from "./federation.ts";
 
 export type FederationLoadOrigin = "upload" | "example" | "library" | "url";
@@ -25,6 +26,7 @@ export type FederationModelRecord = FederatedModelSummary & {
 
 export type FederationRegistryState = {
   models: FederationModelRecord[];
+  filters: FederationFilterState;
   restoredFromStorage: boolean;
   lastSavedAt: string | null;
 };
@@ -32,6 +34,7 @@ export type FederationRegistryState = {
 export function createFederationRegistryState(): FederationRegistryState {
   return {
     models: [],
+    filters: createFederationFilterState(),
     restoredFromStorage: false,
     lastSavedAt: null,
   };

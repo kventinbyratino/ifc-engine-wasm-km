@@ -6,6 +6,11 @@ import {
   fillSelectOptions,
   renderElementsTable,
 } from "../data/data-browser";
+import { summarizeFederatedModels } from "../federation/federation.ts";
+import {
+  applyFederationFilters,
+  normalizeFederationFilterState,
+} from "../federation/federation-filters.ts";
 import { createMessage } from "../ui/dom-utils";
 import type { ModelIdMap } from "../types";
 import { getFilteredElementCount, getIndexedElementCount } from "../state/workspace-state";
@@ -89,6 +94,11 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
       });
       workspace.data.elementIndex = indexResult.records;
       workspace.data.elementRelations = indexResult.relations;
+      normalizeFederationFilterState(
+        workspace.federation.filters,
+        summarizeFederatedModels(workspace.data.elementIndex),
+        workspace.data.elementIndex,
+      );
       fillSelectOptions(dataCategoryFilter, getUniqueValues(workspace.data.elementIndex, "category"), "Все IFC Class");
       fillSelectOptions(dataStoreyFilter, getUniqueValues(workspace.data.elementIndex, "storey"), "Все этажи");
       applyDataFilters();
@@ -130,7 +140,12 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
   }
 
   function applyDataFilters() {
-    workspace.data.filteredElements = filterElementIndex(workspace.data.elementIndex, {
+    const federatedRecords = applyFederationFilters(
+      workspace.data.elementIndex,
+      summarizeFederatedModels(workspace.data.elementIndex),
+      workspace.federation.filters,
+    );
+    workspace.data.filteredElements = filterElementIndex(federatedRecords, {
       query: dataSearchInput.value,
       category: dataCategoryFilter.value,
       storey: dataStoreyFilter.value,

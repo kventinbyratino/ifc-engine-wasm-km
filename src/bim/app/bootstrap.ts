@@ -8,6 +8,8 @@ import { createWorkspaceState } from "../state/workspace-state";
 import { createDrawingInteractionController } from "../drawings/drawing-interaction";
 import { syncDrawingAnnotations, type DrawingAnnotationType } from "../drawings/drawing-annotations";
 import { syncFederationRegistry } from "../federation/federation-registry.ts";
+import { normalizeFederationFilterState } from "../federation/federation-filters.ts";
+import { summarizeFederatedModels } from "../federation/federation.ts";
 import { loadStoredFederationWorkspace, restoreFederationState, saveFederationWorkspace } from "../federation/federation-persistence.ts";
 import { bindBimUiEvents } from "./ui-wiring";
 import { createIssueStore } from "../issues/issues-store";
@@ -247,6 +249,11 @@ export async function startBimApp() {
       models: fragments.list,
       records: workspace.data.elementIndex,
     });
+    normalizeFederationFilterState(
+      workspace.federation.filters,
+      summarizeFederatedModels(workspace.data.elementIndex),
+      workspace.data.elementIndex,
+    );
     workspace.viewer.lastFederationSyncAt = new Date().toISOString();
     saveFederationWorkspace(workspace.federation);
   };
@@ -377,6 +384,8 @@ export async function startBimApp() {
     clearDrawings: () => clearDrawings(),
     renderIssues: () => renderIssues(),
     renderClash: () => renderClash(),
+    applyDataFilters: () => applyDataFilters(),
+    refreshClashSelectors: () => refreshClashSelectors(),
     clearBBoxIndex: () => clearBBoxIndex(),
     resetDataIndex: () => resetDataIndex(),
     resetChecks: () => resetChecks(),

@@ -12,6 +12,7 @@ export function getDataDom() {
     highlightFilteredBtn: requiredElement<LoadingElement>("highlightFilteredBtn"),
     exportCsvBtn: requiredElement<HTMLButtonElement>("exportCsvBtn"),
     exportJsonBtn: requiredElement<HTMLButtonElement>("exportJsonBtn"),
+    exportIfcBtn: requiredElement<HTMLButtonElement>("exportIfcBtn"),
     dataTableOutput: requiredElement<HTMLDivElement>("dataTableOutput"),
   };
 }

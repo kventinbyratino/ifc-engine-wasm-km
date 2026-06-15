@@ -316,6 +316,7 @@ export async function startBimApp() {
     highlightFilteredElements,
     exportElementsCsv,
     exportElementsJson,
+    exportIfcFile,
   } = dataController;
   controllerRegistry.register("data", {
     close: dataController.closeDataPanel,
@@ -522,6 +523,7 @@ export async function startBimApp() {
       highlightFilteredElements,
       exportElementsCsv,
       exportElementsJson,
+      exportIfcFile,
     },
     checks: {
       toggleChecksPanel,

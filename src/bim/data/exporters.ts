@@ -1,6 +1,7 @@
 import type { BimElementRecord } from "./element-record.ts";
 import type { IfcOverride } from "../ifc-overrides/override-types.ts";
 import { buildIfcExportPackage as buildIfcExportDocument, downloadIfcExportPackage } from "../export/ifc-export.ts";
+import { buildModifiedIfcExport, downloadModifiedIfcExport } from "../export/ifc-writer.ts";
 
 export function exportElementsJson(records: BimElementRecord[]) {
   downloadFile(
@@ -38,6 +39,14 @@ export function exportIfcExportPackage(records: BimElementRecord[], overrides: I
 
 export function buildIfcExportPackage(records: BimElementRecord[], overrides: IfcOverride[]) {
   return buildIfcExportDocument(records, overrides);
+}
+
+export function exportIfcFile(records: BimElementRecord[], overrides: IfcOverride[], fileName?: string) {
+  return downloadModifiedIfcExport({ records, overrides, fileName });
+}
+
+export function buildIfcFileExport(records: BimElementRecord[], overrides: IfcOverride[], fileName?: string) {
+  return buildModifiedIfcExport({ records, overrides, fileName });
 }
 
 function stripSearchable(record: BimElementRecord) {

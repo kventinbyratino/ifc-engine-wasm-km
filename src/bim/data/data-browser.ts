@@ -5,5 +5,6 @@ export {
 export {
   exportElementsCsv,
   exportElementsJson,
+  exportIfcFile,
   fillSelectOptions,
 } from "./exporters.ts";

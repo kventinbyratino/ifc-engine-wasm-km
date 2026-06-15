@@ -3,6 +3,7 @@ import { buildElementIndex, filterElementIndex, getUniqueValues, recordsToModelI
 import {
   exportElementsCsv,
   exportElementsJson,
+  exportIfcFile as downloadIfcFile,
   fillSelectOptions,
   renderElementsTable,
 } from "../data/data-browser.ts";
@@ -202,6 +203,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     highlightFilteredElements,
     exportElementsCsv,
     exportElementsJson,
+    exportIfcFile: (records: BimElementRecord[]) => downloadIfcFile(records, workspace.ifcOverrides.pendingOverrides),
   };
 }
 

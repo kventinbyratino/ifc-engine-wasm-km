@@ -29,17 +29,18 @@
 - Sprint 10 is complete and verified.
 - Sprint 11 is complete and verified.
 - Sprint 12 is complete and verified.
+- Sprint 15 is complete and verified.
 - Detailed roadmapped work continues below.
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 13 — IFC overrides, class remapping, and export (P1).
+**Now:** Sprint 14 — TBD.
 
-**Next:** Sprint 14 — TBD.
+**Next:** TBD.
 
-**Later:** Sprint 15 — TBD.
+**Later:** TBD.
 
-**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Sprint 11; Sprint 12; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
+**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Sprint 11; Sprint 12; Sprint 15; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
 
 **Definition of done for any item:** scoped files are listed, acceptance is clear, verification commands pass, and `git diff --check` is clean.
 
@@ -845,6 +846,43 @@ git diff --check
 - Title blocks выглядят аккуратно и стабильно.
 
 ---
+
+### Sprint 15 — Real IFC export to a new modified file (P0)
+
+**Status:** выполнено — добавлен клиентский IFC4 STEP writer, кнопка `IFC` в data browser скачивает новый `.ifc` файл с pending overrides, а roundtrip fixture/tests проверяют GUID, структуру и применённые class/property overrides.
+
+**Цель:** научить BIM-профиль собирать и скачивать *новый* IFC-файл с применёнными overrides, сохраняя исходные GUID, структуру и пользовательские правки без мутации оригинального источника.
+
+**Architecture:** экспорт должен работать как отдельный write-path поверх текущего model/override state. Исходные записи остаются immutable, а экспортный слой собирает новый `.ifc` артефакт из текущего состояния модели, class remap и property overrides. Реализация должна остаться клиентской и вызывать browser download, без server-side зависимости.
+
+**Files:**
+- Create: `src/bim/export/ifc-writer.ts`
+- Modify: `src/bim/export/ifc-export.ts`
+- Modify: `src/bim/data/exporters.ts`
+- Modify: `src/bim/app/bootstrap.ts`
+- Modify: `src/bim/app.ts`
+- Modify: `tests/export/ifc-export.test.mjs`
+- Create: `tests/export/ifc-writer.test.mjs`
+- Create: `tests/fixtures/ifc/modified-roundtrip.ifc`
+
+**Tasks:**
+1. Inspect the available IFC writing/serialization path and define the output contract for a modified file.
+2. Implement a writer that emits a new `.ifc` file from the current model state plus pending overrides, preserving GUIDs and the original hierarchy.
+3. Wire the export action into the app so the user downloads a real IFC file, not only a JSON export package.
+4. Add roundtrip tests and fixture coverage for preserved GUIDs, preserved source structure, and applied class/property overrides.
+
+**Verification:**
+```bash
+node --test tests/export/ifc-export.test.mjs tests/export/ifc-writer.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Export creates a new `.ifc` file.
+- The exported file keeps the original model intact and reflects overrides in the new file only.
+- GUIDs and model structure are preserved.
+- The file can be opened by a standard IFC viewer.
 
 ## 2. Refactor / architecture phases
 

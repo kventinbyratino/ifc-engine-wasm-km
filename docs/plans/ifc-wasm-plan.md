@@ -34,9 +34,9 @@
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 14 — TBD.
+**Now:** Sprint 16 — Backend conversion for IFC files over 200 MB.
 
-**Next:** TBD.
+**Next:** Production LOD / progressive loading for large IFC models.
 
 **Later:** TBD.
 
@@ -887,6 +887,83 @@ git diff --check
 - The exported file keeps the original model intact and reflects overrides in the new file only.
 - GUIDs and model structure are preserved.
 - The file can be opened by a standard IFC viewer.
+
+---
+
+### Sprint 16 — Backend conversion for IFC files over 200 MB (P0)
+
+**Status:** planned — move large IFC preprocessing out of the browser so models above the current 200 MB browser limit can be uploaded, converted to Fragments/server artifacts, tracked as jobs, and opened from optimized outputs while preserving the original IFC as source-of-truth for export.
+
+**Цель:** поддержать IFC >200 MB без падения вкладки: тяжёлую конвертацию выполнять на backend/worker, а браузеру отдавать готовые `.frag`/manifest/metadata для быстрого открытия сцены.
+
+**Architecture:** browser uploads a large IFC to same-repo backend storage, backend starts an async conversion job, worker runs the existing `web-ifc`/ThatOpen conversion pipeline in a controlled environment, stores generated fragments + metadata + original IFC reference on local server disk, frontend polls job status and loads optimized artifacts. Original IFC remains immutable source for future full IFC export.
+
+**Locked scope decisions:**
+- Backend location: same repository under `backend/*`.
+- Storage: local server disk, no external object storage for this sprint.
+- Conversion engine: existing `web-ifc`/ThatOpen path, not a separate new converter stack.
+- Target file size: support up to 500 MB IFC.
+- Access model: artifacts and source IFC are private to the current user.
+
+**Files:**
+- Modify: `src/bim/config.ts`
+- Modify: `src/bim/models/model-loader.ts`
+- Modify: `src/bim/app/model-controller.ts`
+- Modify: `src/bim/federation/federation-registry.ts`
+- Modify/Create: `src/bim/backend/*` API client layer
+- Modify/Create: `backend/*` conversion API, worker, local-disk storage repository, schemas
+- Create: `tests/backend/large-ifc-conversion*.test.*`
+- Create: `tests/performance/large-ifc-conversion*.test.*`
+
+**Tasks:**
+
+1. **Define backend conversion contract**
+   - **Objective:** зафиксировать API и lifecycle для больших IFC.
+   - **Scope:** upload endpoint, conversion job ID, statuses, errors, artifact manifest, source IFC reference.
+   - **Constraints:** same-repo backend, current-user-private resources, 500 MB max IFC size.
+   - **Acceptance:** есть контракт `upload → job → progress → artifacts → load`, определены лимиты, права доступа и ошибки.
+
+2. **Add large-file routing in frontend**
+   - **Objective:** файлы до browser limit открывать локально, файлы выше лимита отправлять на backend conversion.
+   - **Acceptance:** UI явно показывает `Загрузка на сервер`, `Конвертация`, `Готово`, `Ошибка`; 200 MB лимит перестаёт быть hard-stop для backend mode.
+
+3. **Implement backend upload and storage layer**
+   - **Objective:** принять большой IFC, сохранить оригинал на локальный диск сервера, вернуть conversion job.
+   - **Acceptance:** upload потоковый/без полной загрузки в память, есть size/type validation, лимит 500 MB, source IFC не мутируется, доступ ограничен текущим пользователем.
+
+4. **Implement async conversion worker**
+   - **Objective:** конвертировать IFC в optimized fragments/metadata вне браузера существующим `web-ifc`/ThatOpen pipeline.
+   - **Acceptance:** worker запускается асинхронно, пишет progress, сохраняет artifacts, корректно обрабатывает cancel/failure.
+
+5. **Load converted artifacts in viewer**
+   - **Objective:** после завершения job открыть сцену из backend-generated fragments.
+   - **Acceptance:** viewer грузит `.frag`/manifest вместо исходного IFC, federation registry получает source metadata.
+
+6. **Preserve export compatibility**
+   - **Objective:** сохранить возможность полноценного IFC export с overrides.
+   - **Acceptance:** original IFC доступен как source-of-truth; overrides остаются привязаны к `modelId + localId`; экспорт не зависит от viewer fragments.
+
+7. **Add performance and reliability checks**
+   - **Objective:** измерить 100/200/500 MB сценарии и отказоустойчивость.
+   - **Acceptance:** метрики `upload time`, `conversion time`, `time to first scene`, `artifact size`, `memory notes`; тесты покрывают happy path, too large, failed conversion, missing artifact.
+
+**Verification:**
+```bash
+node --test tests/backend/large-ifc-conversion*.test.* tests/performance/large-ifc-conversion*.test.*
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- IFC >200 MB не блокируется browser limit, а уходит в backend conversion flow.
+- Целевой размер IFC для этого sprint: до 500 MB.
+- Backend реализован в этом же repository, без внешнего сервиса.
+- Source IFC и artifacts хранятся на локальном диске сервера и доступны только текущему пользователю.
+- Конвертация использует существующий `web-ifc`/ThatOpen pipeline.
+- Браузер не держит весь тяжёлый preprocessing в main thread.
+- Пользователь видит progress и может открыть результат после conversion.
+- Исходный IFC сохранён для полноценного экспорта с overrides.
+- Ошибки conversion понятны пользователю и логируются на backend.
 
 ## 2. Refactor / architecture phases
 

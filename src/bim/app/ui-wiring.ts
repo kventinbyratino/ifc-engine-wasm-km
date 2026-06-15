@@ -65,7 +65,7 @@ export interface BimUiWiringActions {
     clearDrawings: () => void;
   };
   model: {
-    loadIfc: (file: File) => Promise<void>;
+    loadIfc: (file: File, source?: { kind: "ifc" | "frag"; origin: "upload" | "example" | "library" | "url"; label: string; reference: string; restorable: boolean; discipline?: string }) => Promise<void>;
     loadFrag: (file: File) => Promise<void>;
     clearModels: () => Promise<void>;
     downloadFragments: () => Promise<void>;
@@ -164,6 +164,10 @@ export function bindBimUiEvents(
     profileBimBtn,
     backToProfilesBtn,
     closeLibraryBtn,
+    uploadModeModal,
+    closeUploadModeBtn,
+    uploadSingleBtn,
+    uploadMultipleBtn,
     chooseFragmentBtn,
     addIfcBtn,
     libraryBackBtn,
@@ -178,9 +182,46 @@ export function bindBimUiEvents(
   } = ctx.dom;
 
   const { search, data, checks, issues, clash, federation, drawings, model, profile, library, share, utilities } = actions;
+  let pendingIfcUploadMode: "single" | "multiple" | null = null;
+
+  function openIfcUploadModeModal() {
+    uploadModeModal.hidden = false;
+  }
+
+  function closeIfcUploadModeModal() {
+    uploadModeModal.hidden = true;
+  }
+
+  function startIfcUpload(mode: "single" | "multiple") {
+    pendingIfcUploadMode = mode;
+    ifcInput.multiple = mode === "multiple";
+    closeIfcUploadModeModal();
+    ifcInput.click();
+  }
+
+  function promptIfcDiscipline(fileName: string, index: number, total: number) {
+    const promptText =
+      total > 1
+        ? `Файл ${index + 1}/${total}: ${fileName}\n\nУкажите раздел: ПЗУ, АР, КР, ОВ, ВК, ЭС или другой вариант.`
+        : `Укажите раздел для ${fileName}: ПЗУ, АР, КР, ОВ, ВК, ЭС или другой вариант.`;
+    const value = window.prompt(promptText, "");
+    const discipline = value?.trim();
+    return discipline ? discipline : null;
+  }
+
+  function buildIfcSource(file: File, discipline?: string) {
+    return {
+      kind: "ifc" as const,
+      origin: "upload" as const,
+      label: file.name,
+      reference: file.name,
+      restorable: false,
+      discipline,
+    };
+  }
 
   loadIfcBtn.onclick = () => library.openLibraryModal();
-  emptyLoadIfcBtn.onclick = () => ifcInput.click();
+  emptyLoadIfcBtn.onclick = () => openIfcUploadModeModal();
   emptyExampleBtn.onclick = () => {
     library.openLibraryModal();
     library.showLibraryStart();
@@ -257,8 +298,11 @@ export function bindBimUiEvents(
   profileBimBtn.onclick = () => profile.navigateToProfile("bim");
   backToProfilesBtn.onclick = () => profile.navigateToProfile("pending");
   closeLibraryBtn.onclick = () => library.closeLibraryModal();
+  closeUploadModeBtn.onclick = () => closeIfcUploadModeModal();
+  uploadSingleBtn.onclick = () => startIfcUpload("single");
+  uploadMultipleBtn.onclick = () => startIfcUpload("multiple");
   chooseFragmentBtn.onclick = () => void library.showFragmentLibrary();
-  addIfcBtn.onclick = () => ifcInput.click();
+  addIfcBtn.onclick = () => openIfcUploadModeModal();
   libraryBackBtn.onclick = () => library.showLibraryStart();
   saveFragmentBtn.onclick = () => void library.saveCurrentFragment();
   shareModelBtn.onclick = () => share.openShareModal();
@@ -267,10 +311,34 @@ export function bindBimUiEvents(
   loadingCancelBtn.onclick = () => utilities.cancelActiveOperation();
   topBackBtn.onclick = () => profile.navigateToProfile("pending");
 
-  ifcInput.onchange = () => {
-    const [file] = ifcInput.files ?? [];
-    if (file) void model.loadIfc(file);
+  ifcInput.onchange = async () => {
+    const files = Array.from(ifcInput.files ?? []);
+    const mode = pendingIfcUploadMode ?? (ifcInput.multiple ? "multiple" : "single");
+    pendingIfcUploadMode = null;
     ifcInput.value = "";
+    ifcInput.multiple = false;
+    if (files.length === 0) return;
+
+    if (mode === "single") {
+      const [file] = files;
+      if (!file) return;
+      const discipline = promptIfcDiscipline(file.name, 0, 1);
+      if (!discipline) {
+        ctx.showToast("Для IFC нужно указать раздел", "error");
+        return;
+      }
+      await model.loadIfc(file, buildIfcSource(file, discipline));
+      return;
+    }
+
+    for (const [index, file] of files.entries()) {
+      const discipline = promptIfcDiscipline(file.name, index, files.length);
+      if (!discipline) {
+        ctx.showToast(`Загрузка остановлена: не указан раздел для ${file.name}`, "error");
+        return;
+      }
+      await model.loadIfc(file, buildIfcSource(file, discipline));
+    }
   };
 
   fragInput.onchange = () => {
@@ -282,6 +350,7 @@ export function bindBimUiEvents(
   window.addEventListener("keydown", (event) => {
     if (event.code === "Escape") {
       share.closeShareModal();
+      closeIfcUploadModeModal();
       void ctx.viewer.highlighter.clear("select");
       void ctx.viewer.highlighter.clear("search");
       return;

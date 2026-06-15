@@ -185,6 +185,7 @@ function normalizeFederationSource(raw: Record<string, unknown>): FederationLoad
     label: typeof raw.label === "string" ? raw.label : "Model",
     reference: typeof raw.reference === "string" ? raw.reference : "",
     restorable: Boolean(raw.restorable),
+    discipline: typeof raw.discipline === "string" && raw.discipline.trim() ? raw.discipline.trim() : undefined,
   };
 }
 
@@ -195,6 +196,7 @@ function serializeFederationSource(source: FederationLoadSource): FederationLoad
     label: source.label,
     reference: source.reference,
     restorable: source.restorable,
+    discipline: source.discipline,
   };
 }
 

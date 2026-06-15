@@ -83,6 +83,25 @@
           </div>
         </div>
 
+        <section id="uploadModeModal" class="upload-mode-modal" aria-label="Режим загрузки IFC" hidden>
+          <div class="upload-mode-sheet" role="dialog" aria-modal="true">
+            <div class="library-header">
+              <strong>Как загрузить IFC?</strong>
+              <button id="closeUploadModeBtn" class="plain-button" type="button" aria-label="Закрыть">×</button>
+            </div>
+            <div class="upload-mode-actions">
+              <button id="uploadSingleBtn" class="library-action" type="button">
+                <strong>Одна модель</strong>
+                <span>Открыть один IFC</span>
+              </button>
+              <button id="uploadMultipleBtn" class="library-action" type="button">
+                <strong>Несколько моделей</strong>
+                <span>Выбрать несколько IFC и загрузить последовательно</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
         <section id="libraryModal" class="library-modal" aria-label="Библиотека фрагментов" hidden>
           <div class="library-sheet">
             <div class="library-header">

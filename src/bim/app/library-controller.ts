@@ -5,8 +5,8 @@ import type { BimAppContext } from "./app-context.ts";
 
 export interface LibraryControllerOptions {
   ctx: BimAppContext;
-  loadIfc: (file: File, source?: { kind: "ifc" | "frag"; origin: "upload" | "example" | "library" | "url"; label: string; reference: string; restorable: boolean }) => Promise<void>;
-  loadFragBuffer: (buffer: ArrayBuffer, name: string, source?: { kind: "ifc" | "frag"; origin: "upload" | "example" | "library" | "url"; label: string; reference: string; restorable: boolean }) => Promise<unknown>;
+  loadIfc: (file: File, source?: { kind: "ifc" | "frag"; origin: "upload" | "example" | "library" | "url"; label: string; reference: string; restorable: boolean; discipline?: string }) => Promise<void>;
+  loadFragBuffer: (buffer: ArrayBuffer, name: string, source?: { kind: "ifc" | "frag"; origin: "upload" | "example" | "library" | "url"; label: string; reference: string; restorable: boolean; discipline?: string }) => Promise<unknown>;
   selectProfile: (profile: "pending" | "km" | "bim") => void;
   setActiveShareRecord: (record: FragmentRecord | null) => void;
 }

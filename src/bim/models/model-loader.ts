@@ -34,6 +34,7 @@ export async function loadIfcModel(options: {
     userData: {
       sourceName: file.name,
       sourceType: "ifc",
+      discipline: source.discipline,
       federationSource: source,
     },
     instanceCallback: (importer: { addAllAttributes: () => void; addAllRelations: () => void }) => {
@@ -96,6 +97,7 @@ export async function loadFragBuffer(options: {
     userData: {
       sourceName: name,
       sourceType: "frag",
+      discipline: source.discipline,
       federationSource: source,
     },
     onProgress: (event: { stage: string; progress: number }) => {
@@ -122,5 +124,6 @@ function normalizeLoadSource(source: Partial<FederationLoadSource> & { kind: Fed
     label: source.label,
     reference: source.reference,
     restorable: source.restorable ?? false,
+    discipline: typeof source.discipline === "string" && source.discipline.trim() ? source.discipline.trim() : undefined,
   };
 }

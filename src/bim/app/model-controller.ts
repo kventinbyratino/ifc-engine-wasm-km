@@ -112,7 +112,8 @@ export function createModelController({
         saveFragmentBtn.hidden = false;
         closeLibraryModal();
         refreshFederationState();
-        ctx.setStatus(`IFC загружен и преобразован${result.source.restorable ? " · федерация сохранена" : ""}`);
+        const sectionSuffix = result.source.discipline ? ` · раздел: ${result.source.discipline}` : "";
+        ctx.setStatus(`IFC загружен и преобразован${sectionSuffix}${result.source.restorable ? " · федерация сохранена" : ""}`);
         ctx.showToast("IFC загружен и преобразован", "success");
         ctx.setProgress(1);
       } catch (error) {
@@ -279,7 +280,7 @@ export function createModelController({
     const showBimEmptyState = !hasModels && workspace.viewer.activeProfile === "bim";
     modelCount.textContent = String(fragments.list.size);
     emptyBimState.hidden = !showBimEmptyState;
-    loadIfcBtn.hidden = hasModels || showBimEmptyState;
+    loadIfcBtn.hidden = showBimEmptyState;
     searchToggleBtn.hidden = !hasModels;
     homeViewBtn.hidden = !hasModels;
     federationBtn.hidden = !hasModels || !capabilities.coordination;

@@ -11,6 +11,7 @@ export type FederationLoadSource = {
   label: string;
   reference: string;
   restorable: boolean;
+  discipline?: string;
 };
 
 export type FederationModelStatus = "queued" | "loading" | "ready" | "failed" | "restoring";
@@ -81,7 +82,7 @@ export function syncFederationRegistry(options: {
       sourceKey: getFederationSourceKey(source),
       modelId,
       name: source.label || summary?.name || existing?.name || modelId,
-      discipline: summary?.discipline ?? existing?.discipline ?? "BIM",
+      discipline: source.discipline ?? summary?.discipline ?? existing?.discipline ?? "BIM",
       color: summary?.color ?? existing?.color ?? "#64748b",
       elementCount: summary?.elementCount ?? existing?.elementCount ?? 0,
       status: existing?.status ?? (source.restorable ? "restoring" : "ready"),
@@ -161,6 +162,7 @@ function readFederationSource(model: unknown, modelId: string): FederationLoadSo
     label,
     reference,
     restorable: false,
+    discipline: typeof userData?.discipline === "string" && userData.discipline.trim() ? userData.discipline.trim() : undefined,
   };
 }
 
@@ -180,6 +182,7 @@ function isFederationLoadSource(value: unknown): value is FederationLoadSource {
     (candidate.origin === "upload" || candidate.origin === "example" || candidate.origin === "library" || candidate.origin === "url") &&
     typeof candidate.label === "string" &&
     typeof candidate.reference === "string" &&
-    typeof candidate.restorable === "boolean"
+    typeof candidate.restorable === "boolean" &&
+    (candidate.discipline === undefined || typeof candidate.discipline === "string")
   );
 }

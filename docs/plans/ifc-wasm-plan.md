@@ -25,13 +25,14 @@
 - Phase 10 is complete and verified.
 - Phase 11 is complete and verified.
 - Phase 12 is complete and verified.
-- Next refactor phase: none; the listed refactor phases are complete.
+- Phase 17 and Phase 18 are planned next.
+- Detailed roadmapped work continues below.
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 7–8 — federation/clash and sheets.
+**Now:** Phase 17 — performance pipeline and progressive loading (P0).
 
-**Next:** no remaining refactor backlog.
+**Next:** Phase 18 — IFC overrides, class remapping, and export (P1).
 
 **Later:** TBD.
 
@@ -962,12 +963,229 @@ npm run build
 
 ---
 
+### Phase 17 — Performance pipeline and progressive loading (P0)
+
+**Цель:** ускорить загрузку и отображение больших моделей за счёт progressive loading, LOD, видимости по камере и кеша в IndexedDB.
+
+**Task 1: Measure the baseline and define budgets**
+
+**Objective:** зафиксировать метрики первой загрузки, времени до первого отображения и объёма видимой сцены.
+
+**Files:**
+- Create: `src/bim/performance/performance-metrics.ts`
+- Create: `tests/performance/performance-metrics.test.mjs`
+- Modify: `src/bim/models/model-loader.ts`
+- Modify: `src/bim/viewer/viewer.ts`
+
+**Verification:**
+```bash
+node --test tests/performance/performance-metrics.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Есть измеримые метрики для baseline.
+- Понятно, что считать регрессией по загрузке и первому рендеру.
+
+**Task 2: Build a spatial visibility index**
+
+**Objective:** определять, какие части модели должны быть загружены и отрисованы в текущем положении камеры.
+
+**Files:**
+- Create: `src/bim/performance/visibility-index.ts`
+- Modify: `src/bim/state/viewer-state.ts`
+- Modify: `src/bim/app/model-controller.ts`
+- Modify: `src/bim/viewer/viewer.ts`
+
+**Verification:**
+```bash
+node --test tests/performance/performance-metrics.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Для текущей камеры вычисляется список видимых сущностей/чанков.
+- Скрытые части не участвуют в основном рендер-пайплайне.
+
+**Task 3: Add progressive chunk / LOD loading**
+
+**Objective:** сначала показывать грубое представление, затем догружать более детальные данные.
+
+**Files:**
+- Create: `src/bim/performance/lod-loader.ts`
+- Modify: `src/bim/models/model-loader.ts`
+- Modify: `src/bim/state/data-state.ts`
+- Create: `tests/performance/lod-loader.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/performance/lod-loader.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Малые модели грузятся как раньше.
+- Большие модели получают progressive loading без поломки viewer.
+
+**Task 4: Cache loaded chunks in IndexedDB**
+
+**Objective:** сохранять уже загруженные части модели локально и переиспользовать их между сессиями.
+
+**Files:**
+- Create: `src/bim/storage/model-cache.ts`
+- Create: `src/bim/storage/indexeddb-schema.ts`
+- Modify: `src/bim/models/model-loader.ts`
+- Modify: `src/bim/state/workspace-state.ts`
+- Create: `tests/storage/model-cache.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/storage/model-cache.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Повторная загрузка использует кеш.
+- Версия схемы кеша позволяет безопасно сбрасывать устаревшие данные.
+
+**Task 5: Add an end-to-end performance gate**
+
+**Objective:** не допускать регрессий по времени загрузки и первому отображению.
+
+**Files:**
+- Create: `tests/performance/model-load-smoke.test.mjs`
+- Modify: `package.json`
+
+**Verification:**
+```bash
+node --test tests/performance/*.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Есть smoke-проверка на загрузку большой модели.
+- Можно сравнивать прогресс по стабильным метрикам.
+
+---
+
+### Phase 18 — IFC overrides, class remapping, and export (P1)
+
+**Цель:** добавить неразрушающее редактирование параметров IFC, замену классов и экспорт изменений обратно в IFC.
+
+**Task 1: Define the override data model**
+
+**Objective:** хранить пользовательские правки отдельно от исходной IFC-модели.
+
+**Files:**
+- Create: `src/bim/ifc-overrides/override-types.ts`
+- Create: `src/bim/ifc-overrides/override-store.ts`
+- Modify: `src/bim/state/data-state.ts`
+- Modify: `src/bim/state/workspace-state.ts`
+- Create: `tests/ifc-overrides/override-store.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/ifc-overrides/override-store.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Оверрайды не ломают исходный `ElementRecord`.
+- Есть отдельный слой для pending changes.
+
+**Task 2: Wire property editing into the UI**
+
+**Objective:** дать возможность редактировать параметры элемента из properties panel.
+
+**Files:**
+- Modify: `src/bim/properties/properties-panel.ts`
+- Modify: `src/bim/app/model-controller.ts`
+- Modify: `src/bim/dom/viewer-dom.ts`
+- Create: `src/bim/ifc-overrides/override-actions.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Из UI можно менять разрешённые параметры элемента.
+- Изменения видны как несохранённые правки до экспорта.
+
+**Task 3: Add class replacement and mapping rules**
+
+**Objective:** разрешить безопасную замену IFC-класса с валидацией совместимости.
+
+**Files:**
+- Create: `src/bim/ifc-overrides/class-mapping.ts`
+- Modify: `src/bim/data/model-index.ts`
+- Modify: `src/bim/checks/model-health.ts`
+
+**Verification:**
+```bash
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Смена класса проходит через правила маппинга.
+- Некорректные замены получают понятную диагностику.
+
+**Task 4: Implement IFC export with overrides applied**
+
+**Objective:** экспортировать изменённую модель в IFC без потери GUID и без повреждения несвязанных данных.
+
+**Files:**
+- Create: `src/bim/export/ifc-export.ts`
+- Modify: `src/bim/data/exporters.ts`
+- Modify: `src/bim/app.ts`
+- Create: `tests/export/ifc-export.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/export/ifc-export.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Экспорт включает overrides.
+- Исходные данные остаются нетронутыми до явного сохранения.
+
+**Task 5: Add roundtrip regression fixtures**
+
+**Objective:** проверить, что импорт → правка → экспорт сохраняет структуру модели и основные свойства.
+
+**Files:**
+- Create: `tests/fixtures/ifc/override-roundtrip.ifc`
+- Modify: `tests/export/ifc-export.test.mjs`
+
+**Verification:**
+```bash
+node --test tests/export/ifc-export.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Roundtrip не теряет основные свойства и связи.
+- Экспортируемый IFC открывается в стороннем BIM-viewer.
+
+---
+
 ## 3. Current canonical state
 
 - **Current canonical plan file:** `docs/plans/ifc-wasm-plan.md`
 - **Old split plan files removed**; this file is now the single source of truth for the IFC WASM plan.
 
-**Next phase to execute:** Phase 11.
+- **Next phase to execute:** Phase 17.
 
 ## 4. Recommended verification loop
 

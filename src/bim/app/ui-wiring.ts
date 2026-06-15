@@ -220,7 +220,7 @@ export function bindBimUiEvents(
     };
   }
 
-  loadIfcBtn.onclick = () => library.openLibraryModal();
+  loadIfcBtn.onclick = () => openIfcUploadModeModal();
   emptyLoadIfcBtn.onclick = () => openIfcUploadModeModal();
   emptyExampleBtn.onclick = () => {
     library.openLibraryModal();

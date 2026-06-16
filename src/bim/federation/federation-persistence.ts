@@ -6,6 +6,7 @@ import {
   type FederationRegistryState,
 } from "./federation-registry.ts";
 import { cloneFederationFilterState, createFederationFilterState, type FederationFilterPreset, type FederationFilterState } from "./federation-filters.ts";
+import { clearStoredJson, loadStoredJson, saveStoredJson } from "../storage/local-storage-json.ts";
 
 export const FEDERATION_STORAGE_KEY = "ifc-wasm-viewer:federation:v1";
 export const FEDERATION_STORAGE_SCHEMA_VERSION = 1;
@@ -23,29 +24,17 @@ export type StoredFederationWorkspace = {
 
 export function saveFederationWorkspace(state: FederationRegistryState) {
   const payload = serializeFederationWorkspace(state);
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem(FEDERATION_STORAGE_KEY, JSON.stringify(payload));
-  }
+  saveStoredJson(FEDERATION_STORAGE_KEY, payload);
   markFederationSaved(state, payload.savedAt);
   return payload;
 }
 
 export function loadStoredFederationWorkspace() {
-  if (typeof localStorage === "undefined") return null;
-  const raw = localStorage.getItem(FEDERATION_STORAGE_KEY);
-  if (!raw) return null;
-
-  try {
-    return normalizeStoredFederationWorkspace(JSON.parse(raw) as unknown);
-  } catch (error) {
-    console.warn("Federation persistence parse failed", error);
-    return null;
-  }
+  return loadStoredJson(FEDERATION_STORAGE_KEY, normalizeStoredFederationWorkspace, "Federation persistence");
 }
 
 export function clearStoredFederationWorkspace() {
-  if (typeof localStorage === "undefined") return;
-  localStorage.removeItem(FEDERATION_STORAGE_KEY);
+  clearStoredJson(FEDERATION_STORAGE_KEY);
 }
 
 export function serializeFederationWorkspace(state: FederationRegistryState): StoredFederationWorkspace {

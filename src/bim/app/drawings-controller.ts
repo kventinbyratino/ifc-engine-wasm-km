@@ -20,24 +20,19 @@ import {
   type DrawingAnnotationType,
 } from "../drawings/drawing-annotations.ts";
 import {
-  clearStoredDrawingWorkspace,
-  loadStoredDrawingWorkspace,
   replayStoredAnnotations,
-  saveDrawingWorkspace,
-  type StoredDrawingWorkspace,
 } from "../drawings/drawing-persistence.ts";
-import { attachSheetDocument, createSheetDocument, removeSheetDocumentsForDrawing } from "../drawings/drawing-document.ts";
-import { createSheet, renderSheetSvg } from "../sheets/sheet-board.ts";
-import { downloadSheetPng, downloadSheetSvg, openSheetPdfPrint } from "../sheets/pdf-export.ts";
-import { downloadSheetDxfPaperSpace } from "../sheets/dxf-paper-export.ts";
+import { removeSheetDocumentsForDrawing } from "../drawings/drawing-document.ts";
+import { renderSheetSvg } from "../sheets/sheet-board.ts";
 import type { SheetFormat, SheetRecord } from "../sheets/sheet-types.ts";
-import { generateSpecification, specificationToCsv } from "../specs/spec-generator.ts";
-import { createSpecBlocksFromRows } from "../sheets/spec-placement.ts";
 import { getActiveDrawing, getActiveSheet, getDrawingStats, setActiveDrawing } from "../state/workspace-state.ts";
 import type { ModelIdMap } from "../types.ts";
 import type { BimAppContext } from "./app-context.ts";
 import type { DrawingSource, DrawingView } from "../drawings/drawing-types.ts";
 import { cloneModelIdMap, findBestMatchingDrawing } from "../drawings/drawing-selection-sync.ts";
+import { createDrawingPersistenceController } from "./drawing-persistence-controller.ts";
+import { createDrawingSheetController } from "./drawing-sheet-controller.ts";
+import { logControllerError } from "../ui/controller-errors.ts";
 
 export interface DrawingsControllerHooks {
   canUseDrawings: () => boolean;
@@ -242,6 +237,28 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
   drawingStudioBtn.addEventListener("click", toggleDrawingStudio);
   drawingSplitHandle.addEventListener("pointerdown", handleDrawingSplitDrag);
 
+  const {
+    persistDrawings,
+    getStoredDrawingWorkspace,
+    restoreStoredSheetsForDrawing,
+    clearStoredDrawingWorkspace,
+  } = createDrawingPersistenceController(ctx, getProjectName);
+  const sheetController = createDrawingSheetController(ctx, {
+    downloadTextFile: hooks.downloadTextFile,
+    persistDrawings,
+    renderDrawingsPanel,
+    getProjectName,
+  });
+  const {
+    createSheetFromActiveDrawing,
+    exportActiveSheetSvg,
+    exportActiveSheetPng,
+    exportActiveSheetPdf,
+    exportActiveSheetDxf,
+    placeSpecificationsOnActiveSheet,
+    exportSpecifications,
+  } = sheetController;
+
   async function generateDrawing() {
     if (!hooks.canUseDrawings()) return;
     if (fragments.list.size === 0) return;
@@ -296,7 +313,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       ctx.setStatus(`Чертёж готов: ${record.lineCount} линий`);
       ctx.showToast(`Чертёж готов: ${record.lineCount} линий`, "success");
     } catch (error) {
-      console.error(error);
+      logControllerError(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
       ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
@@ -404,7 +421,7 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       ctx.setStatus(`Аннотация добавлена: ${annotation.text}`);
       ctx.showToast(`${getDrawingAnnotationTypeLabel(annotation.type)} добавлена`, "success");
     } catch (error) {
-      console.error(error);
+      logControllerError(error);
       drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
       ctx.showToast(error instanceof Error ? error.message : String(error), "error");
     } finally {
@@ -425,171 +442,8 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     ctx.showToast("Аннотации очищены", "success");
   }
 
-  function createSheetFromActiveDrawing() {
-    const record = getActiveDrawing(workspace.drawings);
-    if (!record) {
-      drawingsSummary.textContent = "Сначала сгенерируйте чертёж";
-      return;
-    }
-    const sheet = createSheet({
-      format: sheetFormatSelect.value as SheetFormat,
-      drawing: record,
-      title: record.name,
-      projectName: getProjectName(),
-    });
-    workspace.drawings.sheets.unshift(sheet);
-    attachSheetDocument(record, sheet);
-    persistDrawings();
-    renderDrawingsPanel();
-    drawingsSummary.textContent = `Лист создан: ${sheet.format} · ${sheet.title}`;
-    ctx.showToast(`Лист создан: ${sheet.format}`, "success");
-  }
-
-  function getActiveSheet() {
-    if (!workspace.drawings.sheets[0]) createSheetFromActiveDrawing();
-    return workspace.drawings.sheets[0] ?? null;
-  }
-
   function getProjectName() {
     return fileName.textContent && fileName.textContent !== "-" ? fileName.textContent : "BIM Manager Workbench";
-  }
-
-  function persistDrawings() {
-    if (typeof localStorage === "undefined") return null;
-    try {
-      return saveDrawingWorkspace(getProjectName(), workspace.drawings.drawings, workspace.drawings.sheets, components);
-    } catch (error) {
-      console.warn("Drawing persistence failed", error);
-      return null;
-    }
-  }
-
-  function getStoredDrawingWorkspace(): StoredDrawingWorkspace | null {
-    try {
-      return loadStoredDrawingWorkspace(getProjectName());
-    } catch (error) {
-      console.warn("Drawing persistence restore failed", error);
-      return null;
-    }
-  }
-
-  function restoreStoredSheetsForDrawing(record: DrawingRecord, stored: StoredDrawingWorkspace | null | undefined, storedDrawingId: string | undefined) {
-    if (!storedDrawingId) return;
-    const existingSheetIds = new Set(workspace.drawings.sheets.map((sheet) => sheet.id));
-    const restoredSheets = stored?.sheets
-      .filter((sheet) => sheet.drawingId === storedDrawingId && !existingSheetIds.has(sheet.id))
-      .map((sheet) => {
-        const restored = createSheetDocument({
-          format: sheet.format,
-          drawing: record,
-          title: sheet.title,
-          projectName: sheet.projectName,
-          id: sheet.id,
-          createdAt: new Date(sheet.createdAt),
-          specBlocks: sheet.specBlocks.map((block) => ({
-            id: block.id,
-            title: block.title,
-            order: block.order,
-            rows: block.rows.map((row) => ({ ...row })),
-          })),
-        });
-        attachSheetDocument(record, restored);
-        return restored;
-      }) ?? [];
-    workspace.drawings.sheets.unshift(...restoredSheets);
-  }
-
-  function exportActiveSheetSvg() {
-    const sheet = getActiveSheet();
-    if (!sheet) return;
-    downloadSheetSvg(sheet);
-    drawingsSummary.textContent = `SVG экспортирован: ${sheet.format}`;
-    ctx.showToast(`SVG экспортирован: ${sheet.format}`, "success");
-  }
-
-  async function exportActiveSheetPng() {
-    const sheet = getActiveSheet();
-    if (!sheet) return;
-    exportSheetPngBtn.loading = true;
-    try {
-      await downloadSheetPng(sheet);
-      drawingsSummary.textContent = `PNG экспортирован: ${sheet.format}`;
-      ctx.showToast(`PNG экспортирован: ${sheet.format}`, "success");
-    } catch (error) {
-      console.error(error);
-      drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
-      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
-    } finally {
-      exportSheetPngBtn.loading = false;
-    }
-  }
-
-  function exportActiveSheetPdf() {
-    const sheet = getActiveSheet();
-    if (!sheet) return;
-    try {
-      openSheetPdfPrint(sheet);
-      drawingsSummary.textContent = `PDF/print открыт: ${sheet.format}`;
-      ctx.showToast(`PDF/print открыт: ${sheet.format}`, "success");
-    } catch (error) {
-      console.error(error);
-      drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
-      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
-    }
-  }
-
-  function exportActiveSheetDxf() {
-    const sheet = getActiveSheet();
-    if (!sheet) return;
-    try {
-      downloadSheetDxfPaperSpace(components, sheet);
-      drawingsSummary.textContent = `DXF paper-space экспортирован: ${sheet.format}`;
-      ctx.showToast(`DXF экспортирован: ${sheet.format}`, "success");
-    } catch (error) {
-      console.error(error);
-      drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
-      ctx.showToast(error instanceof Error ? error.message : String(error), "error");
-    }
-  }
-
-  function placeSpecificationsOnActiveSheet() {
-    const sheet = getActiveSheet();
-    if (!sheet) {
-      drawingsSummary.textContent = "Сначала сгенерируйте лист";
-      return;
-    }
-    const source = workspace.data.filteredElements.length > 0 ? workspace.data.filteredElements : workspace.data.elementIndex;
-    if (source.length === 0) {
-      drawingsSummary.textContent = "Нет элементов для спецификации";
-      return;
-    }
-    const rows = generateSpecification(source);
-    const blocks = createSpecBlocksFromRows(rows, {
-      title: `${sheet.title} · Спецификация`,
-      maxRowsPerBlock: 10,
-      idPrefix: `${sheet.id}-spec`,
-    });
-    if (blocks.length === 0) {
-      drawingsSummary.textContent = "Нет строк для спецификации";
-      return;
-    }
-    sheet.specBlocks = blocks;
-    persistDrawings();
-    renderDrawingsPanel();
-    drawingsSummary.textContent = `Спецификация размещена на листе: ${blocks.length} блоков`;
-    ctx.showToast(`Спецификация размещена: ${blocks.length} блоков`, "success");
-  }
-
-  function exportSpecifications() {
-    const source = workspace.data.filteredElements.length > 0 ? workspace.data.filteredElements : workspace.data.elementIndex;
-    if (source.length === 0) {
-      drawingsSummary.textContent = "Нет элементов для спецификации";
-      return;
-    }
-    const rows = generateSpecification(source);
-    hooks.downloadTextFile("bim-specification.csv", specificationToCsv(rows), "text/csv;charset=utf-8");
-    drawingsSummary.textContent = `Спецификация экспортирована: ${rows.length} строк`;
-    ctx.showToast(`Спецификация экспортирована: ${rows.length} строк`, "success");
   }
 
   function clearDrawings() {

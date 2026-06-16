@@ -4,6 +4,7 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+import shutil
 
 from fastapi import HTTPException
 
@@ -83,6 +84,47 @@ class FragmentRepository:
             name=safe_name,
             filename=filename,
             size_bytes=len(payload),
+            created_at=created_at_value,
+        )
+        with connect(self.db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO fragments (id, name, filename, size_bytes, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (record.id, record.name, record.filename, record.size_bytes, record.created_at),
+            )
+            conn.commit()
+        return record
+
+    def store_fragment_from_file(
+        self,
+        *,
+        name: str,
+        upload_filename: str,
+        source_path: str | Path,
+        max_bytes: int,
+        created_at: str | None = None,
+    ) -> FragmentRecord:
+        source = Path(source_path)
+        if not upload_filename.lower().endswith(".frag"):
+            raise FragmentValidationError("Only .frag files are supported")
+        size_bytes = source.stat().st_size
+        if size_bytes > max_bytes:
+            raise FragmentTooLargeError("Fragment file is too large")
+
+        fragment_id = uuid.uuid4().hex
+        safe_name = normalize_display_name(name)
+        filename = f"{fragment_id}.frag"
+        target = self.storage_dir / filename
+        shutil.copyfile(source, target)
+
+        created_at_value = created_at or datetime.now(timezone.utc).isoformat()
+        record = FragmentRecord(
+            id=fragment_id,
+            name=safe_name,
+            filename=filename,
+            size_bytes=size_bytes,
             created_at=created_at_value,
         )
         with connect(self.db_path) as conn:

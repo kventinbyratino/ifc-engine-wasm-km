@@ -4,6 +4,7 @@ import { createMessage } from "../ui/dom-utils.ts";
 import { limitSelection } from "../selection/selection.ts";
 import type { IfcPropertyOverrideDraft } from "../ifc-overrides/override-types.ts";
 import { parseOverrideValue } from "../ifc-overrides/override-utils.ts";
+import { logControllerError } from "../ui/controller-errors.ts";
 
 export async function renderSelectedProperties(options: {
   components: unknown;
@@ -63,7 +64,7 @@ export async function renderSelectedProperties(options: {
 
     output.replaceChildren(wrapper);
   } catch (error) {
-    console.error(error);
+    logControllerError(error);
     output.replaceChildren(
       createMessage(error instanceof Error ? error.message : String(error)),
     );

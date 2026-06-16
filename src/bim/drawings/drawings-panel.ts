@@ -54,7 +54,10 @@ export function renderDrawingList(options: {
   onDelete: (record: DrawingRecord) => void;
 }) {
   if (options.records.length === 0) {
-    options.output.innerHTML = `<span class="empty-state">Чертежей пока нет. Сгенерируйте проекцию.</span>`;
+    const empty = document.createElement("span");
+    empty.className = "empty-state";
+    empty.textContent = "Чертежей пока нет. Сгенерируйте проекцию.";
+    options.output.replaceChildren(empty);
     return;
   }
 
@@ -64,14 +67,17 @@ export function renderDrawingList(options: {
   for (const record of options.records) {
     const card = document.createElement("article");
     card.className = `drawing-card${record.id === options.activeDrawingId ? " is-active" : ""}`;
-    card.innerHTML = `
-      <div class="drawing-card-main">
-        <strong>${escapeHtml(record.name)}</strong>
-        <span>${escapeHtml(getDrawingViewLabel(record.view))} · ${record.itemCount} эл. · ${record.lineCount} линий · ${record.annotations.length} анн.</span>
-        <small>${record.createdAt.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>
-      </div>
-    `;
 
+    const main = document.createElement("div");
+    main.className = "drawing-card-main";
+    const title = document.createElement("strong");
+    title.textContent = record.name;
+    const summary = document.createElement("span");
+    summary.textContent = `${getDrawingViewLabel(record.view)} · ${record.itemCount} эл. · ${record.lineCount} линий · ${record.annotations.length} анн.`;
+    const createdAt = document.createElement("small");
+    createdAt.textContent = record.createdAt.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    main.append(title, summary, createdAt);
+    card.append(main);
     const actions = document.createElement("div");
     actions.className = "drawing-card-actions";
 
@@ -114,7 +120,8 @@ function createAnnotationList(record: DrawingRecord, options: {
   for (const annotation of record.annotations) {
     const row = document.createElement("div");
     row.className = "drawing-annotation-row";
-    row.innerHTML = `<span>${escapeHtml(getAnnotationTypeLabel(annotation.type))}: ${escapeHtml(annotation.text)}</span>`;
+    const label = document.createElement("span");
+    label.textContent = `${getAnnotationTypeLabel(annotation.type)}: ${annotation.text}`;
 
     const edit = document.createElement("button");
     edit.type = "button";
@@ -127,7 +134,7 @@ function createAnnotationList(record: DrawingRecord, options: {
     remove.textContent = "×";
     remove.onclick = () => options.onDeleteAnnotation(record, annotation);
 
-    row.append(edit, remove);
+    row.append(label, edit, remove);
     list.append(row);
   }
   return list;
@@ -340,12 +347,4 @@ function sanitizeDxfText(text: string) {
 
 function sanitizeFilename(name: string) {
   return name.replace(/[^\p{L}\p{N}_.-]+/gu, "_").slice(0, 80) || "drawing";
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }

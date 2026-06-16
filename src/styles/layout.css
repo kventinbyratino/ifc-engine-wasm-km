@@ -1,0 +1,212 @@
+/* Hide the default That Open Company watermark added by the renderer. */
+.viewport > div[style*="left: 0.75rem"][style*="bottom: 0.75rem"] {
+  display: none !important;
+}
+
+.status-pill {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: calc(max(14px, env(safe-area-inset-left)) + 68px);
+  right: 14px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid rgba(18, 28, 34, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(14px);
+}
+
+.status-pill strong {
+  flex: 0 0 auto;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+
+.status-pill span {
+  min-width: 0;
+  overflow: hidden;
+  color: #65737e;
+  font-size: 12px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.floating-add {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 6;
+  display: grid;
+  width: 78px;
+  height: 78px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #141a20;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.28);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.floating-add span {
+  display: block;
+  margin-top: -7px;
+  font-size: 54px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.floating-add:disabled,
+.icon-button:disabled,
+.save-fragment:disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.empty-bim-state {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
+}
+
+.empty-bim-card {
+  display: grid;
+  gap: 12px;
+  width: min(520px, calc(100vw - 40px));
+  padding: 24px;
+  border: 1px solid rgba(18, 28, 34, 0.1);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(16px);
+  pointer-events: auto;
+}
+
+.empty-bim-kicker {
+  margin: 0;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.empty-bim-card strong {
+  font-size: clamp(24px, 5vw, 36px);
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+}
+
+.empty-bim-card span {
+  color: #5f6f7a;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.empty-bim-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.empty-bim-actions button {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 14px;
+  color: #ffffff;
+  background: #141a20;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.empty-bim-actions button:nth-child(2),
+.empty-bim-actions button:nth-child(3) {
+  color: #172026;
+  background: #e8eef3;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+
+.loading-card {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  min-width: 168px;
+  padding: 18px 20px;
+  border: 1px solid rgba(18, 28, 34, 0.08);
+  border-radius: 24px;
+  color: #172026;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 52px rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(14px);
+}
+
+.loading-spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid rgba(20, 26, 32, 0.14);
+  border-top-color: #141a20;
+  border-radius: 50%;
+  animation: model-loading-spin 850ms linear infinite;
+}
+
+.loading-card strong {
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+#loadingStatus {
+  max-width: min(280px, calc(100vw - 80px));
+  overflow: hidden;
+  color: #65737e;
+  font-size: 12px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loading-cancel {
+  border: 1px solid rgba(20, 26, 32, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #24313b;
+  cursor: pointer;
+  font: inherit;
+  padding: 7px 14px;
+}
+
+.loading-cancel:hover {
+  border-color: rgba(20, 26, 32, 0.28);
+  background: #fff;
+}
+
+@keyframes model-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+

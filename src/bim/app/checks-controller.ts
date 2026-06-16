@@ -24,6 +24,7 @@ import { createMessage } from "../ui/dom-utils.ts";
 import type { BimElementRecord } from "../data/element-index.ts";
 import { getHealthIssueCount } from "../state/workspace-state.ts";
 import type { BimAppContext } from "./app-context.ts";
+import { logControllerError } from "../ui/controller-errors.ts";
 
 export interface ChecksControllerHooks {
   canUseChecks: () => boolean;
@@ -172,7 +173,7 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
       checksOutput.replaceChildren(createMessage(`Файл ${file.name}. Запустите проверку по IDS.`));
       ctx.showToast(`IDS загружен: ${specs.length} specs`, "success");
     } catch (error) {
-      console.error(error);
+      logControllerError(error);
       checksSummary.textContent = "Ошибка IDS";
       checksOutput.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
       ctx.showToast(error instanceof Error ? error.message : String(error), "error");
@@ -243,7 +244,7 @@ export function createChecksController(ctx: BimAppContext, hooks: ChecksControll
       ctx.setStatus(`Model Health: ${issueCount} проблем`);
       ctx.showToast(`Model Health: ${issueCount} проблем`, "success");
     } catch (error) {
-      console.error(error);
+      logControllerError(error);
       checksSummary.textContent = "Ошибка проверки";
       checksOutput.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
       ctx.showToast(error instanceof Error ? error.message : String(error), "error");

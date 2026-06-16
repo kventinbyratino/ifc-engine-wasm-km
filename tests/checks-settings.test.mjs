@@ -4,17 +4,19 @@ import { mkdtemp, readFile, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { copyPatchedModule, copyModuleFromAbsolute } from "./helpers/copy-patched-module.mjs";
 
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "ifc-checks-settings-tests-"));
 const srcRoot = "/home/maks/projects/IFC_engine_wasm/src/bim";
 
 async function copyPatched(sourceRelative, targetRelative = sourceRelative, replacements = []) {
-  const source = path.join(srcRoot, sourceRelative);
-  const target = path.join(tempRoot, targetRelative);
-  await mkdir(path.dirname(target), { recursive: true });
-  let content = await readFile(source, "utf8");
-  for (const [from, to] of replacements) content = content.replaceAll(from, to);
-  await writeFile(target, content);
+  await copyPatchedModule({
+    srcRoot,
+    tempRoot,
+    sourceRelative,
+    targetRelative,
+    specifierMap: Object.fromEntries(replacements),
+  });
 }
 
 await copyPatched("types.ts", "types.ts");

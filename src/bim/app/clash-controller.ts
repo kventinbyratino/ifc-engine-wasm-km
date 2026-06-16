@@ -8,6 +8,7 @@ import { fillClashGroupSelect, renderClashPanel } from "../ui/clash-panel.ts";
 import { createMessage } from "../ui/dom-utils.ts";
 import type { ModelIdMap } from "../types.ts";
 import type { BimAppContext } from "./app-context.ts";
+import { logControllerError } from "../ui/controller-errors.ts";
 
 export interface ClashControllerHooks {
   canUseCoordination: () => boolean;
@@ -132,7 +133,7 @@ export function createClashController(ctx: BimAppContext, hooks: ClashController
       ctx.setStatus(`Clash detection: ${result.clashes.length} найдено, ${result.checkedPairs} пар`);
       ctx.showToast(`Clash detection: ${result.clashes.length} найдено`, "success");
     } catch (error) {
-      console.error(error);
+      logControllerError(error);
       if (isAbortError(error)) {
         clashSummary.textContent = "Clash detection отменён";
         clashOutput.replaceChildren(createMessage("Операция отменена."));

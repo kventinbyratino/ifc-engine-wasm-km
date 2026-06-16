@@ -1,0 +1,113 @@
+@media (max-width: 520px) {
+  .status-pill {
+    top: max(10px, env(safe-area-inset-top));
+    left: calc(max(10px, env(safe-area-inset-left)) + 62px);
+    right: 10px;
+  }
+
+  .top-back-button {
+    top: max(10px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
+  }
+
+  .share-button {
+    top: calc(max(10px, env(safe-area-inset-top)) + 52px);
+    right: max(12px, env(safe-area-inset-right));
+  }
+
+  .share-row {
+    grid-template-columns: 1fr;
+  }
+
+  .copy-share {
+    width: 100%;
+  }
+
+  .action-rail {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+
+  .action-button {
+    width: 64px;
+    min-height: 52px;
+    padding: 6px 5px 5px;
+    border-radius: 16px;
+  }
+
+  .action-icon {
+    width: 19px;
+    height: 19px;
+  }
+
+  .action-label {
+    font-size: 9px;
+  }
+
+  .search-panel {
+    right: 10px;
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 172px);
+    width: calc(100vw - 20px);
+  }
+
+  .data-panel {
+    top: calc(max(10px, env(safe-area-inset-top)) + 106px);
+    right: 10px;
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 172px);
+    width: calc(100vw - 20px);
+  }
+
+  .empty-bim-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .data-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .data-table-wrap {
+    min-width: 680px;
+  }
+
+  .search-panel.is-collapsed {
+    right: calc(max(12px, env(safe-area-inset-right)) + 60px);
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: calc(100vw - 84px);
+    max-height: 54px;
+  }
+
+}
+
+@media (min-width: 760px) {
+  .status-pill {
+    right: auto;
+    width: 380px;
+  }
+
+  .floating-add {
+    width: 86px;
+    height: 86px;
+  }
+}
+
+@media (max-width: 720px) {
+  .drawings-panel,
+  .checks-panel,
+  .issues-panel {
+    left: max(14px, env(safe-area-inset-left));
+    right: max(14px, env(safe-area-inset-right));
+    width: auto;
+  }
+
+  .drawings-toolbar,
+  .annotation-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .toast-stack {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: min(360px, calc(100vw - 24px));
+  }
+}

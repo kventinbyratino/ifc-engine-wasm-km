@@ -4,18 +4,24 @@ import { mkdtemp, readFile, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { copyPatchedModule, copyModuleFromAbsolute } from "./helpers/copy-patched-module.mjs";
 
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "ifc-health-tests-"));
 const srcRoot = "/home/maks/projects/IFC_engine_wasm/src/bim/checks";
 
-async function copyPatched(filename, replacements = []) {
-  const source = path.join(srcRoot, filename);
-  const target = path.join(tempRoot, filename);
-  await mkdir(path.dirname(target), { recursive: true });
-  let content = await readFile(source, "utf8");
-  for (const [from, to] of replacements) content = content.replaceAll(from, to);
-  await writeFile(target, content);
+async function copyPatched(filename, replacements = [], sourceRoot = srcRoot) {
+  const specifierReplacements = replacements.filter(([from]) => from.startsWith(".") || from.startsWith("@"));
+  const rawReplacements = replacements.filter(([from]) => !from.startsWith(".") && !from.startsWith("@"));
+  await copyPatchedModule({
+    srcRoot: sourceRoot,
+    tempRoot,
+    sourceRelative: filename,
+    specifierMap: Object.fromEntries(specifierReplacements),
+    rawReplacements,
+  });
 }
+
+await copyPatched("class-mapping.ts", [], "/home/maks/projects/IFC_engine_wasm/src/bim/ifc-overrides");
 
 await copyPatched("rule-registry.ts");
 await copyPatched("rule-utils.ts");
@@ -33,6 +39,7 @@ await copyPatched("rules.ts", [
 await copyPatched("model-health.ts", [
   ["import * as OBC from \"@thatopen/components\";", "const OBC = {} as any;"],
   ["./rules", "./rules.ts"],
+  ["../ifc-overrides/class-mapping.ts", "./class-mapping.ts"],
 ]);
 
 const rulesUrl = pathToFileURL(path.join(tempRoot, "rules.ts")).href;

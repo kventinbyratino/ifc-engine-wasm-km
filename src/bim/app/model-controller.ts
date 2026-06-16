@@ -1,16 +1,11 @@
 import * as THREE from "three";
-import { MAX_IFC_BYTES } from "../config.ts";
-import { createFederationLoadQueue } from "../federation/federation-loader.ts";
-import { isolateFederationModel, removeFederationModel, restoreFederationVisibility, toggleFederationModelVisibility, updateFederationModelOpacity, getFederationModelById, noteFederationAction } from "../federation/federation-actions.ts";
-import { applyFederationPreset, buildFederationFilterOptions, captureFederationPreset, removeFederationPreset, resetFederationFilters, setFederationFilterSelections } from "../federation/federation-filters.ts";
-import { summarizeFederatedModels } from "../federation/federation.ts";
+import { noteFederationAction } from "../federation/federation-actions.ts";
 import { syncFederationRegistry } from "../federation/federation-registry.ts";
-import type { FederationLoadSource } from "../federation/federation-registry.ts";
-import { loadFragBuffer as loadFragmentsBuffer, loadIfcModel } from "../models/model-loader.ts";
 import { isEmptySelection } from "../selection/selection.ts";
-import { applyModelOpacity, applyModelVisibility } from "../viewer/viewer.ts";
-import { renderFederationPanel } from "../ui/federation-panel.ts";
 import type { BimAppContext } from "./app-context.ts";
+import { createFederationActionsController, type FederationActionsController } from "./federation-actions-controller.ts";
+import { createModelLoadController } from "./model-load-controller.ts";
+import { createModelResetService } from "./model-reset-service.ts";
 
 export interface BimModelControllerOptions {
   ctx: BimAppContext;
@@ -46,11 +41,9 @@ export function createModelController({
   persistFederationRegistry,
 }: BimModelControllerOptions) {
   const { workspace, issueStore } = ctx;
-  const { world, fragments, ifcLoader, highlighter, hider } = ctx.viewer;
+  const { world, fragments, highlighter, hider } = ctx.viewer;
   const {
-    statusText,
     fileName,
-    propertiesOutput,
     searchPanel,
     saveFragmentBtn,
     modelCount,
@@ -65,126 +58,47 @@ export function createModelController({
     drawingsBtn,
     federationBtn,
     federationPanel,
-    federationSummary,
-    federationOutput,
     dataPanel,
     checksPanel,
     issuesPanel,
     clashPanel,
     drawingsPanel,
   } = ctx.dom;
-  const loadQueue = createFederationLoadQueue();
 
-  async function loadIfc(file: File, source?: FederationLoadSource) {
-    setActiveShareRecord(null);
-    if (file.size > MAX_IFC_BYTES) {
-      ctx.setStatus("IFC больше 200 МБ");
-      ctx.showToast("IFC больше 200 МБ", "error");
-      return;
-    }
+  let federationActionsController: FederationActionsController;
 
-    await loadQueue.enqueue(async () => {
-      ctx.setBusy(true, "Конвертация IFC в браузере");
-      fileName.textContent = file.name;
-      propertiesOutput.textContent = "IFC читается через web-ifc WASM. Серверная обработка не используется.";
+  const modelLoadController = createModelLoadController(ctx, {
+    setActiveShareRecord,
+    closeLibraryModal,
+    refreshFederationState,
+  });
+  const modelResetService = createModelResetService({
+    ctx,
+    clearSearch,
+    clearDrawings,
+    renderIssues,
+    renderClash,
+    clearBBoxIndex,
+    resetDataIndex,
+    resetChecks,
+    setActiveShareRecord,
+    refreshModelState,
+  });
+  federationActionsController = createFederationActionsController({
+    ctx,
+    applyDataFilters,
+    refreshClashSelectors,
+    renderClash,
+    refreshModelState,
+    persistFederationRegistry,
+  });
 
-      try {
-        const result = await loadIfcModel({
-          file,
-          ifcLoader,
-          source: source ?? {
-            kind: "ifc",
-            origin: "upload",
-            label: file.name,
-            reference: file.name,
-            restorable: false,
-          },
-          onProgress: (value, process) => {
-            ctx.setStatus(`${formatProcess(process)}: ${Math.round(value * 100)}%`);
-            ctx.setProgress(value);
-          },
-        });
-
-        workspace.viewer.lastConvertedModelId = result.modelId;
-        workspace.viewer.lastSourceIfcName = result.sourceName;
-        workspace.data.sourceIfcFiles[result.modelId] = result.sourceIfc;
-        workspace.data.progressiveLoadPlan = result.progressivePlan;
-        saveFragmentBtn.hidden = false;
-        closeLibraryModal();
-        refreshFederationState();
-        const sectionSuffix = result.source.discipline ? ` · раздел: ${result.source.discipline}` : "";
-        ctx.setStatus(`IFC загружен и преобразован${sectionSuffix}${result.source.restorable ? " · федерация сохранена" : ""}`);
-        ctx.showToast("IFC загружен и преобразован", "success");
-        ctx.setProgress(1);
-      } catch (error) {
-        refreshFederationState();
-        ctx.showError(error);
-      } finally {
-        ctx.setBusy(false);
-      }
-    });
-  }
-
-  async function loadFrag(file: File) {
-    setActiveShareRecord(null);
-    ctx.setBusy(true, "Загрузка Fragments");
-    fileName.textContent = file.name;
-
-    try {
-      await loadFragBuffer(await file.arrayBuffer(), file.name, {
-        kind: "frag",
-        origin: "upload",
-        label: file.name,
-        reference: file.name,
-        restorable: false,
-      });
-      ctx.setStatus("FRAG загружен");
-      ctx.showToast("FRAG загружен", "success");
-      ctx.setProgress(1);
-    } catch (error) {
-      ctx.showError(error);
-    } finally {
-      ctx.setBusy(false);
-    }
-  }
-
-  async function loadFragBuffer(buffer: ArrayBuffer, name: string, source?: FederationLoadSource) {
-    return loadQueue.enqueue(async () => {
-      ctx.setBusy(true, "Загрузка Fragments");
-      fileName.textContent = name;
-
-      try {
-        const result = await loadFragmentsBuffer({
-          buffer,
-          name,
-          fragments,
-          camera: world.camera.three,
-          source: source ?? {
-            kind: "frag",
-            origin: "upload",
-            label: name,
-            reference: name,
-            restorable: false,
-          },
-          onProgress: (value, stage) => {
-            ctx.setStatus(`${formatFragmentStage(stage)}: ${Math.round(value * 100)}%`);
-            ctx.setProgress(value);
-          },
-        });
-        refreshFederationState();
-        workspace.data.progressiveLoadPlan = result.progressivePlan;
-        ctx.setStatus(`FRAG загружен${result.source.restorable ? " · федерация сохранена" : ""}`);
-        ctx.showToast("FRAG загружен", "success");
-        ctx.setProgress(1);
-        return result;
-      } catch (error) {
-        refreshFederationState();
-        throw error;
-      } finally {
-        ctx.setBusy(false);
-      }
-    });
-  }
+  const { loadIfc, loadFrag, loadFragBuffer } = modelLoadController;
+  const { clearModels } = modelResetService;
+  const {
+    toggleFederationPanel,
+    closeFederationPanel,
+  } = federationActionsController;
 
   function refreshFederationState() {
     syncFederationRegistry({
@@ -206,28 +120,6 @@ export function createModelController({
   async function isolateSelected() {
     if (isEmptySelection(workspace.viewer.activeSelection)) return;
     await hider.isolate(workspace.viewer.activeSelection);
-  }
-
-  async function clearModels(options: { keepStatus?: boolean } = {}) {
-    for (const [modelId] of fragments.list) {
-      await fragments.core.disposeModel(modelId);
-    }
-    await highlighter.clear("select");
-    await clearSearch();
-    searchPanel.hidden = true;
-    saveFragmentBtn.hidden = true;
-    setActiveShareRecord(null);
-    clearDrawings();
-    issueStore.clear();
-    renderIssues();
-    workspace.clash.clashes = [];
-    renderClash();
-    clearBBoxIndex();
-    resetDataIndex();
-    resetChecks();
-    fileName.textContent = "-";
-    if (!options.keepStatus) ctx.setStatus("Загрузите IFC");
-    refreshModelState();
   }
 
   async function downloadFragments() {
@@ -271,8 +163,8 @@ export function createModelController({
 
   function refreshModelState() {
     refreshFederationState();
-    applyFederationAppearance();
-    renderFederationState();
+    federationActionsController.applyFederationAppearance();
+    federationActionsController.renderFederationState();
     const hasModels = fragments.list.size > 0;
     workspace.viewer.visibleChunkIds = workspace.data.progressiveLoadPlan?.stages.flatMap((stage) => stage.chunkIds) ?? [];
     workspace.viewer.lastVisibilityUpdateAt = hasModels ? new Date().toISOString() : "";
@@ -297,156 +189,6 @@ export function createModelController({
     if (!hasModels || !capabilities.drawings) drawingsPanel.hidden = true;
   }
 
-  function renderFederationState() {
-    const federationModels = summarizeFederatedModels(workspace.data.elementIndex);
-    renderFederationPanel({
-      models: workspace.federation.models,
-      summary: ctx.dom.federationSummary,
-      output: ctx.dom.federationOutput,
-      filters: workspace.federation.filters,
-      filterOptions: buildFederationFilterOptions(federationModels, workspace.data.elementIndex, workspace.federation.filters),
-      actions: {
-        onClose: closeFederationPanel,
-        onShowAll: showAllFederationModels,
-        onToggleVisibility: toggleFederationModel,
-        onOpacityChange: setFederationModelOpacityValue,
-        onFocus: focusFederationModel,
-        onIsolate: isolateFederationModelAction,
-        onRemove: removeFederationModelFromScene,
-        onUpdateFilters: updateFederationFilters,
-        onApplyPreset: applyFederationPresetAction,
-        onSavePreset: saveFederationPresetAction,
-        onDeletePreset: deleteFederationPresetAction,
-        onResetFilters: resetFederationFiltersAction,
-      },
-    });
-  }
-
-  function updateFederationFilters(selections: Parameters<typeof setFederationFilterSelections>[1]) {
-    setFederationFilterSelections(workspace.federation.filters, selections);
-    workspace.federation.filters.activePresetId = "custom";
-    noteFederationAction(workspace.federation, "update-filters");
-    renderFederationState();
-    applyDataFilters();
-    refreshClashSelectors();
-    renderClash();
-  }
-
-  function applyFederationPresetAction(presetId: string) {
-    if (!applyFederationPreset(workspace.federation.filters, presetId)) return;
-    noteFederationAction(workspace.federation, "apply-preset");
-    renderFederationState();
-    applyDataFilters();
-    refreshClashSelectors();
-    renderClash();
-  }
-
-  function saveFederationPresetAction(label: string) {
-    const preset = captureFederationPreset(workspace.federation.filters, label);
-    const existing = workspace.federation.filters.presets.findIndex((item) => item.id === preset.id);
-    if (existing >= 0) {
-      workspace.federation.filters.presets[existing] = preset;
-    } else {
-      workspace.federation.filters.presets.push(preset);
-    }
-    workspace.federation.filters.activePresetId = preset.id;
-    noteFederationAction(workspace.federation, "save-preset");
-    renderFederationState();
-  }
-
-  function deleteFederationPresetAction(presetId: string) {
-    if (!removeFederationPreset(workspace.federation.filters, presetId)) return;
-    noteFederationAction(workspace.federation, "delete-preset");
-    renderFederationState();
-    applyDataFilters();
-    refreshClashSelectors();
-    renderClash();
-  }
-
-  function resetFederationFiltersAction() {
-    resetFederationFilters(workspace.federation.filters);
-    noteFederationAction(workspace.federation, "reset-filters");
-    renderFederationState();
-    applyDataFilters();
-    refreshClashSelectors();
-    renderClash();
-  }
-
-  function applyFederationAppearance() {
-    for (const model of workspace.federation.models) {
-      const runtime = fragments.list.get(model.modelId) as unknown as { object?: THREE.Object3D } | undefined;
-      applyModelVisibility(runtime, model.visible);
-      applyModelOpacity(runtime, model.opacity);
-    }
-  }
-
-  function toggleFederationPanel() {
-    federationPanel.hidden = !federationPanel.hidden;
-    if (!federationPanel.hidden) renderFederationState();
-  }
-
-  function closeFederationPanel() {
-    federationPanel.hidden = true;
-  }
-
-  function showAllFederationModels() {
-    restoreFederationVisibility(workspace.federation);
-    noteFederationAction(workspace.federation, "show-all");
-    applyFederationAppearance();
-    persistFederationRegistry();
-    renderFederationState();
-    ctx.setStatus("Все модели федерации показаны");
-  }
-
-  function toggleFederationModel(modelId: string) {
-    toggleFederationModelVisibility(workspace.federation, modelId);
-    noteFederationAction(workspace.federation, "toggle-visibility");
-    applyFederationAppearance();
-    persistFederationRegistry();
-    renderFederationState();
-  }
-
-  function setFederationModelOpacityValue(modelId: string, opacity: number) {
-    updateFederationModelOpacity(workspace.federation, modelId, opacity);
-    noteFederationAction(workspace.federation, "set-opacity");
-    applyFederationAppearance();
-    persistFederationRegistry();
-    renderFederationState();
-  }
-
-  async function focusFederationModel(modelId: string) {
-    const runtime = fragments.list.get(modelId);
-    const object = runtime?.object;
-    if (!object) return;
-    noteFederationAction(workspace.federation, "focus");
-    object.updateWorldMatrix(true, true);
-    const box = new THREE.Box3().setFromObject(object);
-    if (box.isEmpty()) return;
-    await world.camera.controls.fitToBox(box, true, {
-      paddingLeft: 1,
-      paddingRight: 1,
-      paddingTop: 1,
-      paddingBottom: 1,
-    });
-  }
-
-  function isolateFederationModelAction(modelId: string) {
-    isolateFederationModel(workspace.federation, modelId);
-    noteFederationAction(workspace.federation, "isolate");
-    applyFederationAppearance();
-    persistFederationRegistry();
-    renderFederationState();
-  }
-
-  async function removeFederationModelFromScene(modelId: string) {
-    await fragments.core.disposeModel(modelId);
-    removeFederationModel(workspace.federation, modelId);
-    noteFederationAction(workspace.federation, "remove");
-    applyFederationAppearance();
-    persistFederationRegistry();
-    refreshModelState();
-  }
-
   return {
     loadIfc,
     loadFrag,
@@ -460,31 +202,5 @@ export function createModelController({
     refreshModelState,
     toggleFederationPanel,
     closeFederationPanel,
-    showAllFederationModels,
-    toggleFederationModel,
-    setFederationModelOpacityValue,
-    focusFederationModel,
-    isolateFederationModelAction,
-    removeFederationModelFromScene,
   };
-}
-
-function formatProcess(process: string) {
-  const labels: Record<string, string> = {
-    geometries: "Геометрия",
-    attributes: "Атрибуты",
-    relations: "Связи",
-    conversion: "Конвертация",
-  };
-  return labels[process] ?? process;
-}
-
-function formatFragmentStage(stage: string) {
-  const labels: Record<string, string> = {
-    decompressing: "Распаковка fragment",
-    parsing: "Чтение fragment",
-    generating: "Построение сцены",
-    done: "Fragment загружен",
-  };
-  return labels[stage] ?? "Загрузка fragment";
 }

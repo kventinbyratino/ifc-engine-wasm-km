@@ -1,0 +1,172 @@
+.federation-panel {
+  position: absolute;
+  top: calc(max(14px, env(safe-area-inset-top)) + 60px);
+  left: max(14px, env(safe-area-inset-left));
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 74px);
+  z-index: 9;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  width: min(520px, calc(100vw - 28px));
+  padding: 12px;
+  border: 1px solid rgba(18, 28, 34, 0.1);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 18px 52px rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(14px);
+}
+
+.federation-output {
+  min-height: 0;
+  overflow: auto;
+}
+
+.federation-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.federation-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.federation-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.federation-filter-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.federation-filter-field span {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.federation-filter-select,
+.federation-preset-select {
+  width: 100%;
+}
+
+.federation-toolbar .data-action {
+  min-height: 34px;
+}
+
+.federation-list {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  padding-bottom: 4px;
+}
+
+.federation-card {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1.2fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid rgba(23, 32, 38, 0.08);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.federation-card-hidden {
+  opacity: 0.72;
+}
+
+.federation-card-chip {
+  width: 14px;
+  height: 14px;
+  margin-top: 5px;
+  border-radius: 50%;
+}
+
+.federation-card-meta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.federation-card-meta strong {
+  font-size: 14px;
+}
+
+.federation-card-meta span,
+.federation-card-meta small {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.federation-card-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #eef2f6;
+  color: #172026;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.federation-card-controls {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.federation-opacity {
+  display: inline-grid;
+  grid-template-columns: auto minmax(150px, 220px);
+  gap: 8px;
+  align-items: center;
+  min-width: 280px;
+  padding: 0 10px;
+  border: 1px solid rgba(23, 32, 38, 0.08);
+  border-radius: 12px;
+  background: #f8fafc;
+  height: 36px;
+}
+
+.federation-opacity span {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.federation-opacity input[type="range"] {
+  width: 100%;
+}
+
+.federation-card .data-action {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.federation-card .data-action-secondary {
+  background: #334155;
+}
+
+.federation-card-hidden .federation-card-meta strong,
+.federation-card-hidden .federation-card-meta span,
+.federation-card-hidden .federation-card-meta small {
+  color: #94a3b8;
+}
+
+.federation-card-hidden .federation-card-badge {
+  background: #e2e8f0;
+}

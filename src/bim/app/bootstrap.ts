@@ -10,18 +10,18 @@ import { syncDrawingAnnotations, type DrawingAnnotationType } from "../drawings/
 import { syncFederationRegistry } from "../federation/federation-registry.ts";
 import { normalizeFederationFilterState } from "../federation/federation-filters.ts";
 import { summarizeFederatedModels } from "../federation/federation.ts";
-import { loadStoredFederationWorkspace, restoreFederationState } from "../federation/federation-persistence.ts";
-import { loadStoredFederationSnapshot, restoreFederationSnapshot, saveFederationSnapshot } from "../federation/federation-snapshot.ts";
+import { saveFederationSnapshot } from "../federation/federation-snapshot.ts";
 import { bindBimUiEvents } from "./ui-wiring.ts";
 import { createIssueStore } from "../issues/issues-store.ts";
-import { createIfcOverrideStore } from "../ifc-overrides/override-store.ts";
-import { getProfileCapabilities } from "../profiles/index.ts";
 import { createMessage } from "../ui/dom-utils.ts";
-import { errorToMessage, showToast } from "../ui/toast.ts";
 import type { ModelIdMap } from "../types.ts";
 import { createBimViewer } from "../viewer/viewer.ts";
 import { mountSpatialTree } from "../tree/spatial-tree.ts";
 import type { BimAppContext } from "./app-context.ts";
+import { createAppStatusController } from "./app-status.ts";
+import { createBimAppContext } from "./app-context-factory.ts";
+import { restoreStoredFederationState, createFederationWorkspaceRestorer } from "./federation-restore.ts";
+import { createIfcOverridesWiring } from "./ifc-overrides-wiring.ts";
 import { createControllerRegistry } from "./controller-registry.ts";
 import { createProfileRouter } from "./profile-router.ts";
 import { createModelController } from "./model-controller.ts";
@@ -175,36 +175,20 @@ export async function startBimApp() {
   });
 
   const workspace = createWorkspaceState();
-  const storedFederationSnapshot = loadStoredFederationSnapshot();
-  const storedFederationWorkspace = storedFederationSnapshot?.federation ?? loadStoredFederationWorkspace();
-  if (storedFederationWorkspace) {
-    restoreFederationState(workspace.federation, storedFederationWorkspace);
-  }
-  if (storedFederationSnapshot) {
-    restoreFederationSnapshot(workspace, storedFederationSnapshot);
-  }
+  const { storedFederationWorkspace } = restoreStoredFederationState(workspace);
   const issueStore = createIssueStore();
-  const ifcOverrideStore = createIfcOverrideStore();
-  const syncIfcOverrideState = () => {
-    const snapshot = ifcOverrideStore.snapshot();
-    workspace.ifcOverrides = snapshot;
-    workspace.data.pendingIfcOverrideCount = snapshot.pendingCount;
-  };
-  syncIfcOverrideState();
-  async function savePropertyOverride(draft: Parameters<typeof ifcOverrideStore.setPropertyOverride>[0]) {
-    ifcOverrideStore.setPropertyOverride(draft);
-    syncIfcOverrideState();
-    await renderSelectedProperties({
-      components,
-      modelIdMap: workspace.viewer.activeSelection,
-      output: propertiesOutput,
-      pendingOverrideCount: workspace.ifcOverrides.pendingCount,
-      onSaveOverride: savePropertyOverride,
-    });
-    showToast(`Saved pending override for ${draft.propertySet}.${draft.propertyName}`, "success");
-  }
-  let activeOperation: AbortController | null = null;
-  const ctx: BimAppContext = {
+  const appStatus = createAppStatusController(getDomElements());
+  const {
+    ifcOverrideStore,
+    syncIfcOverrideState,
+    savePropertyOverride,
+  } = createIfcOverridesWiring({
+    dom: getDomElements(),
+    viewer: { components, world, fragments, ifcLoader, highlighter, hider },
+    workspace,
+    showToast: appStatus.showToast,
+  });
+  const ctx: BimAppContext = createBimAppContext({
     dom: getDomElements(),
     viewer: { components, world, fragments, ifcLoader, highlighter, hider },
     workspace,
@@ -212,17 +196,14 @@ export async function startBimApp() {
     ifcOverrideStore,
     syncIfcOverrideState,
     savePropertyOverride,
-    getCapabilities: () => getProfileCapabilities(workspace.viewer.activeProfile),
-    setStatus: (message) => {
-      statusText.textContent = message;
-    },
-    setBusy,
-    setProgress,
-    startOperation,
-    finishOperation,
-    showToast,
-    showError,
-  };
+    setStatus: appStatus.setStatus,
+    setBusy: appStatus.setBusy,
+    setProgress: appStatus.setProgress,
+    startOperation: appStatus.startOperation,
+    finishOperation: appStatus.finishOperation,
+    showToast: appStatus.showToast,
+    showError: appStatus.showError,
+  });
   void ctx;
   const drawingInteraction = createDrawingInteractionController({
     viewport,
@@ -484,30 +465,16 @@ export async function startBimApp() {
   });
 
   const fragmentId = new URLSearchParams(window.location.search).get("fragment")?.trim();
-  async function restoreFederationWorkspace() {
-    if (!storedFederationWorkspace || fragmentId) return;
-    const restorableModels = storedFederationWorkspace.models.filter((model) => model.source.restorable);
-    if (restorableModels.length === 0) return;
-
-    ctx.setStatus("Восстановление federation");
-    try {
-      for (const model of restorableModels) {
-        if (model.source.kind === "ifc") {
-          const blob = await fetchExampleBlob(model.source.reference);
-          await loadIfc(new File([blob], model.source.label, { type: "application/octet-stream" }), model.source);
-          continue;
-        }
-
-        const response = await fetch(`${API_BASE}/fragments/${model.source.reference}/download`);
-        if (!response.ok) throw new Error(`Не удалось восстановить fragment ${model.source.label}`);
-        await loadFragBuffer(await response.arrayBuffer(), model.source.label, model.source);
-      }
-      refreshFederationRegistry();
-      ctx.showToast(`Восстановлено моделей: ${restorableModels.length}`, "success");
-    } catch (error) {
-      ctx.showError(error);
-    }
-  }
+  const restoreFederationWorkspace = createFederationWorkspaceRestorer({
+    ctx,
+    storedFederationWorkspace,
+    fragmentId,
+    apiBase: API_BASE,
+    fetchExampleBlob,
+    loadIfc,
+    loadFragBuffer,
+    refreshFederationRegistry,
+  });
 
   bindBimUiEvents(ctx, drawingInteraction, {
     search: {
@@ -596,7 +563,7 @@ export async function startBimApp() {
       copyShareLink,
     },
     utilities: {
-      cancelActiveOperation,
+      cancelActiveOperation: appStatus.cancelActiveOperation,
       clearSelectionInfo,
     },
   });
@@ -686,56 +653,6 @@ export async function startBimApp() {
       pendingOverrideCount: workspace.ifcOverrides.pendingCount,
       onSaveOverride: savePropertyOverride,
     });
-  }
-
-  function setBusy(isBusy: boolean, message?: string) {
-    loadIfcBtn.loading = isBusy;
-    loadFragBtn.loading = isBusy;
-    loadingOverlay.hidden = !isBusy;
-    progress.hidden = !isBusy;
-    if (!isBusy) loadingCancelBtn.hidden = true;
-    if (isBusy) setProgress(0);
-    if (message) {
-      statusText.textContent = message;
-      loadingStatus.textContent = message;
-    }
-  }
-
-  function startOperation(message: string) {
-    activeOperation?.abort();
-    activeOperation = new AbortController();
-    setBusy(true, message);
-    loadingCancelBtn.hidden = false;
-    return activeOperation.signal;
-  }
-
-  function finishOperation(signal: AbortSignal) {
-    if (activeOperation?.signal !== signal) return;
-    activeOperation = null;
-    setBusy(false);
-  }
-
-  function cancelActiveOperation() {
-    if (!activeOperation) return;
-    activeOperation.abort();
-    statusText.textContent = "Операция отменяется...";
-    loadingStatus.textContent = "Операция отменяется...";
-    showToast("Операция отменяется...", "info");
-  }
-
-  function setProgress(value: number) {
-    const percentage = Math.max(0, Math.min(100, value * 100));
-    progressBar.style.width = `${percentage}%`;
-    loadingStatus.textContent = `${statusText.textContent || "Обработка модели"} · ${Math.round(percentage)}%`;
-  }
-
-  function showError(error: unknown) {
-    console.error(error);
-    statusText.textContent = "Ошибка загрузки модели";
-    showToast(errorToMessage(error), "error");
-    propertiesOutput.replaceChildren(
-      createMessage(errorToMessage(error)),
-    );
   }
 
 

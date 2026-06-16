@@ -4,31 +4,45 @@ import { mkdtemp, readFile, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { copyPatchedModule, copyModuleFromAbsolute } from "./helpers/copy-patched-module.mjs";
 
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "ifc-exporter-tests-"));
 const srcRoot = "/home/maks/projects/IFC_engine_wasm/src/bim/data";
 
-async function copyPatched(filename, replacements = []) {
-  const source = path.join(srcRoot, filename);
-  const target = path.join(tempRoot, filename);
-  await mkdir(path.dirname(target), { recursive: true });
-  let content = await readFile(source, "utf8");
-  for (const [from, to] of replacements) content = content.replaceAll(from, to);
-  await writeFile(target, content);
+async function copyPatched(filename, replacements = [], rawReplacements = []) {
+  await copyPatchedModule({
+    srcRoot,
+    tempRoot,
+    sourceRelative: filename,
+    specifierMap: Object.fromEntries(replacements),
+    rawReplacements,
+  });
 }
 
 async function copyFromAbsolute(source, targetName) {
-  const target = path.join(tempRoot, targetName);
-  await mkdir(path.dirname(target), { recursive: true });
-  await writeFile(target, await readFile(source, "utf8"));
+  await copyModuleFromAbsolute({ source, tempRoot, targetRelative: targetName });
 }
 
 await copyPatched("element-record.ts");
-await copyPatched("exporters.ts");
+await copyPatched("exporters.ts", [], [
+  [
+    'import { buildIfcExportPackage as buildIfcExportDocument, downloadIfcExportPackage } from "../export/ifc-export.ts";',
+    'const buildIfcExportDocument = () => { throw new Error("ifc export package is not used in this test"); }; const downloadIfcExportPackage = () => { throw new Error("ifc export package is not used in this test"); };',
+  ],
+  [
+    'import { buildFullModifiedIfcExport, downloadFullModifiedIfcExport, type SourceIfcModel } from "../export/ifc-full-export.ts";',
+    'const buildFullModifiedIfcExport = () => { throw new Error("full ifc export is not used in this test"); }; const downloadFullModifiedIfcExport = () => { throw new Error("full ifc export is not used in this test"); };',
+  ],
+  [
+    'import { buildModifiedIfcExport, downloadModifiedIfcExport } from "../export/ifc-writer.ts";',
+    'const buildModifiedIfcExport = () => { throw new Error("ifc writer is not used in this test"); }; const downloadModifiedIfcExport = () => { throw new Error("ifc writer is not used in this test"); };',
+  ],
+]);
 await copyFromAbsolute("/home/maks/projects/IFC_engine_wasm/src/bim/ui/dom-utils.ts", "ui/dom-utils.ts");
 await copyPatched("elements-table.ts", [
   ["./element-record", "./element-record.ts"],
   ["../ui/dom-utils", "./ui/dom-utils.ts"],
+  ["../ui/dom-utils.ts", "./ui/dom-utils.ts"],
 ]);
 
 const exportersUrl = pathToFileURL(path.join(tempRoot, "exporters.ts")).href;

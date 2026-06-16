@@ -1,6 +1,7 @@
 import { APP_BASE } from "../config.ts";
 import type { FragmentRecord } from "../types.ts";
 import type { BimAppContext } from "./app-context.ts";
+import { logControllerError } from "../ui/controller-errors.ts";
 
 export function createShareController(ctx: BimAppContext) {
   const { workspace } = ctx;
@@ -35,7 +36,7 @@ export function createShareController(ctx: BimAppContext) {
       shareCopyStatus.textContent = "Ссылка скопирована";
       ctx.showToast("Ссылка скопирована", "success");
     } catch (error) {
-      console.error(error);
+      logControllerError(error);
       shareCopyStatus.textContent = "Не удалось скопировать. Скопируйте вручную.";
       ctx.showToast("Не удалось скопировать ссылку", "error");
     }

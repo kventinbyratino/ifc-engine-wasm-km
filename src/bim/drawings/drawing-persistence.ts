@@ -4,6 +4,7 @@ import type { DrawingDocument, SheetDocument } from "./drawing-document.ts";
 import type { DrawingSource, DrawingView } from "./drawing-types.ts";
 import type { SheetFormat, SheetSpecBlock } from "../sheets/sheet-types.ts";
 import { serializeModelIdMap } from "./drawing-selection-sync.ts";
+import { clearStoredJson, loadStoredJson, saveStoredJson } from "../storage/local-storage-json.ts";
 
 export const DRAWING_STORAGE_KEY = "bim-real-drawings-mvp:v2";
 export const DRAWING_STORAGE_SCHEMA_VERSION = 3;
@@ -72,24 +73,16 @@ export function saveDrawingWorkspace(projectName: string, drawings: DrawingDocum
       specBlocks: sheet.specBlocks.map((block) => serializeSpecBlock(block)),
     })),
   };
-  localStorage.setItem(DRAWING_STORAGE_KEY, JSON.stringify(payload));
+  saveStoredJson(DRAWING_STORAGE_KEY, payload);
   return payload;
 }
 
 export function loadStoredDrawingWorkspace(projectName: string) {
-  const raw = localStorage.getItem(DRAWING_STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return normalizeStoredWorkspace(parsed, projectName);
-  } catch (error) {
-    console.warn("Drawing persistence parse failed", error);
-    return null;
-  }
+  return loadStoredJson(DRAWING_STORAGE_KEY, (raw) => normalizeStoredWorkspace(raw, projectName), "Drawing persistence");
 }
 
 export function clearStoredDrawingWorkspace() {
-  localStorage.removeItem(DRAWING_STORAGE_KEY);
+  clearStoredJson(DRAWING_STORAGE_KEY);
 }
 
 export function replayStoredAnnotations(record: DrawingDocument, annotations: StoredDrawingAnnotation[], components: OBC.Components) {

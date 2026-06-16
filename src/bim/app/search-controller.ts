@@ -4,6 +4,7 @@ import type { ModelIdMap } from "../types.ts";
 import { createMessage, escapeHtml, getAttrText } from "../ui/dom-utils.ts";
 import { dimHighlightStyle, searchHighlightStyle } from "../viewer/viewer.ts";
 import type { BimAppContext } from "./app-context.ts";
+import { logControllerError } from "../ui/controller-errors.ts";
 
 export function createSearchController(ctx: BimAppContext) {
   const { fragments, highlighter, world } = ctx.viewer;
@@ -38,7 +39,7 @@ export function createSearchController(ctx: BimAppContext) {
       await fitToItems(result);
       await renderSearchResults(result);
     } catch (error) {
-      console.error(error);
+      logControllerError(error);
       searchOutput.replaceChildren(createMessage(error instanceof Error ? error.message : String(error)));
     } finally {
       searchBtn.loading = false;

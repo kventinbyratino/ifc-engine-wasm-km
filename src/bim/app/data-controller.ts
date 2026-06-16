@@ -16,6 +16,7 @@ import { createMessage } from "../ui/dom-utils.ts";
 import type { ModelIdMap } from "../types.ts";
 import { getFilteredElementCount, getIndexedElementCount } from "../state/workspace-state.ts";
 import type { BimAppContext } from "./app-context.ts";
+import { logControllerError } from "../ui/controller-errors.ts";
 
 export interface DataControllerHooks {
   canUseDataBrowser: () => boolean;
@@ -110,7 +111,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
         "success",
       );
     } catch (error) {
-      console.error(error);
+      logControllerError(error);
       if (isAbortError(error)) {
         dataSummary.textContent = "Индексация отменена";
         dataTableOutput.replaceChildren(createMessage("Операция отменена."));

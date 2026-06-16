@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile, mkdir } from "node:fs/promises";
-import os from "node:os";
+import { writeFile, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { copyPatchedModule } from "./helpers/copy-patched-module.mjs";
 import * as THREE from "three";
 
 const tempRoot = path.join("/home/maks/projects/IFC_engine_wasm", ".tmp-drawing-annotations-tests");
@@ -11,12 +11,12 @@ await mkdir(tempRoot, { recursive: true });
 const srcRoot = "/home/maks/projects/IFC_engine_wasm/src/bim";
 
 async function copyPatched(filename, replacements = [], sourceRoot = srcRoot) {
-  const source = path.join(sourceRoot, filename);
-  const target = path.join(tempRoot, filename);
-  await mkdir(path.dirname(target), { recursive: true });
-  let content = await readFile(source, "utf8");
-  for (const [from, to] of replacements) content = content.replaceAll(from, to);
-  await writeFile(target, content);
+  await copyPatchedModule({
+    srcRoot: sourceRoot,
+    tempRoot,
+    sourceRelative: filename,
+    specifierMap: Object.fromEntries(replacements),
+  });
 }
 
 await writeFile(
@@ -284,4 +284,8 @@ test("interactive drawing annotations add a record on pointer click", () => {
   } finally {
     globalThis.window = previousWindow;
   }
+});
+
+test.after(async () => {
+  await rm(tempRoot, { recursive: true, force: true });
 });

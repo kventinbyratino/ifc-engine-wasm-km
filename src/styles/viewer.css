@@ -1,0 +1,309 @@
+.library-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  align-items: end;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+.share-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 32;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+.upload-mode-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 31;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+.upload-mode-sheet {
+  display: grid;
+  gap: 14px;
+  width: min(520px, calc(100vw - 32px));
+  padding: 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.24);
+}
+
+.upload-mode-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.library-sheet {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  max-height: min(78vh, 620px);
+  overflow: auto;
+  padding: 16px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -18px 60px rgba(15, 23, 42, 0.24);
+}
+
+.share-sheet {
+  display: grid;
+  gap: 14px;
+  width: min(520px, calc(100vw - 32px));
+  padding: 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.24);
+}
+
+.library-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.library-header strong {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.plain-button {
+  border: 0;
+  color: #172026;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 22px;
+}
+
+.back-button {
+  justify-self: start;
+  padding: 0;
+  font-size: 15px;
+}
+
+.library-actions,
+.library-list-panel,
+.fragment-cards,
+.example-list {
+  display: grid;
+  gap: 10px;
+}
+
+.library-action,
+.fragment-card {
+  display: grid;
+  gap: 7px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid rgba(23, 32, 38, 0.1);
+  border-radius: 20px;
+  color: #172026;
+  background: #f8fafc;
+  text-align: left;
+}
+
+.library-action {
+  cursor: pointer;
+  font: inherit;
+}
+
+.example-list {
+  padding: 10px 0;
+  border-top: 1px solid rgba(23, 32, 38, 0.08);
+  border-bottom: 1px solid rgba(23, 32, 38, 0.08);
+}
+
+.example-list-title {
+  color: #687782;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.example-action {
+  background: #eef7ff;
+}
+
+.library-action strong,
+.fragment-card strong {
+  font-size: 16px;
+}
+
+.library-action span,
+.fragment-card span {
+  color: #687782;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.fragment-card {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.fragment-card strong,
+.fragment-card span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fragment-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.fragment-actions button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 14px;
+  color: #ffffff;
+  background: #141a20;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+}
+
+.fragment-actions .danger-button {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.share-button {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 12;
+}
+
+.top-back-button {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+  z-index: 12;
+}
+
+.share-description {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  color: #687782;
+  font-size: 13px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.share-input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 13px;
+  border: 1px solid rgba(23, 32, 38, 0.14);
+  border-radius: 12px;
+  color: #172026;
+  background: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.copy-share {
+  width: auto;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.share-copy-status {
+  min-height: 18px;
+  color: #12a85f;
+  font-size: 12px;
+}
+
+.action-rail {
+  position: absolute;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 12;
+  display: grid;
+  gap: 10px;
+}
+
+.action-button {
+  display: grid;
+  width: 76px;
+  min-height: 58px;
+  place-items: center;
+  gap: 2px;
+  padding: 7px 6px 6px;
+  border: 1px solid rgba(18, 28, 34, 0.08);
+  border-radius: 18px;
+  color: #141a20;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
+  cursor: pointer;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.action-icon {
+  display: block;
+  width: 21px;
+  height: 21px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.action-label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.floating-search,
+.home-view,
+.data-browser-button,
+.federation-button {
+  font-size: 21px;
+}

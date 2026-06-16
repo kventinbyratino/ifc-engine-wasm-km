@@ -1,6 +1,7 @@
 import type { Profile } from "../types.ts";
 import type { HealthCheckIssueType } from "./check-types.ts";
 import { createDefaultModelHealthRuleRegistry, type ModelHealthRuleRegistry } from "./rules.ts";
+import { clearStoredJson, loadStoredJson, saveStoredJson } from "../storage/local-storage-json.ts";
 
 export const CHECKS_SETTINGS_STORAGE_SCHEMA_VERSION = 1;
 
@@ -51,17 +52,7 @@ export function applyStoredChecksSettings(
 }
 
 export function loadStoredChecksSettings(profile: Profile) {
-  if (typeof localStorage === "undefined") return null;
-  const raw = localStorage.getItem(getChecksSettingsStorageKey(profile));
-  if (!raw) return null;
-
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return normalizeStoredChecksSettings(parsed, profile);
-  } catch (error) {
-    console.warn("Checks settings parse failed", error);
-    return null;
-  }
+  return loadStoredJson(getChecksSettingsStorageKey(profile), (raw) => normalizeStoredChecksSettings(raw, profile), "Checks settings");
 }
 
 export function loadChecksRuleRegistry(profile: Profile) {
@@ -71,15 +62,13 @@ export function loadChecksRuleRegistry(profile: Profile) {
 }
 
 export function saveStoredChecksSettings(profile: Profile, registry: ModelHealthRuleRegistry) {
-  if (typeof localStorage === "undefined") return null;
   const payload = serializeChecksSettings(registry, profile);
-  localStorage.setItem(getChecksSettingsStorageKey(profile), JSON.stringify(payload));
+  saveStoredJson(getChecksSettingsStorageKey(profile), payload);
   return payload;
 }
 
 export function clearStoredChecksSettings(profile: Profile) {
-  if (typeof localStorage === "undefined") return;
-  localStorage.removeItem(getChecksSettingsStorageKey(profile));
+  clearStoredJson(getChecksSettingsStorageKey(profile));
 }
 
 function normalizeStoredChecksSettings(raw: unknown, profile: Profile): StoredChecksSettings | null {

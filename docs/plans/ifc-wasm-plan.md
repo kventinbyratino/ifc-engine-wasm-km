@@ -34,13 +34,13 @@
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 16 — Backend conversion for IFC files over 200 MB.
+**Now:** Sprint 17 — Production LOD / progressive loading for large IFC models.
 
-**Next:** Sprint 17 — Production LOD / progressive loading for large IFC models.
+**Next:** Sprint 18 — Production drawings: interactive sheet viewport, model↔drawing links, GOST/SPDS title block.
 
-**Later:** Sprint 18 — Production drawings: interactive sheet viewport, model↔drawing links, GOST/SPDS title block.
+**Later:** Sprint 19 — TBD.
 
-**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Sprint 11; Sprint 12; Sprint 15; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
+**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Sprint 11; Sprint 12; Sprint 15; Sprint 16; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
 
 **Definition of done for any item:** scoped files are listed, acceptance is clear, verification commands pass, and `git diff --check` is clean.
 
@@ -892,7 +892,13 @@ git diff --check
 
 ### Sprint 16 — Backend conversion for IFC files over 200 MB (P0)
 
-**Status:** planned — move large IFC preprocessing out of the browser so models above the current 200 MB browser limit can be uploaded, converted to Fragments/server artifacts, tracked as jobs, and opened from optimized outputs while preserving the original IFC as source-of-truth for export.
+**Status:** выполнено — large IFC preprocessing moved out of the browser: oversized models route to the same-repo backend conversion flow, jobs are tracked locally, the original IFC remains source-of-truth, and the optimized artifact is loaded back into the viewer.
+
+**Verification:**
+- `.venv/bin/python -m pytest -q server/tests` — `14 passed`
+- `npm test` — `78 passed`
+- `npm run build` — passed
+- `git diff --check` — clean
 
 **Цель:** поддержать IFC >200 MB без падения вкладки: тяжёлую конвертацию выполнять на backend/worker, а браузеру отдавать готовые `.frag`/manifest/metadata для быстрого открытия сцены.
 

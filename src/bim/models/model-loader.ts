@@ -1,6 +1,7 @@
 import type { FederationLoadSource, FederationLoadKind, FederationLoadOrigin } from "../federation/federation-registry.ts";
 import { createPerformanceMetricCollector, summarizeLoadPerformance, type LoadPerformanceSummary } from "../performance/performance-metrics.ts";
 import { createProgressiveLoadPlan, type ProgressiveLoadPlan } from "../performance/lod-loader.ts";
+import { logControllerError } from "../ui/controller-errors.ts";
 
 export function createModelId(name: string) {
   const clean = name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_-]+/g, "_");
@@ -48,7 +49,7 @@ export async function loadIfcModel(options: {
       },
     },
   });
-  loadingModel.catch((error: unknown) => console.error(error));
+  loadingModel.catch((error: unknown) => logControllerError(error));
   await loadingModel;
   metrics.mark("load-complete");
   const progressivePlan = createProgressiveLoadPlan({ modelId, elementCount: buffer.byteLength, chunkSize: 1_000_000 });
@@ -106,7 +107,7 @@ export async function loadFragBuffer(options: {
       onProgress(value, event.stage);
     },
   });
-  loadingModel.catch((error: unknown) => console.error(error));
+  loadingModel.catch((error: unknown) => logControllerError(error));
   await loadingModel;
   await fragments.core.update(true);
   metrics.mark("load-complete");

@@ -1,5 +1,4 @@
 import type { BimElementRecord } from "./element-record.ts";
-import { escapeHtml } from "../ui/dom-utils.ts";
 
 export function renderElementsTable(options: {
   records: BimElementRecord[];
@@ -20,33 +19,41 @@ export function renderElementsTable(options: {
 
   const table = document.createElement("table");
   table.className = "data-table";
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th>IFC Class</th>
-        <th>Name</th>
-        <th>GlobalId</th>
-        <th>Этаж</th>
-        <th>Psets</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  `;
 
-  const tbody = table.querySelector("tbody")!;
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  for (const title of ["IFC Class", "Name", "GlobalId", "Этаж", "Psets"]) {
+    const th = document.createElement("th");
+    th.textContent = title;
+    headRow.append(th);
+  }
+  thead.append(headRow);
+
+  const tbody = document.createElement("tbody");
   for (const record of rendered) {
     const row = document.createElement("tr");
     row.tabIndex = 0;
-    row.innerHTML = `
-      <td>${escapeHtml(record.category || "-")}</td>
-      <td>
-        <strong>${escapeHtml(record.name || `#${record.localId}`)}</strong>
-        <small>${escapeHtml(record.modelId)} · ${record.localId}${record.typeName ? ` · ${escapeHtml(record.typeName)}` : ""}</small>
-      </td>
-      <td>${escapeHtml(record.globalId || "-")}</td>
-      <td>${escapeHtml(record.storey || "-")}</td>
-      <td>${record.psetCount}</td>
-    `;
+
+    const classCell = document.createElement("td");
+    classCell.textContent = record.category || "-";
+
+    const nameCell = document.createElement("td");
+    const nameStrong = document.createElement("strong");
+    nameStrong.textContent = record.name || `#${record.localId}`;
+    const nameSmall = document.createElement("small");
+    nameSmall.textContent = `${record.modelId} · ${record.localId}${record.typeName ? ` · ${record.typeName}` : ""}`;
+    nameCell.append(nameStrong, nameSmall);
+
+    const globalIdCell = document.createElement("td");
+    globalIdCell.textContent = record.globalId || "-";
+
+    const storeyCell = document.createElement("td");
+    storeyCell.textContent = record.storey || "-";
+
+    const psetsCell = document.createElement("td");
+    psetsCell.textContent = String(record.psetCount);
+
+    row.append(classCell, nameCell, globalIdCell, storeyCell, psetsCell);
     row.onclick = () => onSelect(record);
     row.onkeydown = (event) => {
       if (event.code === "Enter" || event.code === "Space") onSelect(record);
@@ -54,6 +61,7 @@ export function renderElementsTable(options: {
     tbody.append(row);
   }
 
+  table.append(thead, tbody);
   wrapper.append(table);
 
   if (totalCount > rendered.length) {

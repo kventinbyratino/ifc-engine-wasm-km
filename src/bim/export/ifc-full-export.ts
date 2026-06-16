@@ -12,7 +12,8 @@ import { validateClassReplacement } from "../ifc-overrides/class-mapping.ts";
 export type SourceIfcModel = {
   modelId: string;
   fileName: string;
-  buffer: ArrayBuffer;
+  buffer?: ArrayBuffer;
+  downloadUrl?: string;
 };
 
 export type FullIfcExportFile = {
@@ -55,7 +56,7 @@ export async function buildFullModifiedIfcExport(options: {
   ifc.SetWasmPath(options.wasmPath ?? defaultWasmPath(), true);
   await ifc.Init();
 
-  const sourceBytes = new Uint8Array(source.buffer.slice(0));
+  const sourceBytes = await resolveSourceBytes(source);
   const openedModelId = ifc.OpenModel(sourceBytes);
   let nextExpressId = ifc.GetMaxExpressID(openedModelId) + 1;
   let appliedPropertyOverrideCount = 0;
@@ -200,6 +201,20 @@ function downloadBytes(name: string, bytes: Uint8Array, type: string) {
   link.download = name;
   link.click();
   URL.revokeObjectURL(link.href);
+}
+
+async function resolveSourceBytes(source: SourceIfcModel) {
+  if (source.buffer) {
+    return new Uint8Array(source.buffer.slice(0));
+  }
+  if (!source.downloadUrl) {
+    throw new Error("Для IFC export нет исходного буфера или URL скачивания.");
+  }
+  const response = await fetch(source.downloadUrl);
+  if (!response.ok) {
+    throw new Error(`Не удалось скачать исходный IFC: ${response.status}`);
+  }
+  return new Uint8Array(await response.arrayBuffer());
 }
 
 function defaultWasmPath() {

@@ -1,5 +1,6 @@
 import { deserializeModelIdMap, serializeModelIdMap } from "../drawings/drawing-selection-sync.ts";
 import type { WorkspaceState } from "../state/workspace-state.ts";
+import { loadStoredJson, saveStoredJson } from "../storage/local-storage-json.ts";
 import {
   normalizeStoredFederationWorkspace,
   restoreFederationState,
@@ -25,24 +26,13 @@ export type StoredFederationSnapshot = {
 export function saveFederationSnapshot(workspace: WorkspaceState) {
   saveFederationWorkspace(workspace.federation);
   const payload = serializeFederationSnapshot(workspace);
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem(FEDERATION_SNAPSHOT_STORAGE_KEY, JSON.stringify(payload));
-  }
+  saveStoredJson(FEDERATION_SNAPSHOT_STORAGE_KEY, payload);
   workspace.viewer.lastFederationSnapshotAt = payload.savedAt;
   return payload;
 }
 
 export function loadStoredFederationSnapshot() {
-  if (typeof localStorage === "undefined") return null;
-  const raw = localStorage.getItem(FEDERATION_SNAPSHOT_STORAGE_KEY);
-  if (!raw) return null;
-
-  try {
-    return normalizeStoredFederationSnapshot(JSON.parse(raw) as unknown);
-  } catch (error) {
-    console.warn("Federation snapshot parse failed", error);
-    return null;
-  }
+  return loadStoredJson(FEDERATION_SNAPSHOT_STORAGE_KEY, normalizeStoredFederationSnapshot, "Federation snapshot");
 }
 
 export function serializeFederationSnapshot(workspace: WorkspaceState): StoredFederationSnapshot {

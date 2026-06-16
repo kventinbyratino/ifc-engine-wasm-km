@@ -4,18 +4,21 @@ import { mkdtemp, readFile, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { copyPatchedModule, copyModuleFromAbsolute } from "./helpers/copy-patched-module.mjs";
 
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "ifc-model-index-tests-"));
 const srcRoot = "/home/maks/projects/IFC_engine_wasm/src/bim/data";
 
-async function copyPatched(filename, replacements = []) {
-  const source = path.join(srcRoot, filename);
-  const target = path.join(tempRoot, filename);
-  await mkdir(path.dirname(target), { recursive: true });
-  let content = await readFile(source, "utf8");
-  for (const [from, to] of replacements) content = content.replaceAll(from, to);
-  await writeFile(target, content);
+async function copyPatched(filename, replacements = [], sourceRoot = srcRoot) {
+  await copyPatchedModule({
+    srcRoot: sourceRoot,
+    tempRoot,
+    sourceRelative: filename,
+    specifierMap: Object.fromEntries(replacements),
+  });
 }
+
+await copyPatched("class-mapping.ts", [], "/home/maks/projects/IFC_engine_wasm/src/bim/ifc-overrides");
 
 await copyPatched("extractors.ts");
 await copyPatched("property-sets.ts", [["./extractors", "./extractors.ts"]]);
@@ -44,6 +47,7 @@ await copyPatched("model-index.ts", [
   ["./property-extractor", "./property-extractor.ts"],
   ["./element-relations", "./element-relations.ts"],
   ["./element-record-factory", "./element-record-factory.ts"],
+  ["../ifc-overrides/class-mapping.ts", "./class-mapping.ts"],
 ]);
 await copyPatched("property-extractor.ts", [["./extractors", "./extractors.ts"]]);
 

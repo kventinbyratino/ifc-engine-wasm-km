@@ -58,10 +58,13 @@ export function renderFederationView(options: { models: FederatedModelSummary[];
 
   const header = document.createElement("div");
   header.className = "federation-view-header";
-  header.innerHTML = `
-    <strong>${escapeHtml(options.title ?? snapshot.headline)}</strong>
-    <small>${escapeHtml(snapshot.totalModels ? `${snapshot.totalElements} elements · ${snapshot.disciplines.join(", ") || "BIM"}` : options.emptyMessage ?? snapshot.emptyMessage)}</small>
-  `;
+  const title = document.createElement("strong");
+  title.textContent = options.title ?? snapshot.headline;
+  const subtitle = document.createElement("small");
+  subtitle.textContent = snapshot.totalModels
+    ? `${snapshot.totalElements} elements · ${snapshot.disciplines.join(", ") || "BIM"}`
+    : options.emptyMessage ?? snapshot.emptyMessage;
+  header.append(title, subtitle);
   wrapper.append(header);
 
   if (snapshot.cards.length === 0) {
@@ -76,18 +79,11 @@ export function renderFederationView(options: { models: FederatedModelSummary[];
   list.className = "federation-summary";
   for (const card of snapshot.cards) {
     const item = document.createElement("span");
-    item.innerHTML = `<i style="background:${escapeHtml(card.color)}"></i>${escapeHtml(card.label)} · ${escapeHtml(card.badge)}`;
+    const chip = document.createElement("i");
+    chip.style.background = card.color;
+    item.append(chip, document.createTextNode(`${card.label} · ${card.badge}`));
     list.append(item);
   }
   wrapper.append(list);
   return wrapper;
-}
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"]/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-  }[char] ?? char));
 }

@@ -133,6 +133,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     workspace.data.filteredElements = [];
     workspace.data.elementRelations = { edges: [], outgoing: {}, incoming: {} };
     workspace.data.progressiveLoadPlan = null;
+    workspace.data.lodManifest = null;
     workspace.data.sourceIfcFiles = {};
     dataSummary.textContent = "Загрузите модель";
     dataSearchInput.value = "";

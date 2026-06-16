@@ -2,6 +2,7 @@ import type { BimElementRecord } from "../data/element-index.ts";
 import type { ElementRelationGraph } from "../data/relation-types.ts";
 
 import type { ProgressiveLoadPlan } from "../performance/lod-loader.ts";
+import type { LodManifest } from "../performance/lod-manifest.ts";
 import { createEmptyIfcOverrideState, type IfcOverrideState } from "../ifc-overrides/override-types.ts";
 import type { SourceIfcModel } from "../export/ifc-full-export.ts";
 
@@ -10,6 +11,7 @@ export type DataWorkspaceState = {
   filteredElements: BimElementRecord[];
   elementRelations: ElementRelationGraph;
   progressiveLoadPlan: ProgressiveLoadPlan | null;
+  lodManifest: LodManifest | null;
   pendingIfcOverrideCount: number;
   sourceIfcFiles: Record<string, SourceIfcModel>;
 };
@@ -20,6 +22,7 @@ export function createDataState(): DataWorkspaceState {
     filteredElements: [],
     elementRelations: { edges: [], outgoing: {}, incoming: {} },
     progressiveLoadPlan: null,
+    lodManifest: null,
     pendingIfcOverrideCount: createEmptyIfcOverrideState().pendingCount,
     sourceIfcFiles: {},
   };

@@ -12,13 +12,29 @@ export interface ModelLoadControllerHooks {
   refreshFederationState: () => void;
 }
 
+type LoadFragBufferOptions = {
+  source?: FederationLoadSource;
+  lodCache?: {
+    seed: (entries: {
+      chunkId: string;
+      modelId: string;
+      bytes: number;
+      payload?: unknown;
+      source?: "backend" | "generated" | "fallback";
+    }[]) => void;
+  };
+};
+
+type LoadFragBufferResult = Awaited<ReturnType<typeof loadFragmentsBuffer>>;
+type LoadIfcModelResult = Awaited<ReturnType<typeof loadIfcModel>>;
+
 export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadControllerHooks) {
   const { workspace } = ctx;
   const { world, fragments, ifcLoader } = ctx.viewer;
   const { fileName, propertiesOutput, saveFragmentBtn } = ctx.dom;
   const loadQueue = createFederationLoadQueue();
 
-  async function loadIfc(file: File, source?: FederationLoadSource) {
+  async function loadIfc(file: File, source?: FederationLoadSource): Promise<void> {
     hooks.setActiveShareRecord(null);
     const strategy = resolveIfcLoadStrategy({ sizeBytes: file.size, maxBrowserBytes: MAX_IFC_BYTES });
     if (strategy.kind === "backend-required") {
@@ -33,12 +49,15 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
             onProgress: (value) => ctx.setProgress(value),
           });
 
-          const result = await loadFragBuffer(conversion.artifactBuffer, conversion.artifactName, {
-            kind: "frag",
-            origin: "url",
-            label: conversion.sourceFileName,
-            reference: conversion.sourceDownloadUrl,
-            restorable: false,
+          const result = await runLoadFragBuffer(conversion.artifactBuffer, conversion.artifactName, {
+            source: {
+              kind: "frag",
+              origin: "url",
+              label: conversion.sourceFileName,
+              reference: conversion.sourceDownloadUrl,
+              restorable: false,
+            },
+            lodCache: ctx.viewer.lodChunkCache,
           });
 
           workspace.viewer.lastConvertedModelId = result.modelId;
@@ -49,6 +68,7 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
             downloadUrl: conversion.sourceDownloadUrl,
           };
           workspace.data.progressiveLoadPlan = result.progressivePlan;
+          workspace.data.lodManifest = result.lodManifest;
           saveFragmentBtn.hidden = false;
           hooks.closeLibraryModal();
           hooks.refreshFederationState();
@@ -74,6 +94,7 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
         const result = await loadIfcModel({
           file,
           ifcLoader,
+          lodCache: ctx.viewer.lodChunkCache,
           source: source ?? {
             kind: "ifc",
             origin: "upload",
@@ -91,6 +112,7 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
         workspace.viewer.lastSourceIfcName = result.sourceName;
         workspace.data.sourceIfcFiles[result.modelId] = result.sourceIfc;
         workspace.data.progressiveLoadPlan = result.progressivePlan;
+        workspace.data.lodManifest = result.lodManifest;
         saveFragmentBtn.hidden = false;
         hooks.closeLibraryModal();
         hooks.refreshFederationState();
@@ -114,11 +136,14 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
 
     try {
       await loadFragBuffer(await file.arrayBuffer(), file.name, {
-        kind: "frag",
-        origin: "upload",
-        label: file.name,
-        reference: file.name,
-        restorable: false,
+        source: {
+          kind: "frag",
+          origin: "upload",
+          label: file.name,
+          reference: file.name,
+          restorable: false,
+        },
+        lodCache: ctx.viewer.lodChunkCache,
       });
       ctx.setStatus("FRAG загружен");
       ctx.showToast("FRAG загружен", "success");
@@ -130,43 +155,53 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
     }
   }
 
-  async function loadFragBuffer(buffer: ArrayBuffer, name: string, source?: FederationLoadSource) {
-    return loadQueue.enqueue(async () => {
+  async function loadFragBuffer(buffer: ArrayBuffer, name: string, source?: FederationLoadSource): Promise<void>;
+  async function loadFragBuffer(buffer: ArrayBuffer, name: string, options?: LoadFragBufferOptions): Promise<void>;
+  async function loadFragBuffer(buffer: ArrayBuffer, name: string, optionsOrSource?: FederationLoadSource | LoadFragBufferOptions): Promise<void> {
+    await loadQueue.enqueue(async () => {
       ctx.setBusy(true, "Загрузка Fragments");
-      fileName.textContent = name;
-
       try {
-        const result = await loadFragmentsBuffer({
-          buffer,
-          name,
-          fragments,
-          camera: world.camera.three,
-          source: source ?? {
-            kind: "frag",
-            origin: "upload",
-            label: name,
-            reference: name,
-            restorable: false,
-          },
-          onProgress: (value, stage) => {
-            ctx.setStatus(`${formatFragmentStage(stage)}: ${Math.round(value * 100)}%`);
-            ctx.setProgress(value);
-          },
-        });
-        hooks.refreshFederationState();
+        const result = await runLoadFragBuffer(buffer, name, typeof optionsOrSource === "object" && optionsOrSource && ("source" in optionsOrSource || "lodCache" in optionsOrSource)
+          ? optionsOrSource
+          : { source: optionsOrSource as FederationLoadSource | undefined });
         workspace.data.progressiveLoadPlan = result.progressivePlan;
+        workspace.data.lodManifest = result.lodManifest;
         ctx.setStatus(`FRAG загружен${result.source.restorable ? " · федерация сохранена" : ""}`);
         ctx.showToast("FRAG загружен", "success");
         ctx.setProgress(1);
-        return result;
       } catch (error) {
-        hooks.refreshFederationState();
         ctx.showError(error);
         throw error;
       } finally {
         ctx.setBusy(false);
       }
     });
+  }
+
+  async function runLoadFragBuffer(buffer: ArrayBuffer, name: string, options?: LoadFragBufferOptions): Promise<LoadFragBufferResult> {
+    const source = options?.source ?? {
+      kind: "frag",
+      origin: "upload",
+      label: name,
+      reference: name,
+      restorable: false,
+    };
+
+    const result = await loadFragmentsBuffer({
+      buffer,
+      name,
+      fragments,
+      camera: world.camera.three,
+      source,
+      lodCache: options?.lodCache,
+      onProgress: (value, stage) => {
+        ctx.setStatus(`${formatFragmentStage(stage)}: ${Math.round(value * 100)}%`);
+        ctx.setProgress(value);
+      },
+    });
+
+    hooks.refreshFederationState();
+    return result;
   }
 
   return { loadIfc, loadFrag, loadFragBuffer };

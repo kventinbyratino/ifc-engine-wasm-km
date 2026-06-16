@@ -162,7 +162,7 @@ export async function startBimApp() {
     clearSearchBtn,
   } = getDomElements();
 
-  const { components, world, fragments, ifcLoader, highlighter, hider } = await createBimViewer({
+  const { components, world, fragments, ifcLoader, highlighter, hider, lodChunkCache } = await createBimViewer({
     viewport,
     workerUrl,
     appBase: APP_BASE,
@@ -184,13 +184,13 @@ export async function startBimApp() {
     savePropertyOverride,
   } = createIfcOverridesWiring({
     dom: getDomElements(),
-    viewer: { components, world, fragments, ifcLoader, highlighter, hider },
+    viewer: { components, world, fragments, ifcLoader, highlighter, hider, lodChunkCache },
     workspace,
     showToast: appStatus.showToast,
   });
   const ctx: BimAppContext = createBimAppContext({
     dom: getDomElements(),
-    viewer: { components, world, fragments, ifcLoader, highlighter, hider },
+    viewer: { components, world, fragments, ifcLoader, highlighter, hider, lodChunkCache },
     workspace,
     issueStore,
     ifcOverrideStore,

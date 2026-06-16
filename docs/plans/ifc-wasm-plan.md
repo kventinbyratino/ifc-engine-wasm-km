@@ -34,9 +34,9 @@
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 17 — Production LOD / progressive loading for large IFC models.
+**Now:** Sprint 18 — Production drawings: interactive sheet viewport, model↔drawing links, GOST/SPDS title block.
 
-**Next:** Sprint 18 — Production drawings: interactive sheet viewport, model↔drawing links, GOST/SPDS title block.
+**Next:** Sprint 19 — Post-release hardening: telemetry, regression guardrails, deployment automation.
 
 **Later:** Sprint 19 — TBD.
 
@@ -975,7 +975,7 @@ git diff --check
 
 ### Sprint 17 — Production LOD / progressive loading for large IFC models (P0)
 
-**Status:** planned — turn the current LOD/progressive-loading skeleton into a production flow for large models after backend conversion is in place.
+**Status:** done — frontend LOD/progressive-loading contract, visibility index, chunk cache, and camera-based detail query are wired; synthetic fallback keeps models without backend artifacts working.
 
 **Цель:** ускорить открытие и навигацию по большим IFC: сначала показывать лёгкий coarse view/зоны, затем догружать детализацию по камере, этажам, видимости и пользовательскому фокусу.
 

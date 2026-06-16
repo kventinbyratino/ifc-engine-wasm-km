@@ -4,6 +4,7 @@ import * as CUI from "@thatopen/ui-obc";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import type { VisibilityCameraQuery } from "../performance/visibility-index.ts";
+import { createChunkCache } from "../performance/chunk-cache.ts";
 
 export type ModelLike = {
   object?: THREE.Object3D;
@@ -115,7 +116,9 @@ export async function createBimViewer(options: {
 
   const hider = components.get(OBC.Hider);
 
-  return { components, world, fragments, ifcLoader, highlighter, hider };
+  const lodChunkCache = createChunkCache({ maxChunks: 24, maxBytes: 128 * 1024 * 1024 });
+
+  return { components, world, fragments, ifcLoader, highlighter, hider, lodChunkCache };
 }
 
 async function createFragmentsWorkerUrl(url: string) {

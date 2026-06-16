@@ -1,6 +1,8 @@
 import type { FederationLoadSource, FederationLoadKind, FederationLoadOrigin } from "../federation/federation-registry.ts";
 import { createPerformanceMetricCollector, summarizeLoadPerformance, type LoadPerformanceSummary } from "../performance/performance-metrics.ts";
 import { createProgressiveLoadPlan, type ProgressiveLoadPlan } from "../performance/lod-loader.ts";
+import { createSyntheticLodManifest, type LodManifest } from "../performance/lod-manifest.ts";
+import type { ChunkCacheSeed } from "../performance/chunk-cache.ts";
 import { logControllerError } from "../ui/controller-errors.ts";
 
 export function createModelId(name: string) {
@@ -15,6 +17,7 @@ export async function loadIfcModel(options: {
   onProgress: (value: number, process: string) => void;
   source?: Partial<FederationLoadSource> & { kind?: FederationLoadKind };
   onPerformance?: (summary: LoadPerformanceSummary, plan: ProgressiveLoadPlan) => void;
+  lodCache?: { seed: (entries: ChunkCacheSeed[]) => void };
 }) {
   const { file, ifcLoader, onProgress } = options;
   const metrics = createPerformanceMetricCollector();
@@ -28,6 +31,7 @@ export async function loadIfcModel(options: {
     reference: file.name,
     origin: "upload",
     restorable: false,
+    sourceModelId: modelId,
     ...options.source,
   });
 
@@ -37,6 +41,7 @@ export async function loadIfcModel(options: {
       sourceType: "ifc",
       discipline: source.discipline,
       federationSource: source,
+      sourceModelId: modelId,
     },
     instanceCallback: (importer: { addAllAttributes: () => void; addAllRelations: () => void }) => {
       importer.addAllAttributes();
@@ -52,8 +57,25 @@ export async function loadIfcModel(options: {
   loadingModel.catch((error: unknown) => logControllerError(error));
   await loadingModel;
   metrics.mark("load-complete");
-  const progressivePlan = createProgressiveLoadPlan({ modelId, elementCount: buffer.byteLength, chunkSize: 1_000_000 });
-  metrics.setCounts({ elementCount: buffer.byteLength, visibleElementCount: buffer.byteLength, chunkCount: progressivePlan.totalChunks });
+  const lodManifest = createSyntheticLodManifest({ modelId, elementCount: buffer.byteLength, chunkSize: 1_000_000 });
+  const progressivePlan = createProgressiveLoadPlan({
+    modelId,
+    elementCount: buffer.byteLength,
+    chunkSize: 1_000_000,
+    manifest: lodManifest,
+  });
+  metrics.setCounts({
+    elementCount: buffer.byteLength,
+    visibleElementCount: lodManifest.chunks[0]?.stableElementIds.length ?? buffer.byteLength,
+    chunkCount: progressivePlan.totalChunks,
+  });
+  options.lodCache?.seed(lodManifest.chunks.map((chunk) => ({
+    chunkId: chunk.chunkId,
+    modelId: chunk.modelId,
+    bytes: estimateChunkBytes(buffer.byteLength, lodManifest.chunks.length),
+    payload: chunk,
+    source: chunk.source,
+  })));
   options.onPerformance?.(summarizeLoadPerformance(metrics.snapshot()), progressivePlan);
 
   return {
@@ -67,6 +89,7 @@ export async function loadIfcModel(options: {
     },
     performance: summarizeLoadPerformance(metrics.snapshot()),
     progressivePlan,
+    lodManifest,
   };
 }
 
@@ -78,6 +101,7 @@ export async function loadFragBuffer(options: {
   onProgress: (value: number, stage: string) => void;
   source?: Partial<FederationLoadSource> & { kind?: FederationLoadKind };
   onPerformance?: (summary: LoadPerformanceSummary, plan: ProgressiveLoadPlan) => void;
+  lodCache?: { seed: (entries: ChunkCacheSeed[]) => void };
 }) {
   const { buffer, name, fragments, camera, onProgress } = options;
   const metrics = createPerformanceMetricCollector();
@@ -89,6 +113,7 @@ export async function loadFragBuffer(options: {
     reference: name,
     origin: "upload",
     restorable: false,
+    sourceModelId: modelId,
     ...options.source,
   });
   const loadingModel = fragments.core.load(buffer, {
@@ -100,6 +125,7 @@ export async function loadFragBuffer(options: {
       sourceType: "frag",
       discipline: source.discipline,
       federationSource: source,
+      sourceModelId: modelId,
     },
     onProgress: (event: { stage: string; progress: number }) => {
       const value = event.stage === "done" ? 1 : event.progress;
@@ -111,11 +137,32 @@ export async function loadFragBuffer(options: {
   await loadingModel;
   await fragments.core.update(true);
   metrics.mark("load-complete");
-  const progressivePlan = createProgressiveLoadPlan({ modelId, elementCount: buffer.byteLength, chunkSize: 1_000_000 });
-  metrics.setCounts({ elementCount: buffer.byteLength, visibleElementCount: buffer.byteLength, chunkCount: progressivePlan.totalChunks });
+  const lodManifest = createSyntheticLodManifest({ modelId, elementCount: buffer.byteLength, chunkSize: 1_000_000 });
+  const progressivePlan = createProgressiveLoadPlan({
+    modelId,
+    elementCount: buffer.byteLength,
+    chunkSize: 1_000_000,
+    manifest: lodManifest,
+  });
+  metrics.setCounts({
+    elementCount: buffer.byteLength,
+    visibleElementCount: lodManifest.chunks[0]?.stableElementIds.length ?? buffer.byteLength,
+    chunkCount: progressivePlan.totalChunks,
+  });
+  options.lodCache?.seed(lodManifest.chunks.map((chunk) => ({
+    chunkId: chunk.chunkId,
+    modelId: chunk.modelId,
+    bytes: estimateChunkBytes(buffer.byteLength, lodManifest.chunks.length),
+    payload: chunk,
+    source: chunk.source,
+  })));
   options.onPerformance?.(summarizeLoadPerformance(metrics.snapshot()), progressivePlan);
 
-  return { modelId, sourceName: name, source, performance: summarizeLoadPerformance(metrics.snapshot()), progressivePlan };
+  return { modelId, sourceName: name, source, performance: summarizeLoadPerformance(metrics.snapshot()), progressivePlan, lodManifest };
+}
+
+function estimateChunkBytes(totalBytes: number, chunkCount: number) {
+  return Math.max(1, Math.floor(totalBytes / Math.max(1, chunkCount)));
 }
 
 function normalizeLoadSource(source: Partial<FederationLoadSource> & { kind: FederationLoadKind; label: string; reference: string; origin?: FederationLoadOrigin; restorable?: boolean }): FederationLoadSource {
@@ -125,6 +172,7 @@ function normalizeLoadSource(source: Partial<FederationLoadSource> & { kind: Fed
     label: source.label,
     reference: source.reference,
     restorable: source.restorable ?? false,
+    sourceModelId: typeof source.sourceModelId === "string" && source.sourceModelId.trim() ? source.sourceModelId.trim() : undefined,
     discipline: typeof source.discipline === "string" && source.discipline.trim() ? source.discipline.trim() : undefined,
   };
 }

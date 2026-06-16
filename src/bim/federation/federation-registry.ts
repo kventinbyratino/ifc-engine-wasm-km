@@ -12,6 +12,7 @@ export type FederationLoadSource = {
   reference: string;
   restorable: boolean;
   discipline?: string;
+  sourceModelId?: string;
 };
 
 export type FederationModelStatus = "queued" | "loading" | "ready" | "failed" | "restoring";
@@ -54,6 +55,8 @@ export function createFederationLoadSource(options: Partial<FederationLoadSource
     label: options.label,
     reference: options.reference,
     restorable: options.restorable ?? false,
+    discipline: options.discipline,
+    sourceModelId: options.sourceModelId,
   };
 }
 
@@ -163,6 +166,7 @@ function readFederationSource(model: unknown, modelId: string): FederationLoadSo
     reference,
     restorable: false,
     discipline: typeof userData?.discipline === "string" && userData.discipline.trim() ? userData.discipline.trim() : undefined,
+    sourceModelId: typeof userData?.sourceModelId === "string" && userData.sourceModelId.trim() ? userData.sourceModelId.trim() : undefined,
   };
 }
 
@@ -183,6 +187,7 @@ function isFederationLoadSource(value: unknown): value is FederationLoadSource {
     typeof candidate.label === "string" &&
     typeof candidate.reference === "string" &&
     typeof candidate.restorable === "boolean" &&
-    (candidate.discipline === undefined || typeof candidate.discipline === "string")
+    (candidate.discipline === undefined || typeof candidate.discipline === "string") &&
+    (candidate.sourceModelId === undefined || typeof candidate.sourceModelId === "string")
   );
 }

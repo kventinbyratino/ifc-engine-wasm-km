@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { noteFederationAction } from "../federation/federation-actions.ts";
 import { syncFederationRegistry } from "../federation/federation-registry.ts";
 import { isEmptySelection } from "../selection/selection.ts";
+import { createVisibilityIndex } from "../performance/visibility-index.ts";
+import { getViewerCameraQuery } from "../viewer/viewer.ts";
 import type { BimAppContext } from "./app-context.ts";
 import { createFederationActionsController, type FederationActionsController } from "./federation-actions-controller.ts";
 import { createModelLoadController } from "./model-load-controller.ts";
@@ -166,8 +168,24 @@ export function createModelController({
     federationActionsController.applyFederationAppearance();
     federationActionsController.renderFederationState();
     const hasModels = fragments.list.size > 0;
-    workspace.viewer.visibleChunkIds = workspace.data.progressiveLoadPlan?.stages.flatMap((stage) => stage.chunkIds) ?? [];
-    workspace.viewer.lastVisibilityUpdateAt = hasModels ? new Date().toISOString() : "";
+    const progressivePlan = workspace.data.progressiveLoadPlan;
+    if (progressivePlan?.manifest) {
+      const visibilityIndex = createVisibilityIndex(progressivePlan.manifest.chunks);
+      const camera = world.camera.three;
+      const target = (world.camera.controls as { target?: THREE.Vector3 }).target ?? new THREE.Vector3();
+      const selectedElements = Object.entries(workspace.viewer.activeSelection).flatMap(([modelId, localIds]) =>
+        [...localIds].map((localId) => ({ modelId, localId })),
+      );
+      const visibility = visibilityIndex.queryVisible({
+        ...getViewerCameraQuery(camera, target, 80),
+        selectedElements,
+      });
+      workspace.viewer.visibleChunkIds = visibility.chunkIds;
+      workspace.viewer.lastVisibilityUpdateAt = hasModels ? new Date().toISOString() : "";
+    } else {
+      workspace.viewer.visibleChunkIds = progressivePlan?.stages.flatMap((stage) => stage.chunkIds) ?? [];
+      workspace.viewer.lastVisibilityUpdateAt = hasModels ? new Date().toISOString() : "";
+    }
     const capabilities = ctx.getCapabilities();
     const showBimEmptyState = !hasModels && workspace.viewer.activeProfile === "bim";
     modelCount.textContent = String(fragments.list.size);

@@ -2,8 +2,9 @@ import { createMessage } from "../ui/dom-utils.ts";
 import { errorToMessage, showToast } from "../ui/toast.ts";
 import type { BimDomElements } from "./app-context.ts";
 import { logControllerError } from "../ui/controller-errors.ts";
+import { appTelemetry, type Telemetry } from "../observability/telemetry.ts";
 
-export function createAppStatusController(dom: BimDomElements) {
+export function createAppStatusController(dom: BimDomElements, telemetry: Telemetry = appTelemetry) {
   const {
     statusText,
     loadingOverlay,
@@ -20,6 +21,7 @@ export function createAppStatusController(dom: BimDomElements) {
 
   function setStatus(message: string) {
     statusText.textContent = message;
+    telemetry.track("app.status", { message });
   }
 
   function setBusy(isBusy: boolean, message?: string) {
@@ -33,6 +35,7 @@ export function createAppStatusController(dom: BimDomElements) {
       statusText.textContent = message;
       loadingStatus.textContent = message;
     }
+    telemetry.track("app.busy", { isBusy, message: message ?? null });
   }
 
   function startOperation(message: string) {
@@ -55,6 +58,7 @@ export function createAppStatusController(dom: BimDomElements) {
     statusText.textContent = "Операция отменяется...";
     loadingStatus.textContent = "Операция отменяется...";
     showToast("Операция отменяется...", "info");
+    telemetry.track("app.operation.cancel", {}, "warning");
   }
 
   function setProgress(value: number) {
@@ -65,6 +69,7 @@ export function createAppStatusController(dom: BimDomElements) {
 
   function showError(error: unknown) {
     logControllerError(error);
+    telemetry.trackError("app.error", error);
     statusText.textContent = "Ошибка загрузки модели";
     showToast(errorToMessage(error), "error");
     propertiesOutput.replaceChildren(

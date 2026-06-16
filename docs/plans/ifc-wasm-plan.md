@@ -36,11 +36,11 @@
 
 **Now:** Sprint 19 — Drawing element identity map and bidirectional selection sync.
 
-**Next:** Sprint 20 — Post-release hardening: telemetry, regression guardrails, deployment automation.
+**Next:** Sprint 20 — Section 3 drawing generation from IFC/Fragments.
 
-**Later:** Sprint 21 — TBD.
+**Later:** TBD.
 
-**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Sprint 11; Sprint 12; Sprint 15; Sprint 16; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
+**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Sprint 11; Sprint 12; Sprint 15; Sprint 16; Sprint 21; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
 
 **Definition of done for any item:** scoped files are listed, acceptance is clear, verification commands pass, and `git diff --check` is clean.
 
@@ -1157,6 +1157,117 @@ git diff --check
 - Клик по чертежу выбирает BIM-объект.
 - Клик по BIM-объекту подсвечивает соответствующий чертёж.
 - UI честно сообщает, когда связь не найдена или элемент вне viewport.
+
+---
+
+### Sprint 20 — Section 3 drawing generation from IFC/Fragments (P0)
+
+**Status:** planned — build the first automated pipeline for section 3 architectural drawings on top of the existing ThatOpen drawing stack.
+
+**Цель:** автоматически собирать черновой комплект раздела 3 из IFC/Fragments без отдельного DXF-движка: планы этажей, фасады, экспликации помещений, базовую сборку листов и экспорт через текущий `TechnicalDrawings` + `DxfManager` flow.
+
+**Key requirement:** генерация живёт как надстройка над текущим drawing engine; не дублируем рендер, а используем `TechnicalDrawings`, `DrawingLayers`, `DrawingViewports`, `EdgeProjector`, `DrawingEditor`, `DxfManager`.
+
+**Files:**
+- Create: `src/bim/drawings/section-3/section-3-types.ts`
+- Create: `src/bim/drawings/section-3/section-3-extractor.ts`
+- Create: `src/bim/drawings/section-3/facade-selector.ts`
+- Create: `src/bim/drawings/section-3/floor-plan-generator.ts`
+- Create: `src/bim/drawings/section-3/sheet-composer.ts`
+- Create: `src/bim/drawings/section-3/section-3-export.ts`
+- Modify: `src/bim/drawings/drawing-manager.ts`
+- Modify: `src/bim/app/drawings-controller.ts`
+- Modify: `src/bim/app/ui-wiring.ts`
+- Modify: `src/bim/ui/drawings-panel.ts`
+
+**Tasks:**
+1. **Section 3 extraction layer**
+   - **Objective:** extract storeys, rooms, walls, openings, facade elements, levels, orientation and materials from IFC/Fragments into a normalized section 3 payload.
+   - **Files:** `src/bim/drawings/section-3/section-3-extractor.ts`, `src/bim/drawings/section-3/section-3-types.ts`.
+   - **Acceptance:** the generator receives a stable JSON payload instead of directly walking IFC geometry.
+
+2. **Plan and facade generators**
+   - **Objective:** generate floor plans and four facade projections from the normalized payload using the existing drawing stack.
+   - **Files:** `src/bim/drawings/section-3/floor-plan-generator.ts`, `src/bim/drawings/section-3/facade-selector.ts`, `src/bim/drawings/drawing-manager.ts`.
+   - **Acceptance:** plans and facades are created as real drawing projections with source refs, not screenshots.
+
+3. **Sheet composition**
+   - **Objective:** assemble generated projections into reusable sheet layouts with titles, viewports and basic annotations.
+   - **Files:** `src/bim/drawings/section-3/sheet-composer.ts`, `src/bim/app/drawings-controller.ts`.
+   - **Acceptance:** a section 3 draft can be assembled into one or more sheets with consistent placement.
+
+4. **Export and review flow**
+   - **Objective:** export the generated section 3 package through the current DXF path and open it for manual review in `DrawingEditor`.
+   - **Files:** `src/bim/drawings/section-3/section-3-export.ts`, `src/bim/ui/drawings-panel.ts`, `src/bim/app/ui-wiring.ts`.
+   - **Acceptance:** the generated package can be exported and then corrected manually without breaking source links.
+
+5. **MVP validation**
+   - **Objective:** verify the pipeline on at least one representative IFC model and capture missing data/edge cases.
+   - **Files:** `tests/drawings/section-3/*.test.mjs`.
+   - **Acceptance:** the MVP produces a usable черновик section 3 and exposes gaps that need rule refinement.
+
+**Verification:**
+```bash
+npm run build
+node --test tests/drawings/section-3/*.test.mjs
+git diff --check
+```
+
+**Acceptance:**
+- Section 3 can be generated from IFC/Fragments without a separate drawing engine.
+- Plans, facades and room schedules are produced from normalized BIM data.
+- Generated drawings are reviewable in the existing editor flow.
+- DXF export continues to work through the current pipeline.
+
+---
+
+### Sprint 21 — Post-release hardening: telemetry, regression guardrails, deployment automation (P1)
+
+**Status:** completed — local telemetry, build smoke guardrails, and predeploy gate are implemented and verified.
+
+**Цель:** сделать post-release цикл безопаснее: фиксировать ключевые runtime-события, ловить регрессии в собранном Vite bundle до выкладки и иметь один повторяемый predeploy gate.
+
+**Files:**
+- Create: `src/bim/observability/telemetry.ts`
+- Modify: `src/bim/app/app-status.ts`
+- Create: `scripts/smoke-regression.mjs`
+- Create: `scripts/predeploy-check.mjs`
+- Modify: `package.json`
+- Create: `tests/telemetry.test.mjs`
+- Create: `tests/smoke-regression.test.mjs`
+- Create: `tests/predeploy-check.test.mjs`
+
+**Tasks:**
+1. **Telemetry buffer and app status hooks**
+   - **Objective:** add bounded local telemetry for status changes, busy state, cancellation and errors.
+   - **Verification:** `node --test tests/telemetry.test.mjs && npm run build`.
+   - **Acceptance:** telemetry can be disabled, keeps a bounded event buffer, sanitizes errors and is wired into the app status/error path.
+
+2. **Regression smoke guardrails**
+   - **Objective:** add a smoke script that validates built `dist/`: index exists, referenced assets exist, assets are non-empty, and drawing runtime markers are present.
+   - **Verification:** `node --test tests/smoke-regression.test.mjs && npm run smoke:regression`.
+   - **Acceptance:** valid builds pass; broken bundles without drawing markers fail with a clear error.
+
+3. **Predeploy automation**
+   - **Objective:** add one release gate command that runs build first and smoke regression second.
+   - **Verification:** `node --test tests/predeploy-check.test.mjs && npm run predeploy:check`.
+   - **Acceptance:** `npm run predeploy:check` runs the production build and regression smoke before deploy/promotion.
+
+**Verification:**
+```bash
+node --test tests/telemetry.test.mjs tests/smoke-regression.test.mjs tests/predeploy-check.test.mjs
+npm run predeploy:check
+npm test
+npm run build
+npm run smoke:regression
+git diff --check
+```
+
+**Acceptance:**
+- Runtime errors/statuses have a local telemetry path.
+- Built assets are checked before deploy.
+- Deployment readiness is repeatable through `npm run predeploy:check`.
+- Roadmap status is synchronized with the completed sprint.
 
 ## 2. Refactor / architecture phases
 

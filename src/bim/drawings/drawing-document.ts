@@ -2,6 +2,7 @@ import type * as OBC from "@thatopen/components";
 import type { DrawingAnnotation } from "./drawing-annotations.ts";
 import type { DrawingProjection, DrawingSource, DrawingView } from "./drawing-types.ts";
 import type { SheetFormat, SheetSpecBlock } from "../sheets/sheet-types.ts";
+import type { SheetViewportFrame } from "../sheets/sheet-viewport-frame.ts";
 import type { ModelIdMap } from "../types.ts";
 import { cloneModelIdMap } from "./drawing-selection-sync.ts";
 
@@ -29,6 +30,7 @@ export interface SheetDocument {
   drawing: DrawingDocument;
   createdAt: Date;
   specBlocks: SheetSpecBlock[];
+  viewportFrame: SheetViewportFrame;
 }
 
 export function createDrawingDocument(document: Omit<DrawingDocument, "sheets"> & { sheets?: SheetDocument[] }): DrawingDocument {
@@ -47,6 +49,7 @@ export function createSheetDocument(options: {
   id?: string;
   createdAt?: Date;
   specBlocks?: SheetSpecBlock[];
+  viewportFrame?: SheetViewportFrame;
 }): SheetDocument {
   return {
     id: options.id || `sheet-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -56,6 +59,7 @@ export function createSheetDocument(options: {
     drawing: options.drawing,
     createdAt: options.createdAt || new Date(),
     specBlocks: options.specBlocks ? [...options.specBlocks] : [],
+    viewportFrame: options.viewportFrame ? { ...options.viewportFrame } : { x: 0, y: 0, width: 0, height: 0 },
   };
 }
 

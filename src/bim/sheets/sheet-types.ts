@@ -1,5 +1,6 @@
 import type { DrawingDocument } from "../drawings/drawing-document.ts";
 import type { SpecificationRow } from "../specs/spec-generator.ts";
+import type { SheetViewportFrame } from "./sheet-viewport-frame.ts";
 
 export type SheetFormat = "A4" | "A3" | "A2" | "A1" | "A0";
 
@@ -18,6 +19,7 @@ export type SheetRecord = {
   drawing: DrawingDocument;
   createdAt: Date;
   specBlocks: SheetSpecBlock[];
+  viewportFrame: SheetViewportFrame;
 };
 
 export const SHEET_SIZES_MM: Record<SheetFormat, { width: number; height: number }> = {

@@ -29,6 +29,8 @@ export type ChunkCacheSnapshot = {
   bytesByChunkId: Record<string, number>;
 };
 
+let logicalClock = 0;
+
 export function createChunkCache(options: { maxChunks?: number; maxBytes?: number } = {}) {
   const maxChunks = Math.max(1, Math.floor(options.maxChunks ?? 24));
   const maxBytes = Math.max(1, Math.floor(options.maxBytes ?? 128 * 1024 * 1024));
@@ -60,7 +62,7 @@ export function createChunkCache(options: { maxChunks?: number; maxBytes?: numbe
     }
     hits += 1;
     entries.delete(chunkId);
-    entry.lastAccessedAt = now();
+    entry.lastAccessedAt = nextTimestamp();
     entries.set(chunkId, entry);
     return entry;
   }
@@ -126,7 +128,7 @@ export function createChunkCache(options: { maxChunks?: number; maxBytes?: numbe
 }
 
 function normalizeEntry<T>(entry: ChunkCacheSeed<T>): ChunkCacheEntry<T> {
-  const nowAt = now();
+  const nowAt = nextTimestamp();
   return {
     chunkId: normalizeText(entry.chunkId, "chunk"),
     modelId: normalizeText(entry.modelId, "model"),
@@ -143,6 +145,8 @@ function normalizeText(value: string | undefined, fallback: string) {
   return text || fallback;
 }
 
-function now() {
-  return Date.now();
+function nextTimestamp() {
+  const wallClock = Date.now();
+  logicalClock = Math.max(logicalClock + 1, wallClock);
+  return logicalClock;
 }

@@ -24,7 +24,9 @@ import {
 } from "../drawings/drawing-persistence.ts";
 import { removeSheetDocumentsForDrawing } from "../drawings/drawing-document.ts";
 import { renderSheetSvg } from "../sheets/sheet-board.ts";
+import { SHEET_SIZES_MM } from "../sheets/sheet-types.ts";
 import type { SheetFormat, SheetRecord } from "../sheets/sheet-types.ts";
+import { applySheetViewportDrag, normalizeSheetViewportFrame, type SheetViewportFrame, type SheetViewportHandle } from "../sheets/sheet-viewport-frame.ts";
 import { getActiveDrawing, getActiveSheet, getDrawingStats, setActiveDrawing } from "../state/workspace-state.ts";
 import type { ModelIdMap } from "../types.ts";
 import type { BimAppContext } from "./app-context.ts";
@@ -109,6 +111,9 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     drawingStudioBtn.textContent = value ? "Закрыть оформление" : "Оформление";
     if (value) {
       updateDrawingSplitRatio(drawingSplitRatio);
+      if (!getActiveSheet(workspace.drawings)) {
+        createSheetFromActiveDrawing();
+      }
       renderDrawingPreview();
     } else {
       viewerShell.style.removeProperty("--drawing-split-left");
@@ -161,7 +166,12 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       return;
     }
 
-    const activeSheet = workspace.drawings.sheets.find((sheet) => sheet.drawing.id === record.id) ?? null;
+    let activeSheet = workspace.drawings.sheets.find((sheet) => sheet.drawing.id === record.id) ?? null;
+    if (!activeSheet && drawingStudioActive) {
+      createSheetFromActiveDrawing();
+      activeSheet = workspace.drawings.sheets.find((sheet) => sheet.drawing.id === record.id) ?? null;
+    }
+
     const previewSheet: SheetRecord = activeSheet ?? {
       id: `preview-${record.id}`,
       format: sheetFormatSelect.value as SheetFormat,
@@ -170,6 +180,12 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
       drawing: record,
       createdAt: record.createdAt,
       specBlocks: [],
+      viewportFrame: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+      },
     };
 
     drawingPreview.replaceChildren(createPreviewFrame(previewSheet));
@@ -178,7 +194,9 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
   function createPreviewFrame(sheet: SheetRecord) {
     const frame = document.createElement("div");
     frame.className = "drawing-preview-frame";
-    frame.innerHTML = renderSheetSvg(sheet);
+    frame.dataset.sheetId = sheet.id;
+    frame.innerHTML = renderSheetSvg(sheet, { includeViewportHandles: drawingStudioActive });
+    if (drawingStudioActive) bindViewportFrameInteractions(frame, sheet);
     return frame;
   }
 
@@ -228,6 +246,79 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     if (drawingStudioActive) renderDrawingPreview();
     renderDrawingsPanel();
     ctx.setStatus(`Активен чертёж: ${best.drawing.name} · совпадение ${best.overlap} эл.`);
+  }
+
+  function bindViewportFrameInteractions(frame: HTMLDivElement, sheet: SheetRecord) {
+    const svg = frame.querySelector("svg");
+    if (!(svg instanceof SVGElement)) return;
+
+    const size = SHEET_SIZES_MM[sheet.format];
+    let dragState: {
+      handle: SheetViewportHandle;
+      startFrame: SheetViewportFrame;
+      startX: number;
+      startY: number;
+      bounds: SheetViewportFrame;
+    } | null = null;
+
+    const pointerDown = (event: PointerEvent) => {
+      const target = event.target instanceof Element ? event.target.closest("[data-sheet-viewport-handle]") : null;
+      if (!(target instanceof Element)) return;
+      const handle = target.getAttribute("data-sheet-viewport-handle") as SheetViewportHandle | null;
+      if (!handle) return;
+      event.preventDefault();
+      const frameBounds = getEditableViewportBounds(sheet);
+      dragState = {
+        handle,
+        startFrame: normalizeSheetViewportFrame(sheet.viewportFrame, frameBounds, 24),
+        startX: event.clientX,
+        startY: event.clientY,
+        bounds: frameBounds,
+      };
+      (target as HTMLElement).setPointerCapture(event.pointerId);
+      window.addEventListener("pointermove", pointerMove);
+      window.addEventListener("pointerup", pointerUp);
+    };
+
+    const pointerMove = (event: PointerEvent) => {
+      if (!dragState) return;
+      const svgRect = svg.getBoundingClientRect();
+      if (svgRect.width <= 0 || svgRect.height <= 0) return;
+      const dx = ((event.clientX - dragState.startX) / svgRect.width) * size.width;
+      const dy = ((event.clientY - dragState.startY) / svgRect.height) * size.height;
+      const nextFrame = applySheetViewportDrag({
+        frame: dragState.startFrame,
+        bounds: dragState.bounds,
+        handle: dragState.handle,
+        deltaX: dx,
+        deltaY: dy,
+        minSize: 24,
+      });
+      sheet.viewportFrame = nextFrame;
+      persistDrawings();
+      drawingPreview.replaceChildren(createPreviewFrame(sheet));
+    };
+
+    const pointerUp = () => {
+      dragState = null;
+      window.removeEventListener("pointermove", pointerMove);
+      window.removeEventListener("pointerup", pointerUp);
+    };
+
+    svg.addEventListener("pointerdown", pointerDown);
+  }
+
+  function getEditableViewportBounds(sheet: SheetRecord): SheetViewportFrame {
+    const size = SHEET_SIZES_MM[sheet.format];
+    const margin = Math.max(12, Math.round(size.width * 0.035));
+    const titleBlockHeight = Math.max(34, Math.round(size.height * 0.15));
+    const specWidth = sheet.specBlocks.length > 0 ? Math.max(120, Math.round((size.width - margin * 2) * 0.34)) : 0;
+    return {
+      x: margin,
+      y: margin,
+      width: Math.max(0, size.width - margin * 2 - (specWidth > 0 ? specWidth + 8 : 0)),
+      height: Math.max(0, size.height - margin * 2 - titleBlockHeight),
+    };
   }
 
   function clamp(value: number, min: number, max: number) {

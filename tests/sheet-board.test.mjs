@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { createSheet, renderSheetSvg } from "../src/bim/sheets/sheet-board.ts";
 import { createSpecBlocksFromRows } from "../src/bim/sheets/spec-placement.ts";
+import { applySheetViewportDrag } from "../src/bim/sheets/sheet-viewport-frame.ts";
 
 function createDrawingStub() {
   return {
@@ -30,6 +31,12 @@ function createDrawingStub() {
       },
     },
     sourceModelIdMap: new Map(),
+    viewportFrame: {
+      x: 16,
+      y: 16,
+      width: 240,
+      height: 120,
+    },
     sheets: [],
   };
 }
@@ -58,4 +65,17 @@ test("renderSheetSvg includes spec block tables and multiple blocks", () => {
   assert.match(svg, /IFCWALL/);
   assert.match(svg, /Лист с ведомостью/);
   assert.match(svg, /Спецификаций: 2/);
+});
+
+test("viewport frame helper clamps resize and move within the sheet", () => {
+  const clamped = applySheetViewportDrag({
+    frame: { x: 20, y: 20, width: 120, height: 80 },
+    bounds: { x: 10, y: 10, width: 200, height: 150 },
+    handle: "se",
+    deltaX: 200,
+    deltaY: 120,
+    minSize: 24,
+  });
+
+  assert.deepEqual(clamped, { x: 20, y: 20, width: 190, height: 140 });
 });

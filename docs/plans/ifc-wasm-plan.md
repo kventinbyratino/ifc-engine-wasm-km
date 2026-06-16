@@ -34,11 +34,11 @@
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 18 — Production drawings: interactive sheet viewport, model↔drawing links, GOST/SPDS title block.
+**Now:** Sprint 19 — Drawing element identity map and bidirectional selection sync.
 
-**Next:** Sprint 19 — Post-release hardening: telemetry, regression guardrails, deployment automation.
+**Next:** Sprint 20 — Post-release hardening: telemetry, regression guardrails, deployment automation.
 
-**Later:** Sprint 19 — TBD.
+**Later:** Sprint 21 — TBD.
 
 **Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Sprint 11; Sprint 12; Sprint 15; Sprint 16; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
 
@@ -1040,7 +1040,7 @@ git diff --check
 
 ### Sprint 18 — Production drawings: interactive sheet viewport, model links, GOST/SPDS frame (P0)
 
-**Status:** planned — convert the current drawing output from a static preview into an editable drawing/sheet workspace.
+**Status:** completed — interactive viewport editing, sheet persistence, identity/selection sync, SPDS presets, title block, and export path are now implemented and verified.
 
 **Цель:** сделать чертёж рабочим листом: интерактивный контур активного листа/viewport в окне оформления, двусторонняя связь модель↔чертёж и оформление листа по ГОСТ/СПДС.
 
@@ -1053,9 +1053,9 @@ git diff --check
    - **Acceptance:** рамку можно выделить, двигать, менять размер за handles; изменения сохраняются в drawing state; в 3D не остаётся непонятного синего overlay.
 
 2. **Drawing element identity map**
-   - **Objective:** при генерации чертежа сохранить соответствие каждой линии/проекции исходному `modelId + localId/expressId`.
+   - **Objective:** при генерации чертежа сохранять соответствие каждой *проекции BIM-объекта* исходному `modelId + localId/expressId`.
    - **Files:** `src/bim/drawings/drawing-types.ts`, `src/bim/drawings/drawing-manager.ts`, `src/bim/drawings/floor-plan.ts`.
-   - **Acceptance:** drawing geometry хранит source IDs; для элементов без связи есть явный fallback `unlinked`, а не молчаливый разрыв.
+   - **Acceptance:** drawing geometry хранит source IDs на уровне проекции объекта; для элементов без связи есть явный fallback `unlinked`, а не молчаливый разрыв.
 
 3. **Drawing → model selection sync**
    - **Objective:** клик по элементу чертежа должен выбирать и подсвечивать соответствующий объект в 3D.
@@ -1093,6 +1093,70 @@ git diff --check
 - Есть двусторонняя связь модель↔чертёж.
 - Лист оформлен по ГОСТ/СПДС.
 - Экспорт сохраняет оформление и геометрию.
+
+---
+
+### Sprint 19 — Drawing projection identity map and bidirectional sync (P0)
+
+**Status:** planned — make each drawing projection addressable and sync selection both ways.
+
+**Цель:** чертёж хранит BIM-источник на уровне проекции объекта: например, стена в плане отображается как прямоугольник, и выбор/подсветка синхронизируются между моделью и листом.
+
+**Key requirement:** связь живёт на уровне проекции BIM-объекта. Если связи нет, нужен явный `unlinked`-fallback и понятный статус в UI.
+
+**Files:**
+- Modify: `src/bim/drawings/drawing-types.ts`
+- Modify: `src/bim/drawings/drawing-manager.ts`
+- Modify: `src/bim/drawings/drawing-selection-sync.ts`
+- Modify: `src/bim/drawings/drawing-persistence.ts`
+- Modify: `src/bim/app/drawings-controller.ts`
+- Modify: `src/bim/app/ui-wiring.ts`
+- Modify: `src/bim/ui/drawings-panel.ts`
+- Optional: `src/bim/drawings/drawing-hit-test.ts`
+
+**Tasks:**
+1. **Projection source schema**
+   - **Objective:** добавить в drawing model явную модель проекции BIM-объекта: `modelId + localId/expressId`, тип проекции, `linked/unlinked` статус.
+   - **Files:** `src/bim/drawings/drawing-types.ts`, `src/bim/drawings/drawing-manager.ts`.
+   - **Acceptance:** каждая проекция имеет стабильный source ref; `unlinked` хранится явно, а не как отсутствие данных.
+
+2. **Projection generator**
+   - **Objective:** при генерации плана строить 2D-проекции из BIM-объектов, а не хранить абстрактные primitives.
+   - **Files:** `src/bim/drawings/floor-plan.ts`, `src/bim/drawings/drawing-manager.ts`.
+   - **Acceptance:** стена в плане становится прямоугольной проекцией, дверь/проём/колонна получают свою 2D-геометрию и source ref.
+
+3. **Drawing → model picking**
+   - **Objective:** клик по проекции на чертеже должен находить source BIM-объект и выбирать его в 3D.
+   - **Files:** `src/bim/drawings/drawing-hit-test.ts`, `src/bim/ui/drawings-panel.ts`, `src/bim/app/ui-wiring.ts`.
+   - **Acceptance:** selection в модели срабатывает по linked projection; для `unlinked` показывается понятный статус.
+
+4. **Model → drawing highlight**
+   - **Objective:** выбор объекта в 3D должен подсвечивать все связанные проекции на активном чертеже/листе.
+   - **Files:** `src/bim/drawings/drawing-selection-sync.ts`, `src/bim/app/drawings-controller.ts`.
+   - **Acceptance:** если проекция попадает в viewport, она подсвечивается; если нет — UI сообщает, что объект вне текущего вида.
+
+5. **Viewport-aware fallback and status**
+   - **Objective:** различать состояния linked / unlinked / off-screen и показывать их в UI.
+   - **Files:** `src/bim/ui/drawings-panel.ts`, `src/bim/app/drawings-controller.ts`.
+   - **Acceptance:** пользователь видит, почему связь не показана или почему подсветка не сработала.
+
+6. **Persistence and export of projection links**
+   - **Objective:** сохранить source metadata в workspace persistence и не потерять её при export path.
+   - **Files:** `src/bim/drawings/drawing-persistence.ts`, `src/bim/drawings/drawing-manager.ts`.
+   - **Acceptance:** после reload связи восстанавливаются; экспорт не отрезает metadata, нужную для последующей связки.
+
+**Verification:**
+```bash
+node --test tests/drawings/*.test.mjs tests/sheet-board.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Каждая drawing primitive либо привязана к BIM source, либо помечена как `unlinked`.
+- Клик по чертежу выбирает BIM-объект.
+- Клик по BIM-объекту подсвечивает соответствующий чертёж.
+- UI честно сообщает, когда связь не найдена или элемент вне viewport.
 
 ## 2. Refactor / architecture phases
 

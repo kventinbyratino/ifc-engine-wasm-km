@@ -4,6 +4,7 @@ import { createSheetDocument } from "../drawings/drawing-document.ts";
 import type { SheetFormat, SheetRecord, SheetSpecBlock } from "./sheet-types.ts";
 import { SHEET_SIZES_MM } from "./sheet-types.ts";
 import { buildSpecLayout } from "./spec-layout.ts";
+import { applySheetViewportDrag, cloneSheetViewportFrame, normalizeSheetViewportFrame, type SheetViewportFrame, type SheetViewportHandle } from "./sheet-viewport-frame.ts";
 
 export function createSheet(options: {
   format: SheetFormat;
@@ -12,10 +13,23 @@ export function createSheet(options: {
   title?: string;
   specBlocks?: SheetSpecBlock[];
 }): SheetRecord {
-  return createSheetDocument(options);
+  const size = SHEET_SIZES_MM[options.format];
+  const margin = Math.max(12, Math.round(size.width * 0.035));
+  const titleBlockHeight = Math.max(34, Math.round(size.height * 0.15));
+  const layout = buildSpecLayout({
+    sheetSize: size,
+    margin,
+    titleBlockHeight,
+    blockCount: options.specBlocks?.length ?? 0,
+  });
+
+  return createSheetDocument({
+    ...options,
+    viewportFrame: cloneSheetViewportFrame(layout.drawingViewport),
+  });
 }
 
-export function renderSheetSvg(sheet: SheetRecord) {
+export function renderSheetSvg(sheet: SheetRecord, options: { includeViewportHandles?: boolean } = {}) {
   const size = SHEET_SIZES_MM[sheet.format];
   const margin = Math.max(12, Math.round(size.width * 0.035));
   const titleBlockHeight = Math.max(34, Math.round(size.height * 0.15));
@@ -25,7 +39,7 @@ export function renderSheetSvg(sheet: SheetRecord) {
     titleBlockHeight,
     blockCount: sheet.specBlocks.length,
   });
-  const viewport = layout.drawingViewport;
+  const viewport = normalizeSheetViewportFrame(sheet.viewportFrame, layout.drawingViewport, 24);
   const projectedLines = renderDrawingProjection(sheet.drawing, viewport);
   const drawingScale = estimateSheetScale(sheet.drawing, viewport.width, viewport.height);
   const titleTop = size.height - margin - titleBlockHeight;
@@ -35,6 +49,7 @@ export function renderSheetSvg(sheet: SheetRecord) {
   <rect x="0" y="0" width="${size.width}" height="${size.height}" fill="#fff"/>
   <rect x="${margin}" y="${margin}" width="${size.width - margin * 2}" height="${size.height - margin * 2}" fill="none" stroke="#111827" stroke-width="0.5"/>
   <rect x="${viewport.x}" y="${viewport.y}" width="${viewport.width}" height="${viewport.height}" fill="#f8fafc" stroke="#94a3b8" stroke-width="0.35"/>
+  ${options.includeViewportHandles ? renderViewportHandles(viewport, size) : ""}
   <text x="${viewport.x + 8}" y="${viewport.y + 12}" font-family="Arial" font-size="6" fill="#334155">${escapeXml(sheet.drawing.name)}</text>
   <text x="${viewport.x + 8}" y="${viewport.y + 22}" font-family="Arial" font-size="4" fill="#64748b">${sheet.drawing.lineCount} lines · ${sheet.drawing.annotations.length} annotations · scale 1:${drawingScale}</text>
   <g stroke="#0f172a" stroke-width="0.25" opacity="0.85" fill="none">
@@ -54,6 +69,33 @@ export function renderSheetSvg(sheet: SheetRecord) {
   <text x="${margin + Math.round((size.width - margin * 2) * 0.75) + 6}" y="${titleTop + 23}" font-family="Arial" font-size="4" fill="#334155">${escapeXml(sheet.drawing.view.toUpperCase())}</text>
   <text x="${margin + Math.round((size.width - margin * 2) * 0.75) + 6}" y="${titleTop + 31}" font-family="Arial" font-size="3.8" fill="#64748b">${sheet.specBlocks.length > 0 ? `Спецификаций: ${sheet.specBlocks.length}` : "Без спецификаций"}</text>
 </svg>`;
+}
+
+function renderViewportHandles(frame: SheetViewportFrame, size: { width: number; height: number }) {
+  const handleSize = Math.max(4, Math.min(8, Math.round(Math.min(size.width, size.height) * 0.012)));
+  const centerX = frame.x + frame.width / 2;
+  const centerY = frame.y + frame.height / 2;
+  const points: Array<[SheetViewportHandle, number, number, string]> = [
+    ["move", frame.x, frame.y, "move"],
+    ["nw", frame.x, frame.y, "nw-resize"],
+    ["n", centerX, frame.y, "n-resize"],
+    ["ne", frame.x + frame.width, frame.y, "ne-resize"],
+    ["e", frame.x + frame.width, centerY, "e-resize"],
+    ["se", frame.x + frame.width, frame.y + frame.height, "se-resize"],
+    ["s", centerX, frame.y + frame.height, "s-resize"],
+    ["sw", frame.x, frame.y + frame.height, "sw-resize"],
+    ["w", frame.x, centerY, "w-resize"],
+  ];
+
+  const lines = [`<g class="sheet-viewport-frame" data-sheet-viewport-frame="true">`];
+  lines.push(`  <rect x="${fmt(frame.x)}" y="${fmt(frame.y)}" width="${fmt(frame.width)}" height="${fmt(frame.height)}" fill="#2563eb" fill-opacity="0.05" stroke="#2563eb" stroke-width="0.55" stroke-dasharray="2 1.4" pointer-events="all" data-sheet-viewport-handle="move" data-sheet-viewport-cursor="move"/>`);
+
+  for (const [handle, x, y, cursor] of points.slice(1)) {
+    lines.push(`  <rect x="${fmt(x - handleSize / 2)}" y="${fmt(y - handleSize / 2)}" width="${fmt(handleSize)}" height="${fmt(handleSize)}" rx="1.1" ry="1.1" fill="#2563eb" stroke="#ffffff" stroke-width="0.35" pointer-events="all" data-sheet-viewport-handle="${handle}" data-sheet-viewport-cursor="${cursor}"/>`);
+  }
+
+  lines.push(`</g>`);
+  return lines.join("\n  ");
 }
 
 function renderSpecBlocks(blocks: SheetSpecBlock[], layout: ReturnType<typeof buildSpecLayout>) {
@@ -108,7 +150,7 @@ function formatSheetDate(value: Date) {
   return new Intl.DateTimeFormat("ru-RU", { year: "numeric", month: "2-digit", day: "2-digit" }).format(value);
 }
 
-function renderDrawingProjection(drawing: DrawingDocument, viewport: { x: number; y: number; width: number; height: number }) {
+function renderDrawingProjection(drawing: DrawingDocument, viewport: SheetViewportFrame) {
   const lines = collectDrawingLines(drawing);
   if (lines.length === 0) return "";
   const box = new THREE.Box2();

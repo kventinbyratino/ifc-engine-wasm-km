@@ -3,11 +3,12 @@ import * as OBC from "@thatopen/components";
 import type { DrawingDocument, SheetDocument } from "./drawing-document.ts";
 import type { DrawingSource, DrawingView } from "./drawing-types.ts";
 import type { SheetFormat, SheetSpecBlock } from "../sheets/sheet-types.ts";
+import type { SheetViewportFrame } from "../sheets/sheet-viewport-frame.ts";
 import { serializeModelIdMap } from "./drawing-selection-sync.ts";
 import { clearStoredJson, loadStoredJson, saveStoredJson } from "../storage/local-storage-json.ts";
 
 export const DRAWING_STORAGE_KEY = "bim-real-drawings-mvp:v2";
-export const DRAWING_STORAGE_SCHEMA_VERSION = 3;
+export const DRAWING_STORAGE_SCHEMA_VERSION = 4;
 
 export type StoredDrawingAnnotation =
   | { system: "linear"; pointA: [number, number, number]; pointB: [number, number, number]; offset: number; style: string }
@@ -40,6 +41,7 @@ export type StoredSheetRecord = {
   drawingId: string;
   createdAt: string;
   specBlocks: StoredSpecBlock[];
+  viewportFrame: SheetViewportFrame;
 };
 
 export type StoredSpecBlock = {
@@ -71,6 +73,7 @@ export function saveDrawingWorkspace(projectName: string, drawings: DrawingDocum
       drawingId: sheet.drawing.id,
       createdAt: sheet.createdAt.toISOString(),
       specBlocks: sheet.specBlocks.map((block) => serializeSpecBlock(block)),
+      viewportFrame: { ...sheet.viewportFrame },
     })),
   };
   saveStoredJson(DRAWING_STORAGE_KEY, payload);
@@ -237,6 +240,7 @@ function normalizeStoredSheetRecord(raw: Record<string, unknown>): StoredSheetRe
     specBlocks: Array.isArray(raw.specBlocks)
       ? raw.specBlocks.filter(isRecord).map(normalizeStoredSpecBlock).filter((block): block is StoredSpecBlock => block !== null)
       : [],
+    viewportFrame: normalizeStoredViewportFrame(raw.viewportFrame),
   };
 }
 
@@ -296,6 +300,16 @@ function normalizeStoredModelIdMapEntries(raw: unknown): Array<[string, number[]
   return result;
 }
 
+function normalizeStoredViewportFrame(raw: unknown): SheetViewportFrame {
+  if (!isRecord(raw)) return { x: 0, y: 0, width: 0, height: 0 };
+  return {
+    x: typeof raw.x === "number" ? raw.x : 0,
+    y: typeof raw.y === "number" ? raw.y : 0,
+    width: typeof raw.width === "number" ? raw.width : 0,
+    height: typeof raw.height === "number" ? raw.height : 0,
+  };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -318,13 +332,9 @@ function normalizeViewportBounds(raw: unknown): OBC.DrawingViewportConfig {
 }
 
 function fromVector(value: THREE.Vector3): [number, number, number] {
-  return [round(value.x), round(value.y), round(value.z)];
+  return [value.x, value.y, value.z];
 }
 
 function toVector(value: [number, number, number]) {
   return new THREE.Vector3(value[0], value[1], value[2]);
-}
-
-function round(value: number) {
-  return Number(value.toFixed(6));
 }

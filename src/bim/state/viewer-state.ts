@@ -4,6 +4,7 @@ import { countSelection } from "../selection/selection.ts";
 export type ViewerWorkspaceState = {
   activeProfile: Profile;
   activeSelection: ModelIdMap;
+  selectionSet: ModelIdMap;
   lastConvertedModelId: string;
   lastSourceIfcName: string;
   activeShareRecord: FragmentRecord | null;
@@ -17,6 +18,7 @@ export function createViewerState(): ViewerWorkspaceState {
   return {
     activeProfile: "pending",
     activeSelection: {},
+    selectionSet: {},
     lastConvertedModelId: "",
     lastSourceIfcName: "",
     activeShareRecord: null,

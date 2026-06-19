@@ -462,8 +462,11 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
 
   async function getDrawingSourceMap(source: DrawingSource) {
     if (source === "selection") {
-      if (isEmptySelection(workspace.viewer.activeSelection)) throw new Error("Нет текущей выборки");
-      return workspace.viewer.activeSelection;
+      const manualSelection = workspace.viewer.selectionSet;
+      const currentSelection = workspace.viewer.activeSelection;
+      if (!isEmptySelection(manualSelection)) return manualSelection;
+      if (isEmptySelection(currentSelection)) throw new Error("Нет текущей выборки");
+      return currentSelection;
     }
 
     if (source === "filtered") {

@@ -2,6 +2,9 @@ export interface ElementContextMenuOptions {
   target: HTMLElement;
   getSelectionCount: () => number;
   onOpenProperties: () => void;
+  onFindInData?: () => void | Promise<void>;
+  onCreateIssue?: () => void | Promise<void>;
+  onAddToSelectionSet?: () => void | Promise<void>;
   onMissingSelection?: () => void;
   container?: HTMLElement;
 }
@@ -20,17 +23,34 @@ export function createElementContextMenu(options: ElementContextMenuOptions): El
   menu.setAttribute("role", "menu");
   menu.setAttribute("aria-label", "Действия элемента");
 
-  const propertiesButton = document.createElement("button");
-  propertiesButton.type = "button";
-  propertiesButton.textContent = "Свойства";
-  propertiesButton.setAttribute("role", "menuitem");
+  const actions = [
+    { label: "Свойства", run: options.onOpenProperties },
+    { label: "Найти в данных", run: options.onFindInData },
+    { label: "Создать замечание", run: options.onCreateIssue },
+    { label: "Добавить в выборку", run: options.onAddToSelectionSet },
+  ].filter((action): action is { label: string; run: () => void | Promise<void> } => typeof action.run === "function");
+  const actionButtons = actions.map((action) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = action.label;
+    button.setAttribute("role", "menuitem");
+    button.onclick = () => {
+      if (button.disabled) {
+        options.onMissingSelection?.();
+        return;
+      }
+      void action.run();
+      close();
+    };
+    return button;
+  });
 
   const hint = document.createElement("span");
   hint.className = "element-context-menu-hint";
   hint.textContent = "Сначала выберите элемент";
   hint.hidden = true;
 
-  menu.append(propertiesButton, hint);
+  menu.append(...actionButtons, hint);
   container.append(menu);
 
   const close = () => {
@@ -40,11 +60,11 @@ export function createElementContextMenu(options: ElementContextMenuOptions): El
   const show = (event: MouseEvent) => {
     event.preventDefault();
     const hasSelection = options.getSelectionCount() > 0;
-    propertiesButton.disabled = !hasSelection;
+    for (const button of actionButtons) button.disabled = !hasSelection;
     hint.hidden = hasSelection;
     positionMenu(menu, event.clientX, event.clientY);
     menu.hidden = false;
-    propertiesButton.focus();
+    actionButtons[0]?.focus();
   };
 
   const onDocumentClick = (event: MouseEvent) => {
@@ -53,15 +73,6 @@ export function createElementContextMenu(options: ElementContextMenuOptions): El
 
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key === "Escape") close();
-  };
-
-  propertiesButton.onclick = () => {
-    if (propertiesButton.disabled) {
-      options.onMissingSelection?.();
-      return;
-    }
-    options.onOpenProperties();
-    close();
   };
 
   options.target.addEventListener("contextmenu", show);

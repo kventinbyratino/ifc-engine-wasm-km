@@ -22,6 +22,18 @@ export function limitSelection(modelIdMap: ModelIdMap, maxItems: number) {
   return result;
 }
 
+export function mergeModelIdMaps(...maps: ModelIdMap[]) {
+  const result: ModelIdMap = {};
+  for (const modelIdMap of maps) {
+    for (const [modelId, localIds] of Object.entries(modelIdMap)) {
+      const target = result[modelId] ?? new Set<number>();
+      for (const localId of localIds) target.add(localId);
+      if (target.size > 0) result[modelId] = target;
+    }
+  }
+  return result;
+}
+
 export function subtractModelIdMap(source: ModelIdMap, remove: ModelIdMap) {
   const result: ModelIdMap = {};
   for (const [modelId, localIds] of Object.entries(source)) {

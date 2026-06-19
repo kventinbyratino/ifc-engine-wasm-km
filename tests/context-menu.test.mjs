@@ -37,6 +37,10 @@ function createElement(tagName = "div") {
       if (selector === "button") return this.children.find((child) => child.tagName === "button") ?? null;
       return null;
     },
+    querySelectorAll(selector) {
+      if (selector === "button") return this.children.filter((child) => child.tagName === "button");
+      return [];
+    },
   };
 }
 
@@ -54,13 +58,16 @@ function setupDom() {
   return { body, target, documentListeners };
 }
 
-test("element context menu opens on right click and runs Properties action for selection", () => {
+test("element context menu opens all selection actions and runs their callbacks", () => {
   const { body, target } = setupDom();
-  let opened = 0;
+  const calls = [];
   const menu = createElementContextMenu({
     target,
     getSelectionCount: () => 1,
-    onOpenProperties: () => { opened += 1; },
+    onOpenProperties: () => calls.push("properties"),
+    onFindInData: () => calls.push("data"),
+    onCreateIssue: () => calls.push("issue"),
+    onAddToSelectionSet: () => calls.push("selection-set"),
   });
 
   let prevented = false;
@@ -73,12 +80,20 @@ test("element context menu opens on right click and runs Properties action for s
   assert.equal(prevented, true);
   assert.equal(body.children.includes(menu.element), true);
   assert.equal(menu.element.hidden, false);
-  assert.equal(menu.element.querySelector("button").textContent, "Свойства");
-  assert.equal(menu.element.querySelector("button").disabled, false);
+  const buttons = menu.element.querySelectorAll("button");
+  assert.deepEqual(buttons.map((button) => button.textContent), [
+    "Свойства",
+    "Найти в данных",
+    "Создать замечание",
+    "Добавить в выборку",
+  ]);
+  assert.equal(buttons.every((button) => button.disabled === false), true);
 
-  menu.element.querySelector("button").onclick();
-  assert.equal(opened, 1);
-  assert.equal(menu.element.hidden, true);
+  for (const button of buttons) {
+    button.onclick();
+    target.dispatch("contextmenu", { clientX: 20, clientY: 30, preventDefault: () => {} });
+  }
+  assert.deepEqual(calls, ["properties", "data", "issue", "selection-set"]);
 });
 
 test("element context menu disables Properties when no element is selected", () => {

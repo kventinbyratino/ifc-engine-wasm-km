@@ -3,7 +3,7 @@ import "../../styles.css";
 import { APP_BASE, API_BASE } from "../config.ts";
 import { getDomElements } from "../dom.ts";
 import { renderSelectedProperties } from "../properties/properties-panel.ts";
-import { countSelection } from "../selection/selection.ts";
+import { countSelection, isEmptySelection, mergeModelIdMaps } from "../selection/selection.ts";
 import { createWorkspaceState } from "../state/workspace-state.ts";
 import { createDrawingInteractionController } from "../drawings/drawing-interaction.ts";
 import { syncDrawingAnnotations, type DrawingAnnotationType } from "../drawings/drawing-annotations.ts";
@@ -240,13 +240,6 @@ export async function startBimApp() {
     propertiesPanel.classList.remove("is-open");
   };
   closePropertiesPanelBtn.onclick = closePropertiesPanel;
-
-  createElementContextMenu({
-    target: viewport,
-    getSelectionCount: () => countSelection(workspace.viewer.activeSelection),
-    onOpenProperties: openPropertiesPanel,
-    onMissingSelection: () => ctx.showToast("Сначала выберите элемент", "error"),
-  });
   const drawingInteraction = createDrawingInteractionController({
     viewport,
     world,
@@ -508,6 +501,51 @@ export async function startBimApp() {
     close: libraryController.closeLibraryModal,
   });
 
+  async function findSelectedInData() {
+    if (isEmptySelection(workspace.viewer.activeSelection)) {
+      ctx.showToast("Сначала выберите элемент", "error");
+      return;
+    }
+
+    if (workspace.data.elementIndex.length === 0) await rebuildDataIndex();
+    openDataPanel();
+    const record = findRecordInSelection();
+    if (!record) {
+      ctx.showToast("Выбранный элемент не найден в BIM Data Index", "error");
+      return;
+    }
+
+    await selectDataRecord(record);
+    ctx.setStatus(`Найдено в данных: ${record.modelId}:${record.localId}`);
+  }
+
+  async function addActiveSelectionToSelectionSet() {
+    if (isEmptySelection(workspace.viewer.activeSelection)) {
+      ctx.showToast("Сначала выберите элемент", "error");
+      return;
+    }
+
+    workspace.viewer.selectionSet = mergeModelIdMaps(
+      workspace.viewer.selectionSet,
+      workspace.viewer.activeSelection,
+    );
+    await applySearchHighlight(workspace.viewer.selectionSet);
+    await setModelSelection(workspace.viewer.selectionSet);
+    const total = countSelection(workspace.viewer.selectionSet);
+    ctx.setStatus(`В выборке: ${total}`);
+    ctx.showToast(`Добавлено в выборку · всего ${total}`, "success");
+  }
+
+  createElementContextMenu({
+    target: viewport,
+    getSelectionCount: () => countSelection(workspace.viewer.activeSelection),
+    onOpenProperties: openPropertiesPanel,
+    onFindInData: () => void findSelectedInData(),
+    onCreateIssue: () => void createIssueFromSelection(),
+    onAddToSelectionSet: () => void addActiveSelectionToSelectionSet(),
+    onMissingSelection: () => ctx.showToast("Сначала выберите элемент", "error"),
+  });
+
   const fragmentId = new URLSearchParams(window.location.search).get("fragment")?.trim();
   const restoreFederationWorkspace = createFederationWorkspaceRestorer({
     ctx,
@@ -692,9 +730,17 @@ export async function startBimApp() {
 
   function clearSelectionInfo() {
     workspace.viewer.activeSelection = {};
+    workspace.viewer.selectionSet = {};
     selectionCount.textContent = "0";
     closePropertiesPanel();
     propertiesOutput.replaceChildren(createMessage("Выберите элемент модели."));
+  }
+
+  function findRecordInSelection() {
+    for (const record of workspace.data.elementIndex) {
+      if (workspace.viewer.activeSelection[record.modelId]?.has(record.localId)) return record;
+    }
+    return null;
   }
 
   async function setModelSelection(modelIdMap: ModelIdMap) {

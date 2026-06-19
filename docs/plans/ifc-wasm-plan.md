@@ -36,7 +36,7 @@
 
 **Now:** Sprint 20 — Section 3 drawing generation from IFC/Fragments.
 
-**Next:** TBD.
+**Next:** Sprint 22 — Product UX for model federation.
 
 **Later:** TBD.
 
@@ -1268,6 +1268,69 @@ git diff --check
 - Built assets are checked before deploy.
 - Deployment readiness is repeatable through `npm run predeploy:check`.
 - Roadmap status is synchronized with the completed sprint.
+
+---
+
+### Sprint 22 — Product UX for model federation (P1)
+
+**Status:** planned — базовая федерация уже есть, этот спринт переводит её из технической возможности в понятный продуктовый UX для BIM-координации.
+
+**Цель:** сделать работу с федерацией моделей основной пользовательской осью: единая сцена, явная панель состава, быстрые действия по моделям, сквозные фильтры и переходы в Data Browser / Clash / Issues / Drawings.
+
+**Files:**
+- Modify: `src/bim/ui/federation-panel.ts`
+- Modify: `src/bim/dom/federation-dom.ts`
+- Modify: `src/bim/app/ui-wiring.ts`
+- Modify: `src/bim/app/model-controller.ts`
+- Modify: `src/bim/app/data-controller.ts`
+- Modify: `src/bim/app/clash-controller.ts`
+- Modify: `src/bim/app/drawings-controller.ts`
+- Modify: `src/styles.css`
+- Create/Modify: `tests/federation/federation-product-ux.test.mjs`
+
+**Tasks:**
+1. **Productize the Federation panel**
+   - **Objective:** превратить список моделей в рабочую панель «Федерация» с количеством моделей/элементов, карточками моделей, дисциплиной, статусом, источником, цветом и быстрыми действиями.
+   - **Files:** `src/bim/ui/federation-panel.ts`, `src/bim/dom/federation-dom.ts`, `src/styles.css`.
+   - **Verification:** `node --test tests/federation/federation-product-ux.test.mjs && npm run build && git diff --check`.
+   - **Acceptance:** пользователь видит федерацию как управляемый workspace, а не как скрытую техническую загрузку нескольких IFC.
+
+2. **Add per-model UX actions**
+   - **Objective:** довести действия по каждой модели до продуктового уровня: show/hide, opacity, focus, isolate, remove, discipline label.
+   - **Files:** `src/bim/app/model-controller.ts`, `src/bim/federation/federation-actions.ts`, `src/bim/ui/federation-panel.ts`.
+   - **Verification:** `node --test tests/federation/federation-product-ux.test.mjs && npm run build && git diff --check`.
+   - **Acceptance:** все действия применяются к выбранной модели без сброса всей сцены и не ломают selection / clash flows.
+
+3. **Connect federation context to Data Browser and filters**
+   - **Objective:** сделать модель/дисциплину/этаж/категорию единым контекстом для таблицы элементов и выборки.
+   - **Files:** `src/bim/app/data-controller.ts`, `src/bim/federation/federation-filters.ts`, `src/bim/ui/elements-table.ts`.
+   - **Verification:** `node --test tests/federation/federation-product-ux.test.mjs && npm run build && git diff --check`.
+   - **Acceptance:** Data Browser показывает элементы всех моделей и умеет ограничиваться выбранной моделью, дисциплиной, этажом или категорией.
+
+4. **Make Clash / Issues / Drawings consume federation scope**
+   - **Objective:** позволить запускать действия по текущему federation context: например `АР vs КР`, выбранные модели, дисциплины или текущая выборка.
+   - **Files:** `src/bim/app/clash-controller.ts`, `src/bim/app/issues-controller.ts`, `src/bim/app/drawings-controller.ts`, `src/bim/federation/federation-filters.ts`.
+   - **Verification:** `node --test tests/federation/federation-product-ux.test.mjs && npm run build && git diff --check`.
+   - **Acceptance:** clash results, issues and drawing sources сохраняют `modelId`/discipline context и кликом возвращают пользователя к нужной модели/объекту.
+
+5. **Add federation-level commands and empty/error states**
+   - **Objective:** добавить команды `Показать всё`, `Скрыть всё`, `Сбросить изоляцию`, `Фокус на федерацию`, а также понятные состояния загрузки, ошибок и пустой сцены.
+   - **Files:** `src/bim/ui/federation-panel.ts`, `src/bim/app/model-controller.ts`, `src/bim/app/app-status.ts`, `src/styles.css`.
+   - **Verification:** `node --test tests/federation/federation-product-ux.test.mjs && npm run build && git diff --check`.
+   - **Acceptance:** пользователь всегда понимает состав федерации, текущий контекст и безопасный способ вернуться к полной сцене.
+
+**Verification:**
+```bash
+node --test tests/federation/federation-product-ux.test.mjs
+npm run build
+git diff --check
+```
+
+**Acceptance:**
+- Федерация воспринимается как единая BIM-сцена с управляемым составом моделей.
+- Панель «Федерация» покрывает загрузку, обзор, видимость, прозрачность, фокус, изоляцию и удаление модели.
+- Data Browser, Clash, Issues and Drawings используют один federation context.
+- UX остаётся проще BIM 360: без лишней платформенности, только рабочая координационная сцена.
 
 ## 2. Refactor / architecture phases
 

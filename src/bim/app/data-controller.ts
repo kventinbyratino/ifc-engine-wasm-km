@@ -87,6 +87,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
       const indexResult = await buildElementIndex({
         fragments,
         signal,
+        itemReadTimeoutMs: 15000,
         onProgress: (processed, total) => {
           dataSummary.textContent = `Индексация: ${processed}/${total}`;
           ctx.setProgress(total > 0 ? processed / total : 0);

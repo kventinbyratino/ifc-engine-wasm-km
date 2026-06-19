@@ -11,13 +11,18 @@ export async function readModelItems<TModel extends { getItemsData: (ids: number
   options: unknown,
   signal?: AbortSignal,
   chunkSize = 500,
+  readOptions: { timeoutMs?: number; timeoutMessage?: string } = {},
 ) {
   const chunks: Array<{ ids: number[]; items: unknown[] }> = [];
 
   for (let index = 0; index < ids.length; index += chunkSize) {
     assertNotAborted(signal);
     const chunk = ids.slice(index, index + chunkSize);
-    const items = await model.getItemsData(chunk, options);
+    const items = await withTimeout(
+      model.getItemsData(chunk, options),
+      readOptions.timeoutMs,
+      readOptions.timeoutMessage ?? "Не удалось прочитать свойства модели вовремя",
+    );
     chunks.push({ ids: chunk, items });
     assertNotAborted(signal);
   }
@@ -27,4 +32,17 @@ export async function readModelItems<TModel extends { getItemsData: (ids: number
 
 function assertNotAborted(signal?: AbortSignal) {
   if (signal?.aborted) throw new DOMException("Операция отменена", "AbortError");
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number | undefined, message: string): Promise<T> {
+  if (!timeoutMs || timeoutMs <= 0) return promise;
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
 }

@@ -607,7 +607,8 @@ export async function startBimApp() {
     void (async () => {
       await fragments.core.update(true);
       await fitToModels();
-      if (canUseDataBrowser()) await rebuildDataIndex();
+      // Data indexing is triggered on demand by Data/Checks/Clash panels.
+      // Avoid blocking the first visible model load when ThatOpen item-data reads stall on some IFCs/mobile browsers.
     })();
   });
 

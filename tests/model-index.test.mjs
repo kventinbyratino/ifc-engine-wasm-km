@@ -81,6 +81,22 @@ test("property extractor canonical module exposes nested property helpers", () =
   assert.match(stringifyValues(item), /Wall 01/);
 });
 
+test("model index times out when item data lookup stalls", async () => {
+  const model = {
+    async getItemsIdsWithGeometry() {
+      return [11];
+    },
+    getItemsData() {
+      return new Promise(() => {});
+    },
+  };
+
+  await assert.rejects(
+    buildModelIndex({ fragments: { list: new Map([["model-a", model]]) }, itemReadTimeoutMs: 10 }),
+    /Не удалось прочитать свойства модели model-a за 10 мс/,
+  );
+});
+
 test("model index canonical module builds, filters and maps records", async () => {
   const storey = {
     Name: { value: "Level 01" },

@@ -14,6 +14,7 @@ export async function buildModelIndex(options: {
   onProgress?: (processed: number, total: number) => void;
   signal?: AbortSignal;
   classMappings?: ClassMappingRule[];
+  itemReadTimeoutMs?: number;
 }) {
   const records: BimElementRecord[] = [];
   const sources: ElementRelationSource[] = [];
@@ -39,7 +40,10 @@ export async function buildModelIndex(options: {
   };
 
   for (const { modelId, model, ids } of modelItems) {
-    const chunks = await readModelItems(model, ids, queryOptions, options.signal, 500);
+    const chunks = await readModelItems(model, ids, queryOptions, options.signal, 500, {
+      timeoutMs: options.itemReadTimeoutMs,
+      timeoutMessage: `Не удалось прочитать свойства модели ${modelId} за ${options.itemReadTimeoutMs} мс`,
+    });
     for (const chunk of chunks) {
       for (let itemIndex = 0; itemIndex < chunk.ids.length; itemIndex++) {
         const localId = chunk.ids[itemIndex];

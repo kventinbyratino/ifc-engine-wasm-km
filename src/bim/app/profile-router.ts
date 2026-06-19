@@ -31,7 +31,13 @@ export function createProfileRouter({
   }
 
   function navigateToProfile(profile: Profile) {
-    window.location.assign(profilePath(profile));
+    const nextPath = profilePath(profile);
+
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({ profile }, "", nextPath);
+    }
+
+    selectProfile(profile);
   }
 
   function syncProfileWithLocation() {
@@ -94,6 +100,10 @@ export function createProfileRouter({
     if (!canUseCoordination()) closeClashPanel();
     if (!canUseDrawings()) closeDrawingsPanel();
     refreshModelState();
+  }
+
+  if (typeof window.addEventListener === "function") {
+    window.addEventListener("popstate", syncProfileWithLocation);
   }
 
   return {

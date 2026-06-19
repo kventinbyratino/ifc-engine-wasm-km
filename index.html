@@ -14,11 +14,21 @@
         <div class="profile-card">
           <p class="profile-kicker">Выбор профиля</p>
           <div class="profile-actions">
-            <button id="profileKmBtn" class="profile-option" type="button">
+            <button
+              id="profileKmBtn"
+              class="profile-option"
+              type="button"
+              onclick="window.location.assign('/ifc-engine-wasm/viewer/')"
+            >
               <strong>КМ</strong>
               <span>Текущий IFC Viewer</span>
             </button>
-            <button id="profileBimBtn" class="profile-option" type="button">
+            <button
+              id="profileBimBtn"
+              class="profile-option"
+              type="button"
+              onclick="window.location.assign('/ifc-engine-wasm/bim/')"
+            >
               <strong>BIM</strong>
               <span>BIM-рабочий стол</span>
             </button>

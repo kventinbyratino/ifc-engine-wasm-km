@@ -29,7 +29,11 @@ function createDrawingStub() {
         min: { x: 0, y: 0, z: 0 },
         max: { x: 1, y: 1, z: 1 },
       },
+      sourceRefs: [
+        { id: "plan:modelA:7", projectionType: "plan", status: "linked", source: { modelId: "modelA", localId: 7 } },
+      ],
     },
+    highlightedProjectionRefIds: ["plan:modelA:7"],
     sourceModelIdMap: new Map(),
     viewportFrame: {
       x: 16,
@@ -65,6 +69,8 @@ test("renderSheetSvg includes spec block tables and multiple blocks", () => {
   assert.match(svg, /IFCWALL/);
   assert.match(svg, /Лист с ведомостью/);
   assert.match(svg, /Спецификаций: 2/);
+  assert.match(svg, /data-drawing-projection-ref-id="plan:modelA:7"/);
+  assert.match(svg, /fill="#f97316"/);
 });
 
 test("viewport frame helper clamps resize and move within the sheet", () => {

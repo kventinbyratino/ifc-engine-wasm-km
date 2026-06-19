@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import type { DrawingDocument, SheetDocument } from "./drawing-document.ts";
-import type { DrawingSource, DrawingView } from "./drawing-types.ts";
+import type { DrawingProjectionSourceRef, DrawingSource, DrawingView } from "./drawing-types.ts";
 import type { SheetFormat, SheetSpecBlock } from "../sheets/sheet-types.ts";
 import type { SheetViewportFrame } from "../sheets/sheet-viewport-frame.ts";
 import { serializeModelIdMap } from "./drawing-selection-sync.ts";
@@ -27,6 +27,7 @@ export type StoredDrawingRecord = {
     far: number;
     scale: number;
     bounds: OBC.DrawingViewportConfig;
+    sourceRefs: DrawingProjectionSourceRef[];
   };
   createdAt: string;
   sourceModelIdMap: Array<[string, number[]]>;
@@ -171,6 +172,12 @@ function serializeDrawing(record: DrawingDocument, components: OBC.Components): 
       far: record.projection.far,
       scale: record.projection.scale,
       bounds: { ...record.projection.bounds },
+      sourceRefs: record.projection.sourceRefs.map((ref) => ({
+        id: ref.id,
+        projectionType: ref.projectionType,
+        status: ref.status,
+        source: ref.source ? { ...ref.source } : null,
+      })),
     },
     createdAt: record.createdAt.toISOString(),
     sourceModelIdMap: serializeModelIdMap(record.sourceModelIdMap),
@@ -220,6 +227,7 @@ function normalizeStoredDrawingRecord(raw: Record<string, unknown>): StoredDrawi
       far: raw.projection.far,
       scale: raw.projection.scale,
       bounds: normalizeViewportBounds(raw.projection.bounds),
+      sourceRefs: normalizeProjectionSourceRefs(raw.projection.sourceRefs, raw.view as DrawingView),
     },
     createdAt: raw.createdAt,
     sourceModelIdMap: normalizeStoredModelIdMapEntries(raw.sourceModelIdMap),
@@ -298,6 +306,25 @@ function normalizeStoredModelIdMapEntries(raw: unknown): Array<[string, number[]
   }
 
   return result;
+}
+
+function normalizeProjectionSourceRefs(raw: unknown, fallbackView: DrawingView): DrawingProjectionSourceRef[] {
+  if (!Array.isArray(raw)) return [];
+  const refs: DrawingProjectionSourceRef[] = [];
+  for (const item of raw) {
+    if (!isRecord(item) || typeof item.id !== "string") continue;
+    const status = item.status === "linked" || item.status === "unlinked" ? item.status : "unlinked";
+    const source = isRecord(item.source) && typeof item.source.modelId === "string" && typeof item.source.localId === "number"
+      ? { modelId: item.source.modelId, localId: item.source.localId }
+      : null;
+    refs.push({
+      id: item.id,
+      projectionType: typeof item.projectionType === "string" ? item.projectionType as DrawingView : fallbackView,
+      status,
+      source: status === "linked" ? source : null,
+    });
+  }
+  return refs;
 }
 
 function normalizeStoredViewportFrame(raw: unknown): SheetViewportFrame {

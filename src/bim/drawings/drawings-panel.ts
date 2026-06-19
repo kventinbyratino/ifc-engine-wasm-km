@@ -5,7 +5,7 @@ import { countSelection, isEmptySelection } from "../selection/selection.ts";
 import type { DrawingAnnotation } from "./drawing-annotations.ts";
 import type { DrawingDocument } from "./drawing-document.ts";
 import type { DrawingProjection, DrawingSource, DrawingView } from "./drawing-types.ts";
-import { cloneModelIdMap } from "./drawing-selection-sync.ts";
+import { cloneModelIdMap, buildProjectionSourceRefs } from "./drawing-selection-sync.ts";
 
 export type DrawingRecord = DrawingDocument;
 
@@ -204,8 +204,10 @@ export async function createTechnicalDrawing(options: DrawingBuildOptions): Prom
       far,
       bounds,
       scale: viewport.drawingScale,
+      sourceRefs: buildProjectionSourceRefs(options.modelIdMap, options.view),
     },
     sourceModelIdMap: cloneModelIdMap(options.modelIdMap),
+    highlightedProjectionRefIds: [],
     sheets: [],
   };
   return record;

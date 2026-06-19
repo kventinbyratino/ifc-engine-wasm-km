@@ -34,13 +34,13 @@
 
 ## 0. Priorities / working mode
 
-**Now:** Sprint 19 — Drawing element identity map and bidirectional selection sync.
+**Now:** Sprint 20 — Section 3 drawing generation from IFC/Fragments.
 
-**Next:** Sprint 20 — Section 3 drawing generation from IFC/Fragments.
+**Next:** TBD.
 
 **Later:** TBD.
 
-**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Sprint 11; Sprint 12; Sprint 15; Sprint 16; Sprint 21; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
+**Done:** Sprint 1; Sprint 2; Sprint 3; Sprint 4; Sprint 5; Sprint 6; Sprint 7; Sprint 9; Sprint 10; Sprint 11; Sprint 12; Sprint 15; Sprint 16; Sprint 19; Sprint 21; Phase 9; Phase 10; Phase 11; Phase 12; Phase 13; Phase 14; Phase 15; Phase 16.
 
 **Definition of done for any item:** scoped files are listed, acceptance is clear, verification commands pass, and `git diff --check` is clean.
 
@@ -1098,7 +1098,7 @@ git diff --check
 
 ### Sprint 19 — Drawing projection identity map and bidirectional sync (P0)
 
-**Status:** planned — make each drawing projection addressable and sync selection both ways.
+**Status:** completed — drawing projections now carry stable BIM source refs, sheet preview exposes clickable projection markers, model↔drawing selection sync highlights linked projections, and persistence preserves source metadata.
 
 **Цель:** чертёж хранит BIM-источник на уровне проекции объекта: например, стена в плане отображается как прямоугольник, и выбор/подсветка синхронизируются между моделью и листом.
 

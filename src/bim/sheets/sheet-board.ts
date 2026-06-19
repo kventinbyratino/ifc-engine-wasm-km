@@ -41,6 +41,7 @@ export function renderSheetSvg(sheet: SheetRecord, options: { includeViewportHan
   });
   const viewport = normalizeSheetViewportFrame(sheet.viewportFrame, layout.drawingViewport, 24);
   const projectedLines = renderDrawingProjection(sheet.drawing, viewport);
+  const projectionMarkers = renderProjectionSourceMarkers(sheet.drawing, viewport);
   const drawingScale = estimateSheetScale(sheet.drawing, viewport.width, viewport.height);
   const titleTop = size.height - margin - titleBlockHeight;
 
@@ -55,6 +56,7 @@ export function renderSheetSvg(sheet: SheetRecord, options: { includeViewportHan
   <g stroke="#0f172a" stroke-width="0.25" opacity="0.85" fill="none">
     ${projectedLines || placeholderProjectionLines(viewport.x + 10, viewport.y + 34, viewport.width - 20, viewport.height - 48)}
   </g>
+  ${projectionMarkers}
   ${renderSpecBlocks(sheet.specBlocks, layout)}
   <rect x="${margin}" y="${titleTop}" width="${size.width - margin * 2}" height="${titleBlockHeight}" fill="#fff" stroke="#111827" stroke-width="0.5"/>
   <line x1="${margin + Math.round((size.width - margin * 2) * 0.54)}" y1="${titleTop}" x2="${margin + Math.round((size.width - margin * 2) * 0.54)}" y2="${titleTop + titleBlockHeight}" stroke="#111827" stroke-width="0.35"/>
@@ -192,6 +194,35 @@ function collectDrawingLines(drawing: DrawingDocument) {
     }
   });
   return lines;
+}
+
+function renderProjectionSourceMarkers(drawing: DrawingDocument, viewport: SheetViewportFrame) {
+  const refs = drawing.projection.sourceRefs ?? [];
+  if (refs.length === 0) return "";
+
+  const highlighted = new Set(drawing.highlightedProjectionRefIds ?? []);
+  const visibleRefs = refs.slice(0, 80);
+  const cols = Math.max(1, Math.ceil(Math.sqrt(visibleRefs.length)));
+  const rows = Math.max(1, Math.ceil(visibleRefs.length / cols));
+  const left = viewport.x + 12;
+  const top = viewport.y + 34;
+  const width = Math.max(1, viewport.width - 24);
+  const height = Math.max(1, viewport.height - 48);
+  const markerSize = Math.max(3, Math.min(7, Math.min(width / cols, height / rows) * 0.32));
+
+  const markers = visibleRefs.map((ref, index) => {
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    const x = left + ((col + 0.5) / cols) * width;
+    const y = top + ((row + 0.5) / rows) * height;
+    const active = highlighted.has(ref.id);
+    const fill = ref.status === "linked" ? (active ? "#f97316" : "#2563eb") : "#94a3b8";
+    const stroke = active ? "#7c2d12" : "#ffffff";
+    const opacity = active ? "0.95" : "0.34";
+    return `<rect x="${fmt(x - markerSize / 2)}" y="${fmt(y - markerSize / 2)}" width="${fmt(markerSize)}" height="${fmt(markerSize)}" rx="${fmt(markerSize * 0.25)}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="0.45" pointer-events="all" data-drawing-projection-ref-id="${escapeXml(ref.id)}" data-drawing-projection-status="${ref.status}"/>`;
+  });
+
+  return `<g class="drawing-projection-source-markers" data-drawing-projection-markers="true">\n    ${markers.join("\n    ")}\n  </g>`;
 }
 
 function estimateSheetScale(drawing: DrawingDocument, slotWidthMm: number, slotHeightMm: number) {

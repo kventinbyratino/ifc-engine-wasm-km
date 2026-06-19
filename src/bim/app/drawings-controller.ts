@@ -31,7 +31,7 @@ import { getActiveDrawing, getActiveSheet, getDrawingStats, setActiveDrawing } f
 import type { ModelIdMap } from "../types.ts";
 import type { BimAppContext } from "./app-context.ts";
 import type { DrawingSource, DrawingView } from "../drawings/drawing-types.ts";
-import { cloneModelIdMap, findBestMatchingDrawing } from "../drawings/drawing-selection-sync.ts";
+import { cloneModelIdMap, findBestMatchingDrawing, getLinkedProjectionSelection, getProjectionSelectionStatus } from "../drawings/drawing-selection-sync.ts";
 import { createDrawingPersistenceController } from "./drawing-persistence-controller.ts";
 import { createDrawingSheetController } from "./drawing-sheet-controller.ts";
 import { logControllerError } from "../ui/controller-errors.ts";
@@ -196,8 +196,44 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
     frame.className = "drawing-preview-frame";
     frame.dataset.sheetId = sheet.id;
     frame.innerHTML = renderSheetSvg(sheet, { includeViewportHandles: drawingStudioActive });
+    bindProjectionPickInteractions(frame, sheet.drawing);
     if (drawingStudioActive) bindViewportFrameInteractions(frame, sheet);
     return frame;
+  }
+
+  function bindProjectionPickInteractions(frame: HTMLDivElement, record: DrawingRecord) {
+    const svg = frame.querySelector("svg");
+    if (!(svg instanceof SVGElement)) return;
+
+    svg.addEventListener("click", (event) => {
+      const target = event.target instanceof Element ? event.target.closest("[data-drawing-projection-ref-id]") : null;
+      if (!(target instanceof Element)) return;
+      const refId = target.getAttribute("data-drawing-projection-ref-id");
+      const ref = record.projection.sourceRefs.find((item) => item.id === refId);
+      if (!ref) return;
+      const selection = getLinkedProjectionSelection(ref);
+      if (!selection) {
+        record.highlightedProjectionRefIds = [];
+        record.selectionStatus = "Проекция не связана с BIM-объектом";
+        drawingsSummary.textContent = record.selectionStatus;
+        renderDrawingPreview();
+        return;
+      }
+      void hooks.applySearchHighlight(selection)
+        .then(() => hooks.fitToItems(selection))
+        .then(() => hooks.setModelSelection(selection))
+        .then(() => {
+          record.highlightedProjectionRefIds = [ref.id];
+          record.selectionStatus = "Проекция связана с BIM-объектом";
+          drawingsSummary.textContent = `Выбрана проекция: ${ref.source?.modelId}:${ref.source?.localId}`;
+          ctx.setStatus(`Чертёж → модель: ${record.name}`);
+          renderDrawingPreview();
+        })
+        .catch((error) => {
+          logControllerError(error);
+          drawingsSummary.textContent = error instanceof Error ? error.message : String(error);
+        });
+    });
   }
 
   function createPreviewMessage(message: string) {
@@ -237,14 +273,26 @@ export function createDrawingsController(ctx: BimAppContext, hooks: DrawingsCont
   function syncDrawingSelectionFromModel(modelIdMap: ModelIdMap) {
     if (isEmptySelection(modelIdMap) || workspace.drawings.drawings.length === 0) return;
 
+    for (const drawing of workspace.drawings.drawings) {
+      const match = getProjectionSelectionStatus(drawing.projection.sourceRefs, modelIdMap);
+      drawing.highlightedProjectionRefIds = match.refs.map((ref) => ref.id);
+      drawing.selectionStatus = match.status;
+    }
+
     const best = findBestMatchingDrawing(workspace.drawings.drawings, modelIdMap);
-    if (!best) return;
+    if (!best) {
+      drawingsSummary.textContent = "Для выбранного BIM-объекта нет проекции на текущих чертежах";
+      if (drawingStudioActive) renderDrawingPreview();
+      return;
+    }
 
     if (workspace.drawings.drawings[0]?.id !== best.drawing.id) {
       setActiveDrawing(workspace.drawings, best.drawing.id);
     }
     if (drawingStudioActive) renderDrawingPreview();
     renderDrawingsPanel();
+    const statusText = best.status === "linked" ? "проекция подсвечена" : "объект вне текущего вида";
+    drawingsSummary.textContent = `${statusText}: ${best.drawing.name}`;
     ctx.setStatus(`Активен чертёж: ${best.drawing.name} · совпадение ${best.overlap} эл.`);
   }
 

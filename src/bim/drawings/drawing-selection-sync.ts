@@ -1,9 +1,13 @@
 import type { ModelIdMap } from "../types.ts";
+import type { DrawingProjectionSourceRef, DrawingProjectionSyncStatus, DrawingView } from "./drawing-types.ts";
 
 export type DrawingSelectionSource = {
   id: string;
   name: string;
   sourceModelIdMap: ModelIdMap;
+  projection?: {
+    sourceRefs?: DrawingProjectionSourceRef[];
+  };
 };
 
 export function cloneModelIdMap(modelIdMap: ModelIdMap): ModelIdMap {
@@ -46,17 +50,58 @@ export function countModelIdMapOverlap(source: ModelIdMap, selection: ModelIdMap
 }
 
 export function findBestMatchingDrawing<T extends DrawingSelectionSource>(drawings: T[], selection: ModelIdMap) {
-  let best: { drawing: T; overlap: number; sourceCount: number } | null = null;
+  let best: { drawing: T; overlap: number; sourceCount: number; status: DrawingProjectionSyncStatus } | null = null;
 
   for (const drawing of drawings) {
-    const overlap = countModelIdMapOverlap(drawing.sourceModelIdMap, selection);
+    const match = getProjectionSelectionStatus(drawing.projection?.sourceRefs ?? [], selection);
+    const overlap = match.count || countModelIdMapOverlap(drawing.sourceModelIdMap, selection);
     if (overlap <= 0) continue;
 
     const sourceCount = countModelIdMapOverlap(drawing.sourceModelIdMap, drawing.sourceModelIdMap);
     if (!best || overlap > best.overlap || (overlap === best.overlap && sourceCount < best.sourceCount)) {
-      best = { drawing, overlap, sourceCount };
+      best = { drawing, overlap, sourceCount, status: match.status };
     }
   }
 
   return best;
+}
+
+export function buildProjectionSourceRefs(modelIdMap: ModelIdMap, projectionType: DrawingView): DrawingProjectionSourceRef[] {
+  const refs: DrawingProjectionSourceRef[] = [];
+  for (const [modelId, localIds] of Object.entries(modelIdMap).sort(([left], [right]) => left.localeCompare(right))) {
+    for (const localId of [...localIds].sort((left, right) => left - right)) {
+      refs.push({
+        id: `${projectionType}:${modelId}:${localId}`,
+        projectionType,
+        status: "linked",
+        source: { modelId, localId },
+      });
+    }
+  }
+  return refs;
+}
+
+export function findProjectionRefsForSelection(refs: DrawingProjectionSourceRef[], selection: ModelIdMap) {
+  return refs.filter((ref) => {
+    if (ref.status !== "linked" || !ref.source) return false;
+    return selection[ref.source.modelId]?.has(ref.source.localId) ?? false;
+  });
+}
+
+export function getLinkedProjectionSelection(ref: DrawingProjectionSourceRef): ModelIdMap | null {
+  if (ref.status !== "linked" || !ref.source) return null;
+  return { [ref.source.modelId]: new Set([ref.source.localId]) };
+}
+
+export function getProjectionSelectionStatus(refs: DrawingProjectionSourceRef[], selection: ModelIdMap): {
+  status: DrawingProjectionSyncStatus;
+  refs: DrawingProjectionSourceRef[];
+  count: number;
+} {
+  const linkedRefs = refs.filter((ref) => ref.status === "linked" && ref.source);
+  if (linkedRefs.length === 0) return { status: "unlinked", refs: [], count: 0 };
+
+  const matches = findProjectionRefsForSelection(linkedRefs, selection);
+  if (matches.length === 0) return { status: "off-screen", refs: [], count: 0 };
+  return { status: "linked", refs: matches, count: matches.length };
 }

@@ -19,6 +19,8 @@ export interface DrawingDocument {
   viewport: OBC.DrawingViewport | null;
   projection: DrawingProjection;
   sourceModelIdMap: ModelIdMap;
+  highlightedProjectionRefIds: string[];
+  selectionStatus?: string;
   sheets: SheetDocument[];
 }
 
@@ -37,6 +39,7 @@ export function createDrawingDocument(document: Omit<DrawingDocument, "sheets"> 
   return {
     ...document,
     sourceModelIdMap: cloneModelIdMap(document.sourceModelIdMap),
+    highlightedProjectionRefIds: [...(document.highlightedProjectionRefIds ?? [])],
     sheets: document.sheets ? [...document.sheets] : [],
   };
 }

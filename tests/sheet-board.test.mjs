@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import * as THREE from "three";
 
 import { createSheet, renderSheetSvg } from "../src/bim/sheets/sheet-board.ts";
 import { createSpecBlocksFromRows } from "../src/bim/sheets/spec-placement.ts";
@@ -71,6 +72,31 @@ test("renderSheetSvg includes spec block tables and multiple blocks", () => {
   assert.match(svg, /Спецификаций: 2/);
   assert.match(svg, /data-drawing-projection-ref-id="plan:modelA:7"/);
   assert.match(svg, /fill="#f97316"/);
+});
+
+test("renderSheetSvg binds projection hit areas to real drawing geometry when line metadata is available", () => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0, 10, 0, 0], 3));
+  const line = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial());
+  line.userData = { modelId: "modelA", localId: 7 };
+
+  const drawing = createDrawingStub();
+  drawing.drawing.three = new THREE.Group();
+  drawing.drawing.three.add(line);
+  drawing.lineCount = 1;
+  const sheet = createSheet({
+    format: "A3",
+    drawing,
+    projectName: "Проект BIM",
+    title: "Геометрическая привязка",
+  });
+
+  const svg = renderSheetSvg(sheet);
+
+  assert.match(svg, /class="drawing-projection-geometry-hit-area"/);
+  assert.match(svg, /data-drawing-projection-ref-id="plan:modelA:7"/);
+  assert.match(svg, /data-drawing-projection-hit-kind="geometry"/);
+  assert.doesNotMatch(svg, /data-drawing-projection-hit-kind="proxy-marker"/);
 });
 
 test("viewport frame helper clamps resize and move within the sheet", () => {

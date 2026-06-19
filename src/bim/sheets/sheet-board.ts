@@ -40,8 +40,8 @@ export function renderSheetSvg(sheet: SheetRecord, options: { includeViewportHan
     blockCount: sheet.specBlocks.length,
   });
   const viewport = normalizeSheetViewportFrame(sheet.viewportFrame, layout.drawingViewport, 24);
-  const projectedLines = renderDrawingProjection(sheet.drawing, viewport);
-  const projectionMarkers = renderProjectionSourceMarkers(sheet.drawing, viewport);
+  const projected = renderDrawingProjection(sheet.drawing, viewport);
+  const projectionMarkers = renderProjectionSourceMarkers(sheet.drawing, viewport, projected.geometryRefIds);
   const drawingScale = estimateSheetScale(sheet.drawing, viewport.width, viewport.height);
   const titleTop = size.height - margin - titleBlockHeight;
 
@@ -54,7 +54,7 @@ export function renderSheetSvg(sheet: SheetRecord, options: { includeViewportHan
   <text x="${viewport.x + 8}" y="${viewport.y + 12}" font-family="Arial" font-size="6" fill="#334155">${escapeXml(sheet.drawing.name)}</text>
   <text x="${viewport.x + 8}" y="${viewport.y + 22}" font-family="Arial" font-size="4" fill="#64748b">${sheet.drawing.lineCount} lines · ${sheet.drawing.annotations.length} annotations · scale 1:${drawingScale}</text>
   <g stroke="#0f172a" stroke-width="0.25" opacity="0.85" fill="none">
-    ${projectedLines || placeholderProjectionLines(viewport.x + 10, viewport.y + 34, viewport.width - 20, viewport.height - 48)}
+    ${projected.svg || placeholderProjectionLines(viewport.x + 10, viewport.y + 34, viewport.width - 20, viewport.height - 48)}
   </g>
   ${projectionMarkers}
   ${renderSpecBlocks(sheet.specBlocks, layout)}
@@ -153,51 +153,109 @@ function formatSheetDate(value: Date) {
 }
 
 function renderDrawingProjection(drawing: DrawingDocument, viewport: SheetViewportFrame) {
-  const lines = collectDrawingLines(drawing);
-  if (lines.length === 0) return "";
+  const sourceRefs = buildProjectionSourceRefLookup(drawing);
+  const lines = collectDrawingLines(drawing, sourceRefs);
+  if (lines.length === 0) return { svg: "", geometryRefIds: new Set<string>() };
   const box = new THREE.Box2();
   for (const line of lines) {
     box.expandByPoint(new THREE.Vector2(line.start.x, line.start.z));
     box.expandByPoint(new THREE.Vector2(line.end.x, line.end.z));
   }
-  if (box.isEmpty()) return "";
+  if (box.isEmpty()) return { svg: "", geometryRefIds: new Set<string>() };
   const size = box.getSize(new THREE.Vector2());
   const scale = Math.min((viewport.width - 20) / Math.max(size.x, 0.001), (viewport.height - 36) / Math.max(size.y, 0.001));
   const contentWidth = size.x * scale;
   const contentHeight = size.y * scale;
   const offsetX = viewport.x + (viewport.width - contentWidth) / 2;
   const offsetY = viewport.y + 30 + (viewport.height - 36 - contentHeight) / 2;
+  const highlighted = new Set(drawing.highlightedProjectionRefIds ?? []);
+  const geometryRefIds = new Set<string>();
 
-  return lines
+  const svg = lines
     .map((line) => {
       const x1 = offsetX + (line.start.x - box.min.x) * scale;
       const y1 = offsetY + (line.start.z - box.min.y) * scale;
       const x2 = offsetX + (line.end.x - box.min.x) * scale;
       const y2 = offsetY + (line.end.z - box.min.y) * scale;
-      return `<line x1="${fmt(x1)}" y1="${fmt(y1)}" x2="${fmt(x2)}" y2="${fmt(y2)}"/>`;
+      const active = line.refId ? highlighted.has(line.refId) : false;
+      const visibleStroke = active ? ` stroke="#f97316" stroke-width="0.7"` : "";
+      const visibleLine = `<line x1="${fmt(x1)}" y1="${fmt(y1)}" x2="${fmt(x2)}" y2="${fmt(y2)}"${visibleStroke}/>`;
+      if (!line.refId) return visibleLine;
+
+      geometryRefIds.add(line.refId);
+      const status = sourceRefs.byId.get(line.refId)?.status ?? "linked";
+      return `${visibleLine}\n    <line class="drawing-projection-geometry-hit-area" x1="${fmt(x1)}" y1="${fmt(y1)}" x2="${fmt(x2)}" y2="${fmt(y2)}" stroke="#f97316" stroke-opacity="0" stroke-width="5" pointer-events="stroke" data-drawing-projection-ref-id="${escapeXml(line.refId)}" data-drawing-projection-status="${status}" data-drawing-projection-hit-kind="geometry"/>`;
     })
     .join("\n    ");
+  return { svg, geometryRefIds };
 }
 
-function collectDrawingLines(drawing: DrawingDocument) {
-  const lines: Array<{ start: THREE.Vector3; end: THREE.Vector3 }> = [];
+function collectDrawingLines(drawing: DrawingDocument, sourceRefs: ProjectionSourceRefLookup) {
+  const lines: Array<{ start: THREE.Vector3; end: THREE.Vector3; refId?: string }> = [];
   drawing.drawing.three.updateWorldMatrix(true, true);
   drawing.drawing.three.traverse((object) => {
     if (!(object instanceof THREE.LineSegments)) return;
     const position = object.geometry.getAttribute("position");
     if (!position) return;
+    const singleRefId = sourceRefs.byId.size === 1 ? [...sourceRefs.byId.keys()][0] : null;
+    const objectRefId = resolveProjectionRefId(object.userData, sourceRefs) ?? resolveProjectionRefId(object.geometry.userData, sourceRefs) ?? singleRefId;
+    const segmentRefs = Array.isArray(object.userData?.projectionSourceRefs)
+      ? object.userData.projectionSourceRefs
+      : Array.isArray(object.geometry.userData?.projectionSourceRefs)
+        ? object.geometry.userData.projectionSourceRefs
+        : [];
     for (let index = 0; index + 1 < position.count; index += 2) {
+      const segmentRefId = resolveProjectionRefId(segmentRefs[index / 2], sourceRefs) ?? objectRefId;
       lines.push({
         start: new THREE.Vector3().fromBufferAttribute(position, index).applyMatrix4(object.matrixWorld),
         end: new THREE.Vector3().fromBufferAttribute(position, index + 1).applyMatrix4(object.matrixWorld),
+        refId: segmentRefId ?? undefined,
       });
     }
   });
   return lines;
 }
 
-function renderProjectionSourceMarkers(drawing: DrawingDocument, viewport: SheetViewportFrame) {
-  const refs = drawing.projection.sourceRefs ?? [];
+type ProjectionSourceRefLookup = ReturnType<typeof buildProjectionSourceRefLookup>;
+
+function buildProjectionSourceRefLookup(drawing: DrawingDocument) {
+  const byId = new Map<string, DrawingDocument["projection"]["sourceRefs"][number]>();
+  const bySource = new Map<string, string>();
+  for (const ref of drawing.projection.sourceRefs ?? []) {
+    byId.set(ref.id, ref);
+    if (ref.source) bySource.set(getSourceKey(ref.source.modelId, ref.source.localId), ref.id);
+  }
+  return { byId, bySource };
+}
+
+function resolveProjectionRefId(value: unknown, sourceRefs: ProjectionSourceRefLookup) {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const directId = stringValue(record.projectionRefId) ?? stringValue(record.sourceRefId) ?? stringValue(record.refId) ?? stringValue(record.drawingProjectionRefId);
+  if (directId && sourceRefs.byId.has(directId)) return directId;
+
+  const modelId = stringValue(record.modelId) ?? stringValue(record.ModelId);
+  const localId = numberValue(record.localId) ?? numberValue(record.LocalId) ?? numberValue(record.expressId) ?? numberValue(record.ExpressId) ?? numberValue(record.id) ?? numberValue(record.Id);
+  if (!modelId || localId === null) return null;
+  return sourceRefs.bySource.get(getSourceKey(modelId, localId)) ?? null;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function numberValue(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() && Number.isFinite(Number(value))) return Number(value);
+  return null;
+}
+
+function getSourceKey(modelId: string, localId: number) {
+  return `${modelId}:${localId}`;
+}
+
+function renderProjectionSourceMarkers(drawing: DrawingDocument, viewport: SheetViewportFrame, geometryRefIds: Set<string>) {
+  const refs = (drawing.projection.sourceRefs ?? []).filter((ref) => !geometryRefIds.has(ref.id));
   if (refs.length === 0) return "";
 
   const highlighted = new Set(drawing.highlightedProjectionRefIds ?? []);
@@ -219,7 +277,7 @@ function renderProjectionSourceMarkers(drawing: DrawingDocument, viewport: Sheet
     const fill = ref.status === "linked" ? (active ? "#f97316" : "#2563eb") : "#94a3b8";
     const stroke = active ? "#7c2d12" : "#ffffff";
     const opacity = active ? "0.95" : "0.34";
-    return `<rect x="${fmt(x - markerSize / 2)}" y="${fmt(y - markerSize / 2)}" width="${fmt(markerSize)}" height="${fmt(markerSize)}" rx="${fmt(markerSize * 0.25)}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="0.45" pointer-events="all" data-drawing-projection-ref-id="${escapeXml(ref.id)}" data-drawing-projection-status="${ref.status}"/>`;
+    return `<rect x="${fmt(x - markerSize / 2)}" y="${fmt(y - markerSize / 2)}" width="${fmt(markerSize)}" height="${fmt(markerSize)}" rx="${fmt(markerSize * 0.25)}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="0.45" pointer-events="all" data-drawing-projection-ref-id="${escapeXml(ref.id)}" data-drawing-projection-status="${ref.status}" data-drawing-projection-hit-kind="proxy-marker"/>`;
   });
 
   return `<g class="drawing-projection-source-markers" data-drawing-projection-markers="true">\n    ${markers.join("\n    ")}\n  </g>`;

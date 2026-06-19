@@ -43,6 +43,7 @@ test("help content covers every user-facing roadmap feature and connects section
     "progressive-loading",
     "production-drawings",
     "drawing-sync",
+    "element-context-menu",
     "section-3",
     "operations-guardrails",
   ];
@@ -60,6 +61,10 @@ test("help content covers every user-facing roadmap feature and connects section
   }
 
   assert.equal(getHelpSectionById("drawing-sync")?.title, "Связь модель ↔ чертёж");
+  const contextMenu = getHelpSectionById("element-context-menu");
+  assert.ok(contextMenu?.steps.join(" ").includes("Найти в данных"));
+  assert.ok(contextMenu?.steps.join(" ").includes("Создать замечание"));
+  assert.ok(contextMenu?.steps.join(" ").includes("Добавить в выборку"));
 });
 
 test("renderHelpPage builds navigable help page with anchors and related links", () => {
@@ -93,7 +98,8 @@ test("renderHelpPage builds navigable help page with anchors and related links",
   renderHelpPage(root);
 
   assert.ok(root.children.length > 0);
-  assert.ok(created.some((node) => node.tag === "nav" && node.className.includes("help-nav")));
+  assert.ok(created.some((node) => node.tag === "div" && node.className.includes("help-layout")));
+  assert.ok(created.some((node) => node.tag === "nav" && node.className.includes("help-nav") && node.className.includes("help-nav-sidebar")));
   assert.ok(created.some((node) => node.tag === "article" && node.id === "help-drawing-sync"));
   assert.ok(created.some((node) => node.tag === "a" && node.href === "#help-section-3"));
   assert.ok(root.innerHTML.includes("BIM Manager Workbench"));

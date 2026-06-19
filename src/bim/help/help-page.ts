@@ -96,8 +96,9 @@ export function renderHelpPage(output: HTMLElement) {
   );
 
   const nav = document.createElement("nav");
-  nav.className = "help-nav";
+  nav.className = "help-nav help-nav-sidebar";
   nav.setAttribute?.("aria-label", "Навигация по справке");
+  appendText(nav, "strong", "help-nav-title", "Разделы справки");
   HELP_SECTIONS.forEach((section) => {
     const anchor = document.createElement("a");
     anchor.href = `#help-${section.id}`;
@@ -109,5 +110,9 @@ export function renderHelpPage(output: HTMLElement) {
   sections.className = "help-sections";
   HELP_SECTIONS.forEach((section) => sections.appendChild(renderSection(section)));
 
-  output.append(hero, nav, sections);
+  const layout = document.createElement("div");
+  layout.className = "help-layout";
+  layout.append(nav, sections);
+
+  output.append(hero, layout);
 }

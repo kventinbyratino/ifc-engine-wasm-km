@@ -46,7 +46,11 @@ export function renderChecksPanel(options: {
       const issueButton = document.createElement("button");
       issueButton.type = "button";
       issueButton.textContent = "Issue";
-      issueButton.onclick = () => onCreateIssue(issue);
+      issueButton.setAttribute("aria-label", `Создать issue: ${issue.title} #${issue.localId}`);
+      issueButton.onclick = () => {
+        issueButton.disabled = true;
+        onCreateIssue(issue);
+      };
       actions.append(issueButton);
     }
 

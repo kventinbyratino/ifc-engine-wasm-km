@@ -29,10 +29,47 @@ export async function downloadSheetPng(sheet: SheetRecord) {
 
 export function openSheetPdfPrint(sheet: SheetRecord) {
   const svg = renderSheetSvg(sheet);
-  const win = window.open("", "_blank", "noopener,noreferrer");
-  if (!win) throw new Error("Браузер заблокировал окно PDF/print");
-  win.document.write(`<!doctype html><html><head><title>${escapeHtml(sheet.title)}</title><style>@page{size:${sheet.format} landscape;margin:0}body{margin:0;background:#fff}svg{width:100vw;height:100vh}</style></head><body>${svg}<script>window.onload=()=>window.print()</script></body></html>`);
-  win.document.close();
+  const frame = document.createElement("iframe");
+  frame.title = `PDF/print: ${sheet.title}`;
+  frame.style.position = "fixed";
+  frame.style.right = "0";
+  frame.style.bottom = "0";
+  frame.style.width = "0";
+  frame.style.height = "0";
+  frame.style.border = "0";
+  frame.setAttribute("aria-hidden", "true");
+  document.body.append(frame);
+
+  const doc = frame.contentDocument ?? frame.contentWindow?.document;
+  if (!doc) {
+    frame.remove();
+    throw new Error("Не удалось подготовить PDF/print");
+  }
+
+  doc.open();
+  doc.write(createPrintableSheetHtml(sheet, svg));
+  doc.close();
+
+  const printFrame = () => {
+    const contentWindow = frame.contentWindow;
+    if (!contentWindow) {
+      frame.remove();
+      throw new Error("Не удалось открыть PDF/print");
+    }
+    contentWindow.focus();
+    contentWindow.print();
+    window.setTimeout(() => frame.remove(), 1000);
+  };
+
+  if (doc.readyState === "complete") {
+    window.setTimeout(printFrame, 0);
+  } else {
+    frame.onload = printFrame;
+  }
+}
+
+function createPrintableSheetHtml(sheet: SheetRecord, svg: string) {
+  return `<!doctype html><html><head><title>${escapeHtml(sheet.title)}</title><style>@page{size:${sheet.format} landscape;margin:0}body{margin:0;background:#fff}svg{width:100vw;height:100vh}</style></head><body>${svg}</body></html>`;
 }
 
 function loadImage(url: string) {

@@ -244,6 +244,7 @@ export function bindBimUiEvents(
   hideSelectedBtn.onclick = () => void model.hideSelected();
   isolateSelectedBtn.onclick = () => void model.isolateSelected();
   showAllBtn.onclick = () => void ctx.viewer.hider.set(true);
+  searchToggleBtn.onclick = () => search.toggleSearchPanel();
   searchBtn.onclick = () => void search.searchItems();
   searchInput.onfocus = () => search.expandSearchPanel();
   searchPanel.onclick = () => {

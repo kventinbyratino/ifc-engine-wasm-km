@@ -1,0 +1,243 @@
+.help-page {
+  position: absolute;
+  inset: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  z-index: 16;
+  display: grid;
+  color: #172026;
+  pointer-events: auto;
+}
+
+.help-page-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(18, 28, 34, 0.12);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.24);
+  backdrop-filter: blur(18px);
+}
+
+.help-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(18, 28, 34, 0.08);
+}
+
+.help-page-header div {
+  display: grid;
+  gap: 2px;
+}
+
+.help-page-header strong {
+  font-size: 18px;
+  letter-spacing: -0.025em;
+}
+
+.help-page-header span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.help-page-output {
+  overflow: auto;
+  padding: 22px;
+  overscroll-behavior: contain;
+}
+
+.help-hero {
+  display: grid;
+  gap: 10px;
+  max-width: 980px;
+  margin: 0 auto 20px;
+  padding: 24px;
+  border-radius: 24px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #172026, #24313b 58%, #ff8a00);
+}
+
+.help-kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.78;
+}
+
+.help-title {
+  margin: 0;
+  font-size: clamp(28px, 5vw, 48px);
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.help-lead {
+  max-width: 760px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.help-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 980px;
+  margin: 0 auto 22px;
+}
+
+.help-nav a,
+.help-related a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 7px 11px;
+  border: 1px solid rgba(20, 26, 32, 0.1);
+  border-radius: 999px;
+  color: #172026;
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.help-nav a:hover,
+.help-related a:hover {
+  border-color: rgba(255, 138, 0, 0.5);
+  background: #fff7ed;
+}
+
+.help-sections {
+  display: grid;
+  gap: 18px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.help-section-card {
+  overflow: hidden;
+  border: 1px solid rgba(18, 28, 34, 0.1);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 10px 34px rgba(15, 23, 42, 0.08);
+  scroll-margin-top: 22px;
+}
+
+.help-section-header {
+  display: grid;
+  gap: 8px;
+  padding: 20px 22px 10px;
+}
+
+.help-roadmap-badge {
+  justify-self: start;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #9a4d00;
+  background: #fff4df;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.help-section-title {
+  margin: 0;
+  font-size: clamp(21px, 3vw, 30px);
+  letter-spacing: -0.04em;
+}
+
+.help-section-summary {
+  max-width: 780px;
+  margin: 0;
+  color: #4b5d69;
+  line-height: 1.55;
+}
+
+.help-figure {
+  margin: 10px 22px 0;
+}
+
+.help-figure svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid rgba(18, 28, 34, 0.08);
+  border-radius: 20px;
+}
+
+.help-figure figcaption {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
+}
+
+.help-section-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 18px;
+  padding: 18px 22px 22px;
+}
+
+.help-block {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 18px;
+  background: #f8fafc;
+}
+
+.help-block-title {
+  margin: 0;
+  font-size: 14px;
+}
+
+.help-steps,
+.help-connections {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: #34444f;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.help-related {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.help-related strong {
+  color: #64748b;
+  font-size: 12px;
+}
+
+@media (max-width: 780px) {
+  .help-page {
+    inset: 0;
+  }
+
+  .help-page-shell {
+    border-radius: 0;
+  }
+
+  .help-page-output {
+    padding: 14px;
+  }
+
+  .help-section-grid {
+    grid-template-columns: 1fr;
+  }
+}

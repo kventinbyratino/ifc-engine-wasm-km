@@ -64,6 +64,10 @@ export interface BimUiWiringActions {
     exportSpecifications: () => void;
     clearDrawings: () => void;
   };
+  help: {
+    openHelpPage: () => void;
+    closeHelpPage: () => void;
+  };
   model: {
     loadIfc: (file: File, source?: { kind: "ifc" | "frag"; origin: "upload" | "example" | "library" | "url"; label: string; reference: string; restorable: boolean; discipline?: string }) => Promise<void>;
     loadFrag: (file: File) => Promise<void>;
@@ -110,6 +114,9 @@ export function bindBimUiEvents(
     issuesBtn,
     clashBtn,
     drawingsBtn,
+    helpBtn,
+    helpPage,
+    closeHelpPageBtn,
     loadIfcBtn,
     emptyLoadIfcBtn,
     emptyExampleBtn,
@@ -181,7 +188,7 @@ export function bindBimUiEvents(
     topBackBtn,
   } = ctx.dom;
 
-  const { search, data, checks, issues, clash, federation, drawings, model, profile, library, share, utilities } = actions;
+  const { search, data, checks, issues, clash, federation, drawings, help, model, profile, library, share, utilities } = actions;
   let pendingIfcUploadMode: "single" | "multiple" | null = null;
 
   function openIfcUploadModeModal() {
@@ -248,6 +255,8 @@ export function bindBimUiEvents(
   issuesBtn.onclick = () => issues.toggleIssuesPanel();
   clashBtn.onclick = () => clash.toggleClashPanel();
   drawingsBtn.onclick = () => drawings.toggleDrawingsPanel();
+  helpBtn.onclick = () => help.openHelpPage();
+  closeHelpPageBtn.onclick = () => help.closeHelpPage();
   closeDataPanelBtn.onclick = () => data.closeDataPanel();
   closeFederationPanelBtn.onclick = () => federation.closePanel();
   dataSearchInput.oninput = () => data.applyDataFilters();
@@ -351,6 +360,10 @@ export function bindBimUiEvents(
     if (event.code === "Escape") {
       share.closeShareModal();
       closeIfcUploadModeModal();
+      if (!helpPage.hidden) {
+        help.closeHelpPage();
+        return;
+      }
       void ctx.viewer.highlighter.clear("select");
       void ctx.viewer.highlighter.clear("search");
       return;

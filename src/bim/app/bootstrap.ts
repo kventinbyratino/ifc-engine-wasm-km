@@ -33,6 +33,7 @@ import { createChecksController } from "./checks-controller.ts";
 import { createIssuesController } from "./issues-controller.ts";
 import { createClashController } from "./clash-controller.ts";
 import { createDrawingsController } from "./drawings-controller.ts";
+import { renderHelpPage } from "../help/help-page.ts";
 
 export async function startBimApp() {
   const {
@@ -94,6 +95,8 @@ export async function startBimApp() {
     issuesBtn,
     clashBtn,
     drawingsBtn,
+    helpPage,
+    helpPageOutput,
     dataPanel,
     dataSummary,
     closeDataPanelBtn,
@@ -205,6 +208,16 @@ export async function startBimApp() {
     showError: appStatus.showError,
   });
   void ctx;
+  renderHelpPage(helpPageOutput);
+  const openHelpPage = () => {
+    helpPage.hidden = false;
+    helpPage.classList.add("is-open");
+    ctx.setStatus("Открыта справка");
+  };
+  const closeHelpPage = () => {
+    helpPage.hidden = true;
+    helpPage.classList.remove("is-open");
+  };
   const drawingInteraction = createDrawingInteractionController({
     viewport,
     world,
@@ -537,6 +550,10 @@ export async function startBimApp() {
       exportActiveSheetDxf,
       exportSpecifications,
       clearDrawings,
+    },
+    help: {
+      openHelpPage,
+      closeHelpPage,
     },
     model: {
       loadIfc,

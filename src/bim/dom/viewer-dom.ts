@@ -73,6 +73,10 @@ export function getViewerDom() {
     issuesBtn: requiredElement<HTMLButtonElement>("issuesBtn"),
     clashBtn: requiredElement<HTMLButtonElement>("clashBtn"),
     drawingsBtn: requiredElement<HTMLButtonElement>("drawingsBtn"),
+    helpBtn: requiredElement<HTMLButtonElement>("helpBtn"),
+    helpPage: requiredElement<HTMLElement>("helpPage"),
+    closeHelpPageBtn: requiredElement<HTMLButtonElement>("closeHelpPageBtn"),
+    helpPageOutput: requiredElement<HTMLDivElement>("helpPageOutput"),
     searchBtn: requiredElement<LoadingElement>("searchBtn"),
     clearSearchBtn: requiredElement<LoadingElement>("clearSearchBtn"),
   };

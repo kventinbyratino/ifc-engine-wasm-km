@@ -223,6 +223,15 @@
             </svg>
             <span class="action-label">Чертежи</span>
           </button>
+
+          <button id="helpBtn" class="action-button help-button" type="button" aria-label="Справка">
+            <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M9.5 9a2.7 2.7 0 0 1 5.1 1.25c0 2.1-2.6 2.25-2.6 4.25" />
+              <path d="M12 18h.01" />
+            </svg>
+            <span class="action-label">Справка</span>
+          </button>
         </div>
 
         <section id="federationPanel" class="federation-panel" hidden>
@@ -446,6 +455,19 @@
           </div>
           <div id="searchOutput" class="search-output">
             <span class="empty-state">Введите текст поиска.</span>
+          </div>
+        </section>
+
+        <section id="helpPage" class="help-page" aria-label="Справка по BIM Workbench" hidden>
+          <div class="help-page-shell">
+            <div class="help-page-header">
+              <div>
+                <strong>Справка</strong>
+                <span>Roadmap → рабочие сценарии</span>
+              </div>
+              <button id="closeHelpPageBtn" class="plain-button" type="button" aria-label="Закрыть справку">×</button>
+            </div>
+            <div id="helpPageOutput" class="help-page-output"></div>
           </div>
         </section>
 

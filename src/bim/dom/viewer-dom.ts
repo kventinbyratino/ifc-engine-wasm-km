@@ -15,6 +15,8 @@ export function getViewerDom() {
     fileName: requiredElement<HTMLElement>("fileName"),
     modelCount: requiredElement<HTMLElement>("modelCount"),
     selectionCount: requiredElement<HTMLElement>("selectionCount"),
+    propertiesPanel: requiredElement<HTMLElement>("propertiesPanel"),
+    closePropertiesPanelBtn: requiredElement<HTMLButtonElement>("closePropertiesPanelBtn"),
     propertiesOutput: requiredElement<HTMLDivElement>("propertiesOutput"),
     treeOutput: requiredElement<HTMLDivElement>("treeOutput"),
     searchInput: requiredElement<HTMLInputElement>("searchInput"),

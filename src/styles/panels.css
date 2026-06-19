@@ -326,8 +326,7 @@
 }
 
 .side-panel,
-.tree-output,
-.properties-output {
+.tree-output {
   display: none;
 }
 

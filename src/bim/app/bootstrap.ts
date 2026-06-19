@@ -34,6 +34,7 @@ import { createIssuesController } from "./issues-controller.ts";
 import { createClashController } from "./clash-controller.ts";
 import { createDrawingsController } from "./drawings-controller.ts";
 import { renderHelpPage } from "../help/help-page.ts";
+import { createElementContextMenu } from "../ui/element-context-menu.ts";
 
 export async function startBimApp() {
   const {
@@ -49,6 +50,8 @@ export async function startBimApp() {
     fileName,
     modelCount,
     selectionCount,
+    propertiesPanel,
+    closePropertiesPanelBtn,
     propertiesOutput,
     treeOutput,
     searchInput,
@@ -220,6 +223,30 @@ export async function startBimApp() {
     helpPage.hidden = true;
     helpPage.classList.remove("is-open");
   };
+
+  const openPropertiesPanel = () => {
+    if (countSelection(workspace.viewer.activeSelection) === 0) {
+      ctx.showToast("Сначала выберите элемент", "error");
+      return;
+    }
+
+    propertiesPanel.hidden = false;
+    propertiesPanel.classList.add("is-open");
+    ctx.setStatus("Открыты свойства элемента");
+  };
+
+  const closePropertiesPanel = () => {
+    propertiesPanel.hidden = true;
+    propertiesPanel.classList.remove("is-open");
+  };
+  closePropertiesPanelBtn.onclick = closePropertiesPanel;
+
+  createElementContextMenu({
+    target: viewport,
+    getSelectionCount: () => countSelection(workspace.viewer.activeSelection),
+    onOpenProperties: openPropertiesPanel,
+    onMissingSelection: () => ctx.showToast("Сначала выберите элемент", "error"),
+  });
   const drawingInteraction = createDrawingInteractionController({
     viewport,
     world,
@@ -666,6 +693,7 @@ export async function startBimApp() {
   function clearSelectionInfo() {
     workspace.viewer.activeSelection = {};
     selectionCount.textContent = "0";
+    closePropertiesPanel();
     propertiesOutput.replaceChildren(createMessage("Выберите элемент модели."));
   }
 

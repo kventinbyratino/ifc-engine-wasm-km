@@ -481,6 +481,17 @@
           </div>
         </section>
 
+        <section id="propertiesPanel" class="properties-panel" aria-label="Свойства элемента" hidden>
+          <div class="properties-panel-header">
+            <div>
+              <strong>Свойства элемента</strong>
+              <span>Выбранный IFC-объект</span>
+            </div>
+            <button id="closePropertiesPanelBtn" class="plain-button" type="button" aria-label="Закрыть свойства">×</button>
+          </div>
+          <div id="propertiesOutput" class="properties-output"></div>
+        </section>
+
         <div id="progress" class="progress" hidden>
           <div id="progressBar" class="progress-bar"></div>
         </div>
@@ -491,7 +502,6 @@
         <strong id="modelCount">0</strong>
         <strong id="selectionCount">0</strong>
         <div id="treeOutput" class="tree-output"></div>
-        <div id="propertiesOutput" class="properties-output"></div>
         <button id="loadFragBtn" type="button"></button>
         <button id="fitBtn" type="button"></button>
         <button id="clearBtn" type="button"></button>

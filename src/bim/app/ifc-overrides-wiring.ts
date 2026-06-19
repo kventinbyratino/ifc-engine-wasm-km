@@ -19,17 +19,37 @@ export function createIfcOverridesWiring({ dom, viewer, workspace, showToast }: 
     workspace.data.pendingIfcOverrideCount = snapshot.pendingCount;
   };
 
-  async function savePropertyOverride(draft: IfcPropertyOverrideDraft) {
-    ifcOverrideStore.setPropertyOverride(draft);
-    syncIfcOverrideState();
+  async function renderPropertiesPanel() {
     await renderSelectedProperties({
       components: viewer.components,
       modelIdMap: workspace.viewer.activeSelection,
       output: dom.propertiesOutput,
-      pendingOverrideCount: workspace.ifcOverrides.pendingCount,
+      overrideState: workspace.ifcOverrides,
       onSaveOverride: savePropertyOverride,
+      onRemoveOverride: removeOverride,
+      onClearOverrides: clearOverrides,
     });
+  }
+
+  async function savePropertyOverride(draft: IfcPropertyOverrideDraft) {
+    ifcOverrideStore.setPropertyOverride(draft);
+    syncIfcOverrideState();
+    await renderPropertiesPanel();
     showToast(`Saved pending override for ${draft.propertySet}.${draft.propertyName}`, "success");
+  }
+
+  async function removeOverride(key: string) {
+    const removed = ifcOverrideStore.remove(key);
+    syncIfcOverrideState();
+    await renderPropertiesPanel();
+    showToast(removed ? "Pending override отменён" : "Pending override не найден", removed ? "success" : "error");
+  }
+
+  async function clearOverrides() {
+    ifcOverrideStore.clear();
+    syncIfcOverrideState();
+    await renderPropertiesPanel();
+    showToast("Все pending overrides сброшены", "success");
   }
 
   syncIfcOverrideState();
@@ -38,5 +58,7 @@ export function createIfcOverridesWiring({ dom, viewer, workspace, showToast }: 
     ifcOverrideStore,
     syncIfcOverrideState,
     savePropertyOverride,
+    removeOverride,
+    clearOverrides,
   };
 }

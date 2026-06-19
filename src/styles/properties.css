@@ -1,0 +1,149 @@
+.properties-panel-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.properties-override-editor {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(239, 246, 255, 0.96), rgba(255, 255, 255, 0.96));
+}
+
+.properties-override-header,
+.properties-pending-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.properties-override-header h4 {
+  margin: 0;
+  color: #172026;
+  font-size: 14px;
+}
+
+.properties-override-summary {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.1);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.properties-panel-note,
+.properties-panel-status {
+  margin: 0;
+  color: #52616c;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.properties-panel-status {
+  color: #0f766e;
+  font-weight: 700;
+}
+
+.properties-override-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.properties-field {
+  display: grid;
+  gap: 4px;
+  color: #52616c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.properties-field input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(23, 32, 38, 0.14);
+  border-radius: 10px;
+  color: #172026;
+  background: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.properties-pending-overrides {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(23, 32, 38, 0.08);
+}
+
+.properties-pending-header strong {
+  color: #172026;
+  font-size: 13px;
+}
+
+.properties-pending-list {
+  display: grid;
+  max-height: 190px;
+  gap: 6px;
+  overflow: auto;
+}
+
+.properties-pending-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid rgba(23, 32, 38, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.properties-pending-item > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.properties-pending-item strong,
+.properties-pending-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.properties-pending-item strong {
+  color: #172026;
+  font-size: 12px;
+}
+
+.properties-pending-item span {
+  color: #687782;
+  font-size: 11px;
+}
+
+.properties-table {
+  overflow: auto;
+}
+
+@media (max-width: 760px) {
+  .properties-override-form {
+    grid-template-columns: 1fr;
+  }
+
+  .properties-override-header,
+  .properties-pending-header,
+  .properties-pending-item {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+}

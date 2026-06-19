@@ -185,6 +185,8 @@ export async function startBimApp() {
     ifcOverrideStore,
     syncIfcOverrideState,
     savePropertyOverride,
+    removeOverride,
+    clearOverrides,
   } = createIfcOverridesWiring({
     dom: getDomElements(),
     viewer: { components, world, fragments, ifcLoader, highlighter, hider, lodChunkCache },
@@ -630,8 +632,10 @@ export async function startBimApp() {
       components,
       modelIdMap,
       output: propertiesOutput,
-      pendingOverrideCount: workspace.ifcOverrides.pendingCount,
+      overrideState: workspace.ifcOverrides,
       onSaveOverride: savePropertyOverride,
+      onRemoveOverride: removeOverride,
+      onClearOverrides: clearOverrides,
     });
     syncDataTableSelectionFromModel(modelIdMap);
     syncDrawingSelectionFromModel(modelIdMap);
@@ -671,8 +675,10 @@ export async function startBimApp() {
       components,
       modelIdMap,
       output: propertiesOutput,
-      pendingOverrideCount: workspace.ifcOverrides.pendingCount,
+      overrideState: workspace.ifcOverrides,
       onSaveOverride: savePropertyOverride,
+      onRemoveOverride: removeOverride,
+      onClearOverrides: clearOverrides,
     });
     syncDataTableSelectionFromModel(modelIdMap);
   }

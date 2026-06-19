@@ -129,6 +129,7 @@ test("renderElementsTable renders rows and empty state with a minimal DOM stub",
     textContent: "",
     innerHTML: "",
     tabIndex: 0,
+    dataset: {},
     children: [],
     append(...items) {
       this.children.push(...items);
@@ -187,6 +188,33 @@ test("renderElementsTable renders rows and empty state with a minimal DOM stub",
     assert.equal(output.children[0].tag, "div");
     state.rows[0].onclick();
     assert.deepEqual(selected, [1]);
+
+    const activeOutput = makeNode("output");
+    state.rows = [];
+    renderElementsTable({
+      records: [
+        {
+          modelId: "m1",
+          localId: 1,
+          category: "IFCWALL",
+          name: "Wall 01",
+          globalId: "gid1",
+          typeName: "WallType",
+          storey: "Level 01",
+          materialName: "Concrete",
+          psetCount: 1,
+          searchable: "wall 01",
+        },
+      ],
+      totalCount: 1,
+      output: activeOutput,
+      activeSelection: { m1: new Set([1]) },
+      onSelect: (record) => selected.push(record.localId),
+    });
+    assert.equal(state.rows[0].dataset.modelId, "m1");
+    assert.equal(state.rows[0].dataset.localId, "1");
+    assert.equal(state.rows[0].className, "is-active");
+    assert.equal(state.rows[0].ariaSelected, "true");
 
     const emptyOutput = makeNode("output");
     renderElementsTable({ records: [], totalCount: 0, output: emptyOutput, onSelect: () => {} });

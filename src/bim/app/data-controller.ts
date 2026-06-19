@@ -1,4 +1,3 @@
-import { renderSelectedProperties } from "../properties/properties-panel.ts";
 import { buildElementIndex, filterElementIndex, getUniqueValues, recordsToModelIdMap, type BimElementRecord } from "../data/element-index.ts";
 import {
   exportElementsCsv,
@@ -22,13 +21,14 @@ export interface DataControllerHooks {
   canUseDataBrowser: () => boolean;
   applySearchHighlight: (modelIdMap: ModelIdMap) => Promise<void>;
   fitToItems: (modelIdMap: ModelIdMap) => Promise<void>;
+  setModelSelection: (modelIdMap: ModelIdMap) => Promise<void>;
   refreshClashSelectors: () => void;
   refreshFederationRegistry: () => void;
 }
 
 export function createDataController(ctx: BimAppContext, hooks: DataControllerHooks) {
   const { workspace } = ctx;
-  const { components, fragments } = ctx.viewer;
+  const { fragments } = ctx.viewer;
   const {
     dataPanel,
     dataSummary,
@@ -37,8 +37,6 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     dataStoreyFilter,
     highlightFilteredBtn,
     dataTableOutput,
-    propertiesOutput,
-    selectionCount,
   } = ctx.dom;
 
   function toggleDataPanel() {
@@ -161,6 +159,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
       records: workspace.data.filteredElements,
       totalCount: workspace.data.filteredElements.length,
       output: dataTableOutput,
+      activeSelection: workspace.viewer.activeSelection,
       onSelect: selectDataRecord,
     });
   }
@@ -169,15 +168,25 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     const modelIdMap = recordsToModelIdMap([record]);
     await hooks.applySearchHighlight(modelIdMap);
     await hooks.fitToItems(modelIdMap);
-    await renderSelectedProperties({
-      components,
-      modelIdMap,
-      output: propertiesOutput,
-      pendingOverrideCount: workspace.ifcOverrides.pendingCount,
-      onSaveOverride: ctx.savePropertyOverride,
+    await hooks.setModelSelection(modelIdMap);
+    ctx.setStatus(`Таблица → модель: ${record.modelId}:${record.localId}`);
+  }
+
+  function syncDataTableSelectionFromModel(modelIdMap: ModelIdMap) {
+    renderElementsTable({
+      records: workspace.data.filteredElements,
+      totalCount: workspace.data.filteredElements.length,
+      output: dataTableOutput,
+      activeSelection: modelIdMap,
+      onSelect: selectDataRecord,
     });
-    workspace.viewer.activeSelection = modelIdMap;
-    selectionCount.textContent = "1";
+
+    const firstSelection = firstSelectedElement(modelIdMap);
+    if (!firstSelection) return;
+    const row = dataTableOutput.querySelector<HTMLElement>(
+      `[data-model-id="${cssEscape(firstSelection.modelId)}"][data-local-id="${firstSelection.localId}"]`,
+    );
+    row?.scrollIntoView({ block: "nearest" });
   }
 
   async function highlightFilteredElements() {
@@ -202,6 +211,7 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
     rebuildDataIndex,
     resetDataIndex,
     applyDataFilters,
+    syncDataTableSelectionFromModel,
     selectDataRecord,
     highlightFilteredElements,
     exportElementsCsv,
@@ -215,6 +225,20 @@ export function createDataController(ctx: BimAppContext, hooks: DataControllerHo
       }
     },
   };
+}
+
+function firstSelectedElement(modelIdMap: ModelIdMap) {
+  for (const [modelId, localIds] of Object.entries(modelIdMap)) {
+    const [localId] = localIds;
+    if (typeof localId === "number") return { modelId, localId };
+  }
+  return null;
+}
+
+function cssEscape(value: string) {
+  return typeof CSS !== "undefined" && typeof CSS.escape === "function"
+    ? CSS.escape(value)
+    : value.replace(/["\\]/g, "\\$&");
 }
 
 function isAbortError(error: unknown) {

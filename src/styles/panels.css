@@ -149,9 +149,14 @@
 }
 
 .data-table tbody tr:hover,
-.data-table tbody tr:focus {
+.data-table tbody tr:focus,
+.data-table tbody tr.is-active {
   background: #edf9f2;
   outline: none;
+}
+
+.data-table tbody tr.is-active {
+  box-shadow: inset 3px 0 0 #ff8a00;
 }
 
 .data-table strong,

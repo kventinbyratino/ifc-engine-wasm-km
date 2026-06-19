@@ -285,6 +285,7 @@ export async function startBimApp() {
     canUseDataBrowser: () => canUseDataBrowser(),
     applySearchHighlight,
     fitToItems,
+    setModelSelection,
     refreshClashSelectors: () => refreshClashSelectors(),
     refreshFederationRegistry,
   });
@@ -292,6 +293,7 @@ export async function startBimApp() {
     toggleDataPanel,
     openDataPanel,
     applyDataFilters,
+    syncDataTableSelectionFromModel,
     rebuildDataIndex,
     selectDataRecord,
     highlightFilteredElements,
@@ -614,11 +616,13 @@ export async function startBimApp() {
       pendingOverrideCount: workspace.ifcOverrides.pendingCount,
       onSaveOverride: savePropertyOverride,
     });
+    syncDataTableSelectionFromModel(modelIdMap);
     syncDrawingSelectionFromModel(modelIdMap);
   });
 
   highlighter.events.select.onClear.add(() => {
     clearSelectionInfo();
+    syncDataTableSelectionFromModel({});
   });
 
   syncProfileWithLocation();
@@ -653,6 +657,7 @@ export async function startBimApp() {
       pendingOverrideCount: workspace.ifcOverrides.pendingCount,
       onSaveOverride: savePropertyOverride,
     });
+    syncDataTableSelectionFromModel(modelIdMap);
   }
 
 

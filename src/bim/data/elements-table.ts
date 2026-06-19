@@ -1,12 +1,14 @@
 import type { BimElementRecord } from "./element-record.ts";
+import type { ModelIdMap } from "../types.ts";
 
 export function renderElementsTable(options: {
   records: BimElementRecord[];
   totalCount: number;
   output: HTMLElement;
+  activeSelection?: ModelIdMap;
   onSelect: (record: BimElementRecord) => void;
 }) {
-  const { records, totalCount, output, onSelect } = options;
+  const { records, totalCount, output, activeSelection, onSelect } = options;
   const rendered = records.slice(0, 300);
 
   if (totalCount === 0) {
@@ -33,6 +35,15 @@ export function renderElementsTable(options: {
   for (const record of rendered) {
     const row = document.createElement("tr");
     row.tabIndex = 0;
+    row.dataset.modelId = record.modelId;
+    row.dataset.localId = String(record.localId);
+    const active = activeSelection?.[record.modelId]?.has(record.localId) ?? false;
+    if (active) {
+      row.className = "is-active";
+      row.ariaSelected = "true";
+    } else {
+      row.ariaSelected = "false";
+    }
 
     const classCell = document.createElement("td");
     classCell.textContent = record.category || "-";

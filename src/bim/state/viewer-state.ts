@@ -16,7 +16,7 @@ export type ViewerWorkspaceState = {
 
 export function createViewerState(): ViewerWorkspaceState {
   return {
-    activeProfile: "pending",
+    activeProfile: "km",
     activeSelection: {},
     selectionSet: {},
     lastConvertedModelId: "",

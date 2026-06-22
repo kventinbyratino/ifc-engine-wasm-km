@@ -32,6 +32,7 @@ export function createProfileRouter({
   }
 
   function navigateToProfile(profile: Profile) {
+    if (profile === "pending") profile = "km";
     const nextPath = profilePath(profile);
 
     if (window.location.pathname !== nextPath) {
@@ -54,7 +55,7 @@ export function createProfileRouter({
       return;
     }
 
-    selectProfile("pending");
+    selectProfile("km");
   }
 
   function selectProfile(profile: Profile) {

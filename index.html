@@ -9,8 +9,8 @@
     <title>IFC KM Viewer</title>
   </head>
   <body>
-    <main id="app" class="profile-pending">
-      <section id="profileScreen" class="profile-screen" aria-label="Выбор профиля">
+    <main id="app" class="profile-km">
+      <section id="profileScreen" class="profile-screen" aria-label="Выбор профиля" hidden>
         <div class="profile-card">
           <p class="profile-kicker">Выбор профиля</p>
           <div class="profile-actions">
@@ -27,6 +27,7 @@
               id="profileBimBtn"
               class="profile-option"
               type="button"
+              hidden
               onclick="window.location.assign('/ifc-engine-wasm/bim/')"
             >
               <strong>BIM</strong>
@@ -41,7 +42,7 @@
           <p class="profile-kicker">Профиль BIM</p>
           <h1>BIM Viewer</h1>
           <p>Открывается рабочий IFC/BIM viewer.</p>
-          <button id="backToProfilesBtn" class="secondary-action" type="button">Выбрать другой профиль</button>
+          <button id="backToProfilesBtn" class="secondary-action" type="button" hidden>Выбрать другой профиль</button>
         </div>
       </section>
 
@@ -49,7 +50,7 @@
         <div id="viewport" class="viewport"></div>
         <div id="drawingSplitHandle" class="drawing-split-handle" hidden aria-hidden="true"></div>
 
-        <button id="topBackBtn" class="action-button top-back-button" type="button" aria-label="Назад">
+        <button id="topBackBtn" class="action-button top-back-button" type="button" aria-label="Назад" hidden>
           <span aria-hidden="true">←</span>
           <span class="sr-only">Назад</span>
         </button>
@@ -66,11 +67,11 @@
           <span>+</span>
         </button>
 
-        <section id="emptyBimState" class="empty-bim-state" aria-label="Начало работы с BIM" hidden>
+        <section id="emptyBimState" class="empty-bim-state" aria-label="Начало работы с KM" hidden>
           <div class="empty-bim-card">
-            <p class="empty-bim-kicker">BIM Manager Workbench</p>
+            <p class="empty-bim-kicker">KM Viewer</p>
             <strong>Загрузите IFC или откройте пример</strong>
-            <span>Рабочая область BIM: данные, проверки, замечания, коллизии, чертежи и DXF.</span>
+            <span>Рабочая область КМ: загрузка IFC/FRAG, просмотр модели и библиотека фрагментов.</span>
             <div class="empty-bim-actions">
               <button id="emptyLoadIfcBtn" type="button">Загрузить IFC</button>
               <button id="emptyExampleBtn" type="button">Открыть пример</button>

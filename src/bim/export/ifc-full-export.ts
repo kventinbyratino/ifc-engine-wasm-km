@@ -8,6 +8,7 @@ import {
 import type { BimElementRecord } from "../data/element-record.ts";
 import type { IfcClassOverride, IfcOverride, IfcPropertyOverride } from "../ifc-overrides/override-types.ts";
 import { validateClassReplacement } from "../ifc-overrides/class-mapping.ts";
+import { WEB_IFC_BASE } from "../config.ts";
 
 export type SourceIfcModel = {
   modelId: string;
@@ -219,6 +220,5 @@ async function resolveSourceBytes(source: SourceIfcModel) {
 
 function defaultWasmPath() {
   if (typeof window === "undefined") return "./public/web-ifc/";
-  const appBase = window.location.pathname.startsWith("/ifc-engine-wasm/") ? "/ifc-engine-wasm" : "";
-  return `${appBase}/web-ifc/`;
+  return WEB_IFC_BASE;
 }

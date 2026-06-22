@@ -1,5 +1,6 @@
 import type { Profile } from "../types.ts";
 import type { BimAppContext } from "./app-context.ts";
+import { BIM_PROFILE_PATH, KM_PROFILE_PATH, KM_VIEWER_PATH } from "../config.ts";
 
 export interface BimProfileRouterOptions {
   ctx: BimAppContext;
@@ -25,9 +26,9 @@ export function createProfileRouter({
   const { app, bimStub } = ctx.dom;
 
   function profilePath(profile: Profile) {
-    if (profile === "km") return "/blue/km/";
-    if (profile === "bim") return "/ifc-engine-wasm/bim/";
-    return "/blue/km/";
+    if (profile === "km") return KM_PROFILE_PATH;
+    if (profile === "bim") return BIM_PROFILE_PATH;
+    return KM_PROFILE_PATH;
   }
 
   function navigateToProfile(profile: Profile) {
@@ -43,12 +44,12 @@ export function createProfileRouter({
   function syncProfileWithLocation() {
     const path = window.location.pathname.replace(/\/+$/, "");
 
-    if (path === "/blue/km" || path === "/blue/km/viewer") {
+    if (path === trimTrailingSlash(KM_PROFILE_PATH) || path === trimTrailingSlash(KM_VIEWER_PATH)) {
       selectProfile("km");
       return;
     }
 
-    if (path === "/ifc-engine-wasm/bim") {
+    if (path === trimTrailingSlash(BIM_PROFILE_PATH)) {
       selectProfile("bim");
       return;
     }
@@ -118,4 +119,8 @@ export function createProfileRouter({
     canUseCoordination,
     refreshProfilePanels,
   };
+}
+
+function trimTrailingSlash(path: string) {
+  return path.replace(/\/+$/, "");
 }

@@ -1,3 +1,3 @@
-import { startBimApp } from "./bim/app";
+import { startKmApp } from "./km/app/start-km-app.ts";
 
-void startBimApp();
+void startKmApp();

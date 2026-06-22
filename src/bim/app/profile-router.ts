@@ -1,6 +1,6 @@
 import type { Profile } from "../types.ts";
 import type { BimAppContext } from "./app-context.ts";
-import { BIM_PROFILE_PATH, KM_PROFILE_PATH, KM_VIEWER_PATH } from "../config.ts";
+import { BIM_PROFILE_PATH, KM_PROFILE_PATH, KM_VIEWER_PATH, createProfilePath, trimTrailingSlash } from "../config.ts";
 
 export interface BimProfileRouterOptions {
   ctx: BimAppContext;
@@ -26,13 +26,11 @@ export function createProfileRouter({
   const { app, bimStub } = ctx.dom;
 
   function profilePath(profile: Profile) {
-    if (profile === "km") return KM_PROFILE_PATH;
-    if (profile === "bim") return BIM_PROFILE_PATH;
-    return KM_PROFILE_PATH;
+    if (profile === "pending") profile = "km";
+    return createProfilePath(profile);
   }
 
   function navigateToProfile(profile: Profile) {
-    if (profile === "pending") profile = "km";
     const nextPath = profilePath(profile);
 
     if (window.location.pathname !== nextPath) {
@@ -43,7 +41,7 @@ export function createProfileRouter({
   }
 
   function syncProfileWithLocation() {
-    const path = window.location.pathname.replace(/\/+$/, "");
+    const path = trimTrailingSlash(window.location.pathname);
 
     if (path === trimTrailingSlash(KM_PROFILE_PATH) || path === trimTrailingSlash(KM_VIEWER_PATH)) {
       selectProfile("km");
@@ -120,8 +118,4 @@ export function createProfileRouter({
     canUseCoordination,
     refreshProfilePanels,
   };
-}
-
-function trimTrailingSlash(path: string) {
-  return path.replace(/\/+$/, "");
 }

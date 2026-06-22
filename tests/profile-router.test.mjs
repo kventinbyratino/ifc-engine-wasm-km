@@ -4,7 +4,7 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { copyPatchedModule } from "./helpers/copy-patched-module.mjs";
+import { copyPatchedModule, copyModuleFromAbsolute } from "./helpers/copy-patched-module.mjs";
 
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "ifc-profile-router-tests-"));
 const srcRoot = new URL("../src/bim", import.meta.url).pathname;
@@ -16,7 +16,20 @@ await copyPatchedModule({
   specifierMap: {
     "../types.ts": "../types.ts",
     "./app-context.ts": "./app-context.ts",
+    "../config.ts": "../../km/config/index.ts",
   },
+});
+
+await copyModuleFromAbsolute({
+  source: new URL("../src/km/config/index.ts", import.meta.url).pathname,
+  tempRoot: path.dirname(tempRoot),
+  targetRelative: "km/config/index.ts",
+});
+
+await copyModuleFromAbsolute({
+  source: new URL("../src/bim/types.ts", import.meta.url).pathname,
+  tempRoot: path.dirname(tempRoot),
+  targetRelative: "bim/types.ts",
 });
 
 const routerUrl = pathToFileURL(path.join(tempRoot, "app/profile-router.ts")).href;

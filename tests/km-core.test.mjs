@@ -6,6 +6,7 @@ const mainSource = await readFile(new URL("../src/main.ts", import.meta.url), "u
 const appSource = await readFile(new URL("../src/km/app/start-km-app.ts", import.meta.url), "utf8");
 const coreSource = await readFile(new URL("../src/km/viewer/core.ts", import.meta.url), "utf8");
 const configSource = await readFile(new URL("../src/km/config/index.ts", import.meta.url), "utf8");
+const bimConfigSource = await readFile(new URL("../src/bim/config.ts", import.meta.url), "utf8");
 
 test("KM entrypoint is thin and delegates to KM app module", () => {
   assert.match(mainSource, /startKmApp/);
@@ -19,8 +20,13 @@ test("KM viewer core exposes testable viewer and loader seams", () => {
   assert.match(coreSource, /loadFragBuffer/);
 });
 
-test("KM config module re-exports runtime constants", () => {
-  assert.match(configSource, /APP_BASE/);
-  assert.match(configSource, /WEB_IFC_BASE/);
-  assert.match(configSource, /KM_PROFILE_NAME/);
+test("KM config module centralizes runtime constants and path helpers", () => {
+  assert.match(configSource, /export const APP_BASE = "\/blue\/km";/);
+  assert.match(configSource, /export const API_BASE = "\/ifc-engine-wasm\/api";/);
+  assert.match(configSource, /export const WEB_IFC_BASE = `\$\{APP_BASE\}\/web-ifc\//);
+  assert.match(configSource, /export function trimTrailingSlash/);
+  assert.match(configSource, /export function createProfilePath/);
+  assert.match(configSource, /export function createShareUrl/);
+  assert.match(configSource, /export const KM_PROFILE_NAME = "IFC Engine KM";/);
+  assert.match(bimConfigSource, /export \* from "\.\.\/km\/config\/index\.ts";/);
 });

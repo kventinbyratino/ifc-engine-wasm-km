@@ -1,4 +1,4 @@
-import { APP_BASE } from "../config.ts";
+import { createShareUrl } from "../config.ts";
 import type { FragmentRecord } from "../types.ts";
 import type { BimAppContext } from "./app-context.ts";
 import { logControllerError } from "../ui/controller-errors.ts";
@@ -49,10 +49,7 @@ export function createShareController(ctx: BimAppContext) {
   }
 
   function createShareLink(fragmentId: string) {
-    const profileSegment = workspace.viewer.activeProfile === "bim" ? "bim" : "viewer";
-    const url = new URL(`${APP_BASE || ""}/${profileSegment}/`, window.location.origin);
-    url.searchParams.set("fragment", fragmentId);
-    return url.toString();
+    return createShareUrl(workspace.viewer.activeProfile, fragmentId, window.location.origin);
   }
 
   return {

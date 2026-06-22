@@ -33,9 +33,7 @@ export async function copyPatchedModule({
   }
 
   const helperDependencies = [
-    ["../config.ts", "config.ts"],
     ["../storage/local-storage-json.ts", "storage/local-storage-json.ts"],
-    ["../ui/controller-errors.ts", "ui/controller-errors.ts"],
   ];
   for (const [specifier, relativePath] of helperDependencies) {
     if (!content.includes(specifier)) continue;

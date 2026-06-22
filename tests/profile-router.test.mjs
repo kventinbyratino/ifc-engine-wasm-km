@@ -22,14 +22,8 @@ await copyPatchedModule({
 
 await copyModuleFromAbsolute({
   source: new URL("../src/km/config/index.ts", import.meta.url).pathname,
-  tempRoot: path.dirname(tempRoot),
+  tempRoot,
   targetRelative: "km/config/index.ts",
-});
-
-await copyModuleFromAbsolute({
-  source: new URL("../src/bim/types.ts", import.meta.url).pathname,
-  tempRoot: path.dirname(tempRoot),
-  targetRelative: "bim/types.ts",
 });
 
 const routerUrl = pathToFileURL(path.join(tempRoot, "app/profile-router.ts")).href;

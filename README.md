@@ -1,12 +1,12 @@
-# IFC WASM Viewer
+# IFC KM Viewer
 
 Клиентский IFC/BIM viewer на ThatOpen Engine с небольшим backend для библиотеки Fragments. IFC читается через `web-ifc` WASM в браузере, конвертируется в Fragments и отображается в Three.js-сцене; backend хранит уже сконвертированные `.frag` файлы и метаданные.
 
 ## Архитектура
 
 - Frontend: TypeScript, Vite, Three.js, ThatOpen Components, `web-ifc` WASM.
-- BIM profile: `/ifc-engine-wasm/bim/` — единый BIM Workbench с данными модели, проверками, issues, коллизиями, чертежами/DXF и спецификациями.
-- KM/clean viewer: `/ifc-engine-wasm/viewer/` — базовый IFC/Fragments viewer без BIM-only инструментов.
+- BIM profile: `/ifc-engine-wasm/bim/` — отдельный BIM Workbench-проект на текущем VM.
+- KM/clean viewer: `/blue/km/` — отдельный KM viewer-проект на dev.lab-tim.
 - Backend: FastAPI fragments API в `server/app/main.py`.
 
 ## Frontend запуск
@@ -23,7 +23,7 @@ npm run dev
 Обычный локальный URL Vite:
 
 ```text
-http://127.0.0.1:5173/ifc-engine-wasm/
+http://127.0.0.1:5173/blue/km/
 ```
 
 ## Backend fragments API

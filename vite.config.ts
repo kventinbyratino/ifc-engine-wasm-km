@@ -14,7 +14,7 @@ const manualChunks = (id: string) => {
 };
 
 export default defineConfig({
-  base: "/ifc-engine-wasm/",
+  base: "/blue/km/",
   build: {
     target: "es2022",
     rollupOptions: {

@@ -6,5 +6,5 @@ export const IFC_EXAMPLES: IfcExample[] = [
 
 export const MAX_IFC_BYTES = 200 * 1024 * 1024;
 export const MAX_FRAGMENT_BYTES = 100 * 1024 * 1024;
-export const APP_BASE = window.location.pathname.startsWith("/ifc-engine-wasm/") ? "/ifc-engine-wasm" : "";
+export const APP_BASE = window.location.pathname.startsWith("/blue/km/") ? "/blue/km" : "";
 export const API_BASE = "/ifc-engine-wasm/api";

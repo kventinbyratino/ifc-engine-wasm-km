@@ -25,9 +25,9 @@ export function createProfileRouter({
   const { app, bimStub } = ctx.dom;
 
   function profilePath(profile: Profile) {
-    if (profile === "km") return "/ifc-engine-wasm/viewer/";
+    if (profile === "km") return "/blue/km/";
     if (profile === "bim") return "/ifc-engine-wasm/bim/";
-    return "/ifc-engine-wasm/";
+    return "/blue/km/";
   }
 
   function navigateToProfile(profile: Profile) {
@@ -43,7 +43,7 @@ export function createProfileRouter({
   function syncProfileWithLocation() {
     const path = window.location.pathname.replace(/\/+$/, "");
 
-    if (path === "/ifc-engine-wasm/viewer") {
+    if (path === "/blue/km" || path === "/blue/km/viewer") {
       selectProfile("km");
       return;
     }

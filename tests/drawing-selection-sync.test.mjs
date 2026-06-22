@@ -6,7 +6,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "ifc-drawing-sync-tests-"));
-const srcRoot = "/home/maks/projects/IFC_engine_wasm/src/bim";
+const srcRoot = new URL("../src/bim", import.meta.url).pathname;
 
 async function copyPatched(sourceRelative, targetRelative = sourceRelative, replacements = []) {
   const source = path.join(srcRoot, sourceRelative);

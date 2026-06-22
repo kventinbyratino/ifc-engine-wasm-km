@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 import { copyPatchedModule, copyModuleFromAbsolute } from "./helpers/copy-patched-module.mjs";
 
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "ifc-checks-settings-tests-"));
-const srcRoot = "/home/maks/projects/IFC_engine_wasm/src/bim";
+const srcRoot = new URL("../src/bim", import.meta.url).pathname;
 
 async function copyPatched(sourceRelative, targetRelative = sourceRelative, replacements = []) {
   await copyPatchedModule({

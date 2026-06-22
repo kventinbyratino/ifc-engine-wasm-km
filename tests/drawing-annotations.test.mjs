@@ -1,14 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { writeFile, mkdir, rm } from "node:fs/promises";
+import { writeFile, mkdir, rm, mkdtemp } from "node:fs/promises";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { copyPatchedModule } from "./helpers/copy-patched-module.mjs";
 import * as THREE from "three";
 
-const tempRoot = path.join("/home/maks/projects/IFC_engine_wasm", ".tmp-drawing-annotations-tests");
+const repoRoot = path.dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
+const tempRoot = await mkdtemp(path.join(repoRoot, ".tmp-drawing-annotations-tests-"));
 await mkdir(tempRoot, { recursive: true });
-const srcRoot = "/home/maks/projects/IFC_engine_wasm/src/bim";
+const srcRoot = new URL("../src/bim", import.meta.url).pathname;
 
 async function copyPatched(filename, replacements = [], sourceRoot = srcRoot) {
   await copyPatchedModule({

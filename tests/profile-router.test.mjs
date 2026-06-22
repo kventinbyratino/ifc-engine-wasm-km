@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 import { copyPatchedModule } from "./helpers/copy-patched-module.mjs";
 
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "ifc-profile-router-tests-"));
-const srcRoot = "/home/maks/projects/IFC_engine_wasm/src/bim";
+const srcRoot = new URL("../src/bim", import.meta.url).pathname;
 
 await copyPatchedModule({
   srcRoot,

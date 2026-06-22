@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 import { copyPatchedModule, copyModuleFromAbsolute } from "./helpers/copy-patched-module.mjs";
 
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "ifc-model-index-tests-"));
-const srcRoot = "/home/maks/projects/IFC_engine_wasm/src/bim/data";
+const srcRoot = new URL("../src/bim/data", import.meta.url).pathname;
 
 async function copyPatched(filename, replacements = [], sourceRoot = srcRoot) {
   await copyPatchedModule({
@@ -18,7 +18,7 @@ async function copyPatched(filename, replacements = [], sourceRoot = srcRoot) {
   });
 }
 
-await copyPatched("class-mapping.ts", [], "/home/maks/projects/IFC_engine_wasm/src/bim/ifc-overrides");
+await copyPatched("class-mapping.ts", [], new URL("../src/bim/ifc-overrides", import.meta.url).pathname);
 
 await copyPatched("extractors.ts");
 await copyPatched("property-sets.ts", [["./extractors", "./extractors.ts"]]);

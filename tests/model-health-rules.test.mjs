@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 import { copyPatchedModule, copyModuleFromAbsolute } from "./helpers/copy-patched-module.mjs";
 
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "ifc-health-tests-"));
-const srcRoot = "/home/maks/projects/IFC_engine_wasm/src/bim/checks";
+const srcRoot = new URL("../src/bim/checks", import.meta.url).pathname;
 
 async function copyPatched(filename, replacements = [], sourceRoot = srcRoot) {
   const specifierReplacements = replacements.filter(([from]) => from.startsWith(".") || from.startsWith("@"));
@@ -21,7 +21,7 @@ async function copyPatched(filename, replacements = [], sourceRoot = srcRoot) {
   });
 }
 
-await copyPatched("class-mapping.ts", [], "/home/maks/projects/IFC_engine_wasm/src/bim/ifc-overrides");
+await copyPatched("class-mapping.ts", [], new URL("../src/bim/ifc-overrides", import.meta.url).pathname);
 
 await copyPatched("rule-registry.ts");
 await copyPatched("rule-utils.ts");

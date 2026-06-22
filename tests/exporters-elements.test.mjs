@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 import { copyPatchedModule, copyModuleFromAbsolute } from "./helpers/copy-patched-module.mjs";
 
 const tempRoot = await mkdtemp(path.join(os.tmpdir(), "ifc-exporter-tests-"));
-const srcRoot = "/home/maks/projects/IFC_engine_wasm/src/bim/data";
+const srcRoot = new URL("../src/bim/data", import.meta.url).pathname;
 
 async function copyPatched(filename, replacements = [], rawReplacements = []) {
   await copyPatchedModule({
@@ -38,7 +38,7 @@ await copyPatched("exporters.ts", [], [
     'const buildModifiedIfcExport = () => { throw new Error("ifc writer is not used in this test"); }; const downloadModifiedIfcExport = () => { throw new Error("ifc writer is not used in this test"); };',
   ],
 ]);
-await copyFromAbsolute("/home/maks/projects/IFC_engine_wasm/src/bim/ui/dom-utils.ts", "ui/dom-utils.ts");
+await copyFromAbsolute(new URL("../src/bim/ui/dom-utils.ts", import.meta.url).pathname, "ui/dom-utils.ts");
 await copyPatched("elements-table.ts", [
   ["./element-record", "./element-record.ts"],
   ["../ui/dom-utils", "./ui/dom-utils.ts"],

@@ -34,6 +34,6 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     strictPort: false,
-    allowedHosts: ["existed-thinks-triangle-fix.trycloudflare.com"],
+    allowedHosts: ["dev.lab-tim.ru", "127.0.0.1", "localhost", "existed-thinks-triangle-fix.trycloudflare.com"],
   },
 });

@@ -4,12 +4,18 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
+const allowedHosts = (process.env.KM_ALLOWED_HOSTS ?? "dev.lab-tim.ru,127.0.0.1,localhost")
+  .split(",")
+  .map((host) => host.trim())
+  .filter(Boolean);
+
 const server = await createServer({
   root,
   server: {
     host: "127.0.0.1",
-    port: 5173,
-    strictPort: false,
+    port: Number(process.env.PORT ?? 5173),
+    strictPort: true,
+    allowedHosts,
   },
 });
 

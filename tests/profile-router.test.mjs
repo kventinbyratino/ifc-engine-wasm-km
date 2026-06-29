@@ -40,6 +40,7 @@ function createRouterHarness(initialPath = "/ifc-engine-wasm/") {
           remove: (...names) => names.forEach((name) => classSet.delete(name)),
           contains: (name) => classSet.has(name),
         },
+        dataset: {},
       },
       bimStub: { hidden: true },
     },
@@ -53,8 +54,18 @@ function createRouterHarness(initialPath = "/ifc-engine-wasm/") {
     }),
   };
 
+  const body = {
+    classList: {
+      add: (...names) => names.forEach((name) => classSet.add(name)),
+      remove: (...names) => names.forEach((name) => classSet.delete(name)),
+      contains: (name) => classSet.has(name),
+    },
+    dataset: {},
+  };
+  globalThis.document = { body };
   globalThis.window = {
     location: { pathname: initialPath },
+    document: { body },
     history: {
       pushState(_state, _title, targetPath) {
         calls.push(["pushState", targetPath]);
@@ -86,6 +97,8 @@ test("navigateToProfile switches BIM profile in-place before any reload", () => 
   assert.equal(ctx.workspace.viewer.activeProfile, "bim");
   assert.equal(classSet.has("profile-bim"), true);
   assert.equal(classSet.has("profile-pending"), false);
+  assert.equal(globalThis.window.document.body.dataset.profile, "bim");
+  assert.equal(ctx.dom.app.dataset.profile, "bim");
   assert.deepEqual(calls[0], ["pushState", "/ifc-engine-wasm/bim/"]);
   assert.deepEqual(calls.at(-1), ["profile", "bim"]);
 });
@@ -97,4 +110,6 @@ test("syncProfileWithLocation selects BIM profile on direct /bim route", () => {
 
   assert.equal(ctx.workspace.viewer.activeProfile, "bim");
   assert.equal(classSet.has("profile-bim"), true);
+  assert.equal(globalThis.window.document.body.dataset.profile, "bim");
+  assert.equal(ctx.dom.app.dataset.profile, "bim");
 });

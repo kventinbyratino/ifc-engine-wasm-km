@@ -8,8 +8,8 @@
     />
     <title>IFC KM Viewer</title>
   </head>
-  <body>
-    <main id="app" class="profile-km">
+  <body class="profile-km" data-profile="km">
+    <main id="app" class="profile-km" data-profile="km">
       <section id="profileScreen" class="profile-screen" aria-label="Выбор профиля" hidden>
         <div class="profile-card">
           <p class="profile-kicker">Выбор профиля</p>
@@ -58,6 +58,7 @@
         <div class="status-pill">
           <strong>IFC Viewer</strong>
           <span id="statusText">Загрузите IFC</span>
+          <span id="buildCommitBadge" class="build-commit-badge" title="Коммит сборки">%VITE_KM_BUILD_COMMIT%</span>
         </div>
 
         <input id="ifcInput" type="file" accept=".ifc,.ifczip" hidden />

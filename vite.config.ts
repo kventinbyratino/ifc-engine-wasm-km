@@ -1,4 +1,15 @@
 import { defineConfig } from "vite";
+import { execSync } from "node:child_process";
+
+const gitCommit = (() => {
+  try {
+    return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim() || "dev";
+  } catch {
+    return "dev";
+  }
+})();
+
+process.env.VITE_KM_BUILD_COMMIT ??= gitCommit;
 
 const manualChunks = (id: string) => {
   if (!id.includes("node_modules")) return undefined;
@@ -27,6 +38,9 @@ const hmrOptions =
 
 export default defineConfig({
   base: "/blue/km/",
+  define: {
+    __KM_BUILD_COMMIT__: JSON.stringify(process.env.VITE_KM_BUILD_COMMIT ?? gitCommit),
+  },
   build: {
     target: "es2022",
     rollupOptions: {
@@ -41,7 +55,7 @@ export default defineConfig({
         },
       },
     },
-  },
+  } as any,
   server: {
     host: "0.0.0.0",
     port: 5173,

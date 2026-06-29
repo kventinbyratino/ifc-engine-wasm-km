@@ -115,6 +115,7 @@ git diff --check
 ```bash
 npm run build
 npm run preview
+npm run smoke:deploy
 ```
 
 ## Если WASM не найден

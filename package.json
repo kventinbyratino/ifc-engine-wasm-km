@@ -11,6 +11,7 @@
     "test": "node --test tests/**/*.test.mjs tests/*.test.mjs",
     "test:performance": "node --test tests/performance/*.test.mjs tests/storage/model-cache.test.mjs",
     "smoke:regression": "node scripts/smoke-regression.mjs --dist dist",
+    "smoke:deploy": "node scripts/km-deploy-smoke.mjs",
     "predeploy:check": "node scripts/predeploy-check.mjs",
     "preview": "vite preview --host 127.0.0.1"
   },

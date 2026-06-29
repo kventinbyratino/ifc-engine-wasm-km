@@ -24,6 +24,7 @@ export function createProfileRouter({
   onProfileChange,
 }: BimProfileRouterOptions) {
   const { app, bimStub } = ctx.dom;
+  const body = typeof document !== "undefined" ? document.body : null;
 
   function profilePath(profile: Profile) {
     if (profile === "pending") profile = "km";
@@ -59,16 +60,28 @@ export function createProfileRouter({
   function selectProfile(profile: Profile) {
     ctx.workspace.viewer.activeProfile = profile;
     app.classList.remove("profile-pending", "profile-km", "profile-bim");
+    if (body) {
+      body.classList.remove("profile-pending", "profile-km", "profile-bim");
+      body.dataset.profile = profile;
+    }
     bimStub.hidden = true;
+    app.dataset.profile = profile;
 
     if (profile === "pending") {
       app.classList.add("profile-pending");
+      if (body) {
+        body.classList.add("profile-pending");
+      }
       refreshProfilePanels();
       onProfileChange?.(profile);
       return;
     }
 
-    app.classList.add(profile === "km" ? "profile-km" : "profile-bim");
+    const profileClass = profile === "km" ? "profile-km" : "profile-bim";
+    app.classList.add(profileClass);
+    if (body) {
+      body.classList.add(profileClass);
+    }
     refreshProfilePanels();
     onProfileChange?.(profile);
   }

@@ -13,6 +13,18 @@ const manualChunks = (id: string) => {
   return "vendor";
 };
 
+const hmrHost = process.env.KM_HMR_HOST;
+const hmrProtocol = process.env.KM_HMR_PROTOCOL;
+const hmrClientPort = process.env.KM_HMR_CLIENT_PORT;
+const hmrOptions =
+  hmrHost || hmrProtocol || hmrClientPort
+    ? {
+        host: hmrHost,
+        protocol: hmrProtocol,
+        clientPort: hmrClientPort ? Number(hmrClientPort) : undefined,
+      }
+    : undefined;
+
 export default defineConfig({
   base: "/blue/km/",
   build: {
@@ -35,5 +47,6 @@ export default defineConfig({
     port: 5173,
     strictPort: false,
     allowedHosts: ["dev.lab-tim.ru", "127.0.0.1", "localhost", "existed-thinks-triangle-fix.trycloudflare.com"],
+    ...(hmrOptions ? { hmr: hmrOptions } : {}),
   },
 });

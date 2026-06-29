@@ -130,15 +130,15 @@
 - IFC/WASM loads from the correct base path; ✅
 - no accidental transition into the BIM root; ✅
 
-### Phase 3 — Make tests repo-local (P0)
+### Phase 3 — Make tests repo-local (P0) — DONE
 
 **Goal:** зелёный тестовый gate должен проверять именно `ifc-engine-wasm-km`.
 
-**Сделать:**
+**What landed:**
 
-- убрать абсолютные ссылки на `/home/maks/projects/IFC_engine_wasm`;
-- читать fixtures и entrypoints из текущего repo;
-- добавить KM-specific проверки:
+- тесты читают fixtures и entrypoints из текущего repo;
+- legacy sibling-repo path `/home/maks/projects/IFC_engine_wasm` больше не нужен для загрузки fixtures/entrypoints; в тестах он остаётся только как регрессионная строка-проверка на отсутствие старого пути;
+- добавлены KM-specific проверки:
   - `/blue/km/` выбирает `profile-km`;
   - BIM-кнопка/экран выбора не появляется в KM shell;
   - module scripts не получают `text/html`;

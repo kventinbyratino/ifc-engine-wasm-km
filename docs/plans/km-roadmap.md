@@ -184,40 +184,37 @@
 - viewer core можно тестировать отдельно; ✅
 - BIM-код не импортируется в KM bundle без необходимости; ✅
 
-### Phase 6 — Production build optimization (P1)
+### Phase 6 — Production build optimization (P1) — DONE
 
 **Goal:** `vite build` должен стабильно завершаться.
 
-**Сделать:**
+**What landed:**
 
-- найти, где build зависает на transform;
-- проверить тяжёлые импорты ThatOpen/web-ifc;
-- разнести heavy modules через lazy imports;
-- настроить chunk strategy;
-- проверить memory usage build-процесса.
+- production build now consistently passes on this repo;
+- heavy KM vendor dependencies are isolated through explicit Rollup manual chunks;
+- build output is stable enough for deployment/restart verification.
 
 **Acceptance:**
 
-- `npm run build` проходит в разумное время;
-- `dist` создаётся стабильно;
-- nginx может отдавать production artifact.
+- `npm run build` проходит в разумное время; ✅
+- `dist` создаётся стабильно; ✅
+- nginx может отдавать production artifact; ✅
 
-### Phase 7 — Clean legacy files and docs (P2)
+### Phase 7 — Clean legacy files and docs (P2) — DONE
 
 **Goal:** репозиторий выглядит как отдельный КМ-проект.
 
-**Сделать:**
+**What landed:**
 
-- удалить stale BIM docs/plans или перенести их в archive;
-- обновить README под КМ;
-- оставить один основной roadmap KM;
-- добавить короткий runbook для deploy/restart/verify.
+- legacy plans moved under `docs/archive/plans/`;
+- README rewritten to describe KM as the primary product surface;
+- runtime/deploy verification now points to `docs/deploy/km-runtime.md` as the runbook.
 
 **Acceptance:**
 
-- новый разработчик понимает, что это KM repo;
-- README не обещает BIM-функции как основные;
-- roadmap и deploy-инструкция не конфликтуют.
+- новый разработчик понимает, что это KM repo; ✅
+- README не обещает BIM-функции как основные; ✅
+- roadmap и deploy-инструкция не конфликтуют; ✅
 
 ## 5. Минимальный следующий спринт
 

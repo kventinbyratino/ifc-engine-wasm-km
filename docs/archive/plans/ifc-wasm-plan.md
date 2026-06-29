@@ -1904,7 +1904,7 @@ git diff --check
 
 ## 3. Current canonical state
 
-- **Current canonical plan file:** `docs/plans/ifc-wasm-plan.md`
+- **Archived during KM cleanup. Canonical KM plan file:** `docs/plans/km-roadmap.md`
 - **Old split plan files removed**; this file is now the single source of truth for the IFC WASM plan.
 
 - **Current sprint status:** Sprint 13 completed; next sprint TBD.

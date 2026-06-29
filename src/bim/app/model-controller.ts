@@ -189,9 +189,11 @@ export function createModelController({
     }
     const capabilities = ctx.getCapabilities();
     const showEmptyState = !hasModels;
+    const isKmProfile = workspace.viewer.activeProfile === "km";
     modelCount.textContent = String(fragments.list.size);
     emptyBimState.hidden = !showEmptyState;
-    loadIfcBtn.hidden = showEmptyState;
+    loadIfcBtn.hidden = isKmProfile || showEmptyState;
+    saveFragmentBtn.hidden = isKmProfile || !hasModels;
     searchToggleBtn.hidden = !hasModels;
     homeViewBtn.hidden = !hasModels;
     shareModelBtn.hidden = !hasModels;

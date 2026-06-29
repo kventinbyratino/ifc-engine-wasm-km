@@ -69,7 +69,7 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
           };
           workspace.data.progressiveLoadPlan = result.progressivePlan;
           workspace.data.lodManifest = result.lodManifest;
-          saveFragmentBtn.hidden = false;
+          saveFragmentBtn.hidden = workspace.viewer.activeProfile === "km";
           hooks.closeLibraryModal();
           hooks.refreshFederationState();
           ctx.setStatus(`IFC загружен через backend conversion${result.source.restorable ? " · федерация сохранена" : ""}`);
@@ -113,7 +113,7 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
         workspace.data.sourceIfcFiles[result.modelId] = result.sourceIfc;
         workspace.data.progressiveLoadPlan = result.progressivePlan;
         workspace.data.lodManifest = result.lodManifest;
-        saveFragmentBtn.hidden = false;
+        saveFragmentBtn.hidden = workspace.viewer.activeProfile === "km";
         hooks.closeLibraryModal();
         hooks.refreshFederationState();
         const sectionSuffix = result.source.discipline ? ` · раздел: ${result.source.discipline}` : "";

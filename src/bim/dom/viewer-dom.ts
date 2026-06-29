@@ -4,6 +4,7 @@ import { requiredElement } from "./dom-helpers.ts";
 export function getViewerDom() {
   return {
     app: requiredElement<HTMLElement>("app"),
+    profileScreen: requiredElement<HTMLElement>("profileScreen"),
     profileKmBtn: requiredElement<HTMLButtonElement>("profileKmBtn"),
     profileBimBtn: requiredElement<HTMLButtonElement>("profileBimBtn"),
     backToProfilesBtn: requiredElement<HTMLButtonElement>("backToProfilesBtn"),

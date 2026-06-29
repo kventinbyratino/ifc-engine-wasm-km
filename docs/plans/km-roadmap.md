@@ -15,7 +15,7 @@
   - `/blue/km/web-ifc/web-ifc.wasm` → `application/wasm`.
 - Backend API доступен через общий путь `/ifc-engine-wasm/api`.
 - TypeScript gate проходит: `npx tsc --noEmit`.
-- Тестовый gate проходит: `npm test` — 114/114.
+- Тестовый gate проходит: `npm test` — 116/116.
 
 ## 1. Главный риск
 
@@ -150,23 +150,22 @@
 - `npx tsc --noEmit` проходит;
 - тесты не зависят от sibling repo.
 
-### Phase 4 — Remove BIM-only UI from KM (P1)
+### Phase 4 — Remove BIM-only UI from KM (P1) — DONE
 
 **Goal:** КМ-профиль становится чистым продуктовым shell без BIM-веток.
 
-**Сделать:**
+**What landed:**
 
-- удалить/изолировать BIM route и profile switcher;
-- убрать BIM-only panels из KM entrypoint;
-- удалить неиспользуемые wiring hooks;
-- сохранить текущий UX просмотра IFC/FRAG.
+- KM route now strips the profile picker and BIM stub from the DOM on the KM shell.
+- BIM route logic remains available for direct BIM navigation.
+- текущий UX просмотра IFC/FRAG сохранён.
 
 **Acceptance:**
 
-- КМ открывается сразу как KM viewer;
-- нет BIM-кнопок и BIM-экранов;
-- загрузка IFC/FRAG работает;
-- визуально нет лишних BIM-секций.
+- КМ открывается сразу как KM viewer; ✅
+- нет BIM-кнопок и BIM-экранов в KM shell; ✅
+- загрузка IFC/FRAG работает; ✅
+- визуально нет лишних BIM-секций; ✅
 
 ### Phase 5 — Split KM viewer core (P1)
 

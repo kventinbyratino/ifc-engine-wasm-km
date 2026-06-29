@@ -24,6 +24,7 @@ import { restoreStoredFederationState, createFederationWorkspaceRestorer } from 
 import { createIfcOverridesWiring } from "./ifc-overrides-wiring.ts";
 import { createControllerRegistry } from "./controller-registry.ts";
 import { createProfileRouter } from "./profile-router.ts";
+import { stripKmProfileChrome } from "./km-shell-chrome.ts";
 import { createModelController } from "./model-controller.ts";
 import { createShareController } from "./share-controller.ts";
 import { createLibraryController } from "./library-controller.ts";
@@ -465,6 +466,13 @@ export async function startBimApp() {
     closeDrawingsPanel: () => closeDrawingsPanel(),
     refreshModelState,
     onProfileChange: (profile) => {
+      if (profile === "km") {
+        stripKmProfileChrome(profile, {
+          profileScreen: ctx.dom.profileScreen,
+          bimStub: ctx.dom.bimStub,
+        });
+      }
+
       if (profile === "bim") {
         checksController.loadChecksSettings(profile);
       }

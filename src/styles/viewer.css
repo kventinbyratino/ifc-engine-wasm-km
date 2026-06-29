@@ -186,13 +186,6 @@
   background: #fee2e2;
 }
 
-.share-button {
-  position: absolute;
-  top: max(14px, env(safe-area-inset-top));
-  right: max(14px, env(safe-area-inset-right));
-  z-index: 12;
-}
-
 .top-back-button {
   position: absolute;
   top: max(14px, env(safe-area-inset-top));

@@ -192,7 +192,7 @@ export function bindBimUiEvents(
   let pendingIfcUploadMode: "single" | "multiple" | null = null;
 
   function openIfcUploadModeModal() {
-    uploadModeModal.hidden = false;
+    startIfcUpload("single");
   }
 
   function closeIfcUploadModeModal() {
@@ -332,12 +332,7 @@ export function bindBimUiEvents(
     if (mode === "single") {
       const [file] = files;
       if (!file) return;
-      const discipline = promptIfcDiscipline(file.name, 0, 1);
-      if (!discipline) {
-        ctx.showToast("Для IFC нужно указать раздел", "error");
-        return;
-      }
-      await model.loadIfc(file, buildIfcSource(file, discipline));
+      await model.loadIfc(file, buildIfcSource(file));
       return;
     }
 

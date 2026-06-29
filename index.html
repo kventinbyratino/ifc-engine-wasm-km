@@ -63,27 +63,23 @@
         <input id="ifcInput" type="file" accept=".ifc,.ifczip" hidden />
         <input id="fragInput" type="file" accept=".frag" hidden />
 
-        <button id="loadIfcBtn" class="floating-add" type="button" aria-label="Добавить IFC">
+        <button id="loadIfcBtn" class="floating-add" type="button" aria-label="Загрузить IFC" hidden>
           <span>+</span>
         </button>
 
-        <section id="emptyBimState" class="empty-bim-state" aria-label="Начало работы с KM" hidden>
+        <section id="emptyBimState" class="empty-bim-state" aria-label="Начало работы с KM">
           <div class="empty-bim-card">
-            <p class="empty-bim-kicker">KM Viewer</p>
-            <strong>Загрузите IFC или откройте пример</strong>
-            <span>Рабочая область КМ: загрузка IFC/FRAG, просмотр модели и библиотека фрагментов.</span>
+            <p class="empty-bim-kicker" hidden>KM Viewer</p>
+            <strong hidden>Загрузите IFC</strong>
+            <span hidden>После загрузки модель будет конвертирована в FRAG для просмотра, поиска и создания ссылки.</span>
             <div class="empty-bim-actions">
               <button id="emptyLoadIfcBtn" type="button">Загрузить IFC</button>
-              <button id="emptyExampleBtn" type="button">Открыть пример</button>
-              <button id="emptyLibraryBtn" type="button">Библиотека моделей</button>
+              <button id="emptyExampleBtn" type="button" hidden>Открыть пример</button>
+              <button id="emptyLibraryBtn" type="button" hidden>Библиотека моделей</button>
             </div>
           </div>
         </section>
 
-        <button id="shareModelBtn" class="action-button share-button" type="button" aria-label="Ссылка на модель" hidden>
-          <span aria-hidden="true">📎</span>
-          <span class="sr-only">Ссылка на модель</span>
-        </button>
 
         <div id="loadingOverlay" class="loading-overlay" hidden>
           <div class="loading-card" role="status" aria-live="polite">
@@ -181,6 +177,14 @@
             <span class="action-label">Домой</span>
           </button>
 
+          <button id="shareModelBtn" class="action-button share-button" type="button" aria-label="Создать ссылку" hidden>
+            <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
+              <path d="M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" />
+            </svg>
+            <span class="action-label">Ссылка</span>
+          </button>
+
           <button id="federationBtn" class="action-button federation-button" type="button" aria-label="Федерация" hidden>
             <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 8l8-4 8 4-8 4z" />
@@ -235,7 +239,7 @@
             <span class="action-label">Чертежи</span>
           </button>
 
-          <button id="helpBtn" class="action-button help-button" type="button" aria-label="Справка">
+          <button id="helpBtn" class="action-button help-button" type="button" aria-label="Справка" hidden>
             <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="12" r="9" />
               <path d="M9.5 9a2.7 2.7 0 0 1 5.1 1.25c0 2.1-2.6 2.25-2.6 4.25" />

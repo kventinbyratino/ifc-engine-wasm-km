@@ -118,9 +118,9 @@
 
 .empty-bim-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 4px;
+  grid-template-columns: minmax(180px, 260px);
+  gap: 10px;
+  justify-content: center;
 }
 
 .empty-bim-actions button {

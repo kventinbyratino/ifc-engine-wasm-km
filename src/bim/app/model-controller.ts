@@ -53,6 +53,7 @@ export function createModelController({
     emptyBimState,
     searchToggleBtn,
     homeViewBtn,
+    shareModelBtn,
     dataBrowserBtn,
     checksBtn,
     issuesBtn,
@@ -187,12 +188,13 @@ export function createModelController({
       workspace.viewer.lastVisibilityUpdateAt = hasModels ? new Date().toISOString() : "";
     }
     const capabilities = ctx.getCapabilities();
-    const showBimEmptyState = !hasModels && workspace.viewer.activeProfile === "bim";
+    const showEmptyState = !hasModels;
     modelCount.textContent = String(fragments.list.size);
-    emptyBimState.hidden = !showBimEmptyState;
-    loadIfcBtn.hidden = showBimEmptyState;
+    emptyBimState.hidden = !showEmptyState;
+    loadIfcBtn.hidden = showEmptyState;
     searchToggleBtn.hidden = !hasModels;
     homeViewBtn.hidden = !hasModels;
+    shareModelBtn.hidden = !hasModels;
     federationBtn.hidden = !hasModels || !capabilities.coordination;
     dataBrowserBtn.hidden = !hasModels || !capabilities.dataBrowser;
     checksBtn.hidden = !hasModels || !capabilities.qaQc;

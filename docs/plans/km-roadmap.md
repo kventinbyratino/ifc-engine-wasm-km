@@ -15,7 +15,7 @@
   - `/blue/km/web-ifc/web-ifc.wasm` → `application/wasm`.
 - Backend API доступен через общий путь `/ifc-engine-wasm/api`.
 - TypeScript gate проходит: `npx tsc --noEmit`.
-- Тестовый gate проходит: `npm test` — 116/116.
+- Тестовый gate проходит: `npm test` — 117/117.
 
 ## 1. Главный риск
 
@@ -167,34 +167,22 @@
 - загрузка IFC/FRAG работает; ✅
 - визуально нет лишних BIM-секций; ✅
 
-### Phase 5 — Split KM viewer core (P1)
+### Phase 5 — Split KM viewer core (P1) — DONE
 
 **Goal:** отделить ядро viewer от приложения и UI.
 
-**Предлагаемая структура:**
+**What landed:**
 
-```text
-src/km/
-  app/
-  config/
-  viewer/
-  model-library/
-  ui/
-  services/
-```
-
-**Сделать:**
-
-- вынести инициализацию viewer;
-- вынести загрузку IFC/FRAG;
-- вынести persistence/model-library;
-- оставить entrypoint тонким.
+- `src/km/viewer/core.ts` теперь содержит KM-specific viewer façade, а не только прямой re-export.
+- `src/km/viewer/loaders.ts` выносит binding загрузчиков IFC/FRAG в отдельный testable helper.
+- Добавлен `createKmViewerCore()` для сборки viewer + bound loader seams.
+- KM entrypoint по-прежнему тонкий и не знает деталей viewer/loaders.
 
 **Acceptance:**
 
-- entrypoint только собирает приложение;
-- viewer core можно тестировать отдельно;
-- BIM-код не импортируется в KM bundle без необходимости.
+- entrypoint только собирает приложение; ✅
+- viewer core можно тестировать отдельно; ✅
+- BIM-код не импортируется в KM bundle без необходимости; ✅
 
 ### Phase 6 — Production build optimization (P1)
 

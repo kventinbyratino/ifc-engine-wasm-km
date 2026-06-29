@@ -17,7 +17,9 @@ test("KM entrypoint is thin and delegates to KM app module", () => {
 });
 
 test("KM viewer core exposes testable viewer and loader seams", () => {
-  assert.match(coreSource, /createBimViewer as createKmViewer/);
+  assert.match(coreSource, /createKmViewer = createBimViewer/);
+  assert.match(coreSource, /bindKmViewerLoaders/);
+  assert.match(coreSource, /createKmViewerCore/);
   assert.match(coreSource, /loadIfcModel/);
   assert.match(coreSource, /loadFragBuffer/);
 });

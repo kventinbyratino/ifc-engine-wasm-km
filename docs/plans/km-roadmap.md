@@ -8,6 +8,7 @@
 - `https://dev.lab-tim.ru/blue/km/` открывается.
 - Профиль страницы: `IFC Engine KM`.
 - GitHub-ссылка ведёт в репозиторий `kventinbyratino/ifc-engine-wasm-km`.
+- `ifc-engine-wasm-km.service` поднят и держит `/blue/km/` как systemd-managed runtime на `127.0.0.1:5173`.
 - Vite-модули на dev-URL отдаются с корректным MIME:
   - `/blue/km/src/main.ts` → `text/javascript`;
   - `/blue/km/@vite/client` → `text/javascript`;
@@ -18,14 +19,14 @@
 
 ## 1. Главный риск
 
-КМ сейчас работает как dev-запуск Vite, а не как закреплённый production-сервис:
+КМ сейчас работает как Vite runtime, но уже закреплён как systemd-сервис:
 
-- nginx проксирует `/blue/km/` на локальный Vite dev-server;
-- процесс запущен как `npm run dev:node`;
-- запуск не закреплён отдельным `systemd`-сервисом;
-- после рестарта машины или процесса КМ может отвалиться.
+- nginx проксирует `/blue/km/` на локальный Vite server;
+- процесс запущен через `ifc-engine-wasm-km.service`;
+- запуск не зависит от ручного терминала;
+- после рестарта машины или процесса КМ поднимается автоматически.
 
-Приоритет №1 — перевести КМ в устойчивый режим: production static deploy или постоянный сервис.
+Приоритет №1 дальше — нормализовать base path и runtime config (Phase 2).
 
 ## 2. Архитектурные проблемы
 
@@ -95,21 +96,22 @@
 
 ## 4. Execution roadmap
 
-### Phase 1 — Stabilize deploy/runtime (P0)
+### Phase 1 — Stabilize deploy/runtime (P0) — DONE
 
 **Goal:** КМ не должен зависеть от ручного Vite dev-process.
 
-**Варианты:**
+**What landed:**
 
-1. Preferred: починить `vite build` и отдавать `dist` через nginx.
-2. Temporary: оформить Vite dev-server как отдельный `systemd`-сервис.
+- `ifc-engine-wasm-km.service` now keeps the KM runtime up on `127.0.0.1:5173`.
+- nginx still serves `/blue/km/` through the same public route.
+- `vite build` now passes, so the runtime can be restarted and verified through the systemd unit.
 
 **Acceptance:**
 
-- `/blue/km/` переживает рестарт процесса/машины;
-- assets не отдаются как `text/html`;
-- WASM отдаётся как `application/wasm`;
-- есть понятная команда restart/status для КМ.
+- `/blue/km/` переживает рестарт процесса/машины; ✅
+- assets не отдаются как `text/html`; ✅
+- WASM отдаётся как `application/wasm`; ✅
+- есть понятная команда restart/status для КМ; ✅
 
 ### Phase 2 — Normalize KM config (P0)
 

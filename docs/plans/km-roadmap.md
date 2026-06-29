@@ -15,7 +15,7 @@
   - `/blue/km/web-ifc/web-ifc.wasm` → `application/wasm`.
 - Backend API доступен через общий путь `/ifc-engine-wasm/api`.
 - TypeScript gate проходит: `npx tsc --noEmit`.
-- Тестовый gate проходит: `npm test` — 108/108.
+- Тестовый gate проходит: `npm test` — 114/114.
 
 ## 1. Главный риск
 
@@ -113,25 +113,22 @@
 - WASM отдаётся как `application/wasm`; ✅
 - есть понятная команда restart/status для КМ; ✅
 
-### Phase 2 — Normalize KM config (P0)
+### Phase 2 — Normalize KM config (P0) — DONE
 
 **Goal:** убрать разбросанные вычисления URL и root-path.
 
-**Сделать:**
+**What landed:**
 
-- ввести единый config для:
-  - `APP_BASE`;
-  - `API_BASE`;
-  - `WEB_IFC_BASE`;
-  - profile id/name;
-- заменить hardcoded `/ifc-engine-wasm/...` там, где это относится к КМ runtime;
-- явно зафиксировать, остаётся ли backend общий или появляется `/blue/km/api`.
+- KM runtime bases are centralized in `src/km/config/index.ts`.
+- `APP_BASE`, `API_BASE`, `WEB_IFC_BASE`, profile names, and share paths are exported from one place.
+- Share links now use explicit KM and BIM routes instead of constructing a mixed path.
+- The backend decision is fixed: KM keeps using the shared `/ifc-engine-wasm/api` namespace.
 
 **Acceptance:**
 
-- deep link `/blue/km/` работает;
-- IFC/WASM грузится с корректного base path;
-- нет случайного перехода в BIM root.
+- deep link `/blue/km/` works; ✅
+- IFC/WASM loads from the correct base path; ✅
+- no accidental transition into the BIM root; ✅
 
 ### Phase 3 — Make tests repo-local (P0)
 

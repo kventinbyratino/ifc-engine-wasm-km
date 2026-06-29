@@ -15,7 +15,7 @@ export const WEB_IFC_BASE = `${APP_BASE}/web-ifc/`;
 export const KM_PROFILE_ID = "km";
 export const KM_PROFILE_NAME = "IFC Engine KM";
 export const KM_PROFILE_PATH = `${APP_BASE}/`;
-export const KM_VIEWER_PATH = `${APP_BASE}/viewer`;
+export const KM_VIEWER_PATH = `${APP_BASE}/viewer/`;
 export const BIM_PROFILE_PATH = "/ifc-engine-wasm/bim/";
 
 export function trimTrailingSlash(path: string) {
@@ -28,8 +28,8 @@ export function createProfilePath(profile: Profile) {
 }
 
 export function createShareUrl(profile: Profile, fragmentId: string, origin = window.location.origin) {
-  const profileSegment = profile === "bim" ? "bim" : "viewer";
-  const url = new URL(`${APP_BASE}/${profileSegment}/`, origin);
+  const path = profile === "bim" ? BIM_PROFILE_PATH : KM_VIEWER_PATH;
+  const url = new URL(path, origin);
   url.searchParams.set("fragment", fragmentId);
   return url.toString();
 }

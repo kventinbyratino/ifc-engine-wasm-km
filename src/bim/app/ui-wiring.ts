@@ -228,7 +228,18 @@ export function bindBimUiEvents(
   }
 
   loadIfcBtn.onclick = () => openIfcUploadModeModal();
-  emptyLoadIfcBtn.onclick = () => openIfcUploadModeModal();
+  emptyLoadIfcBtn.onclick = () => {
+    pendingIfcUploadMode = "single";
+    ifcInput.multiple = false;
+  };
+  emptyLoadIfcBtn.onkeydown = (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      pendingIfcUploadMode = "single";
+      ifcInput.multiple = false;
+      ifcInput.click();
+    }
+  };
   emptyExampleBtn.onclick = () => {
     library.openLibraryModal();
     library.showLibraryStart();

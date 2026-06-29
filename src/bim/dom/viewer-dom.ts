@@ -58,7 +58,7 @@ export function getViewerDom() {
     fragInput: requiredElement<HTMLInputElement>("fragInput"),
     loadIfcBtn: requiredElement<LoadingElement>("loadIfcBtn"),
     emptyBimState: requiredElement<HTMLElement>("emptyBimState"),
-    emptyLoadIfcBtn: requiredElement<HTMLButtonElement>("emptyLoadIfcBtn"),
+    emptyLoadIfcBtn: requiredElement<HTMLLabelElement>("emptyLoadIfcBtn"),
     emptyExampleBtn: requiredElement<HTMLButtonElement>("emptyExampleBtn"),
     emptyLibraryBtn: requiredElement<HTMLButtonElement>("emptyLibraryBtn"),
     loadFragBtn: requiredElement<LoadingElement>("loadFragBtn"),

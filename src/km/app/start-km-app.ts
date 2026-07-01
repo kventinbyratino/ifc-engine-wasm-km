@@ -1,4 +1,4 @@
 export async function startKmApp() {
-  const { startBimApp } = await import("../../bim/app/bootstrap.ts");
-  await startBimApp();
+  const { startKmApp: startKmBootstrap } = await import("./bootstrap.ts");
+  await startKmBootstrap();
 }

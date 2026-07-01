@@ -14,6 +14,7 @@ test("clearModels resets viewer/data references after disposing models", () => {
   assert.match(resetSource, /workspace\.data\.lodManifest = null;/);
 });
 
-test("fragments worker blob URL is revoked after worker init", () => {
-  assert.match(viewerSource, /fragments\.init\(fragmentsWorkerUrl\);\s*setTimeout\(\(\) => URL\.revokeObjectURL\(fragmentsWorkerUrl\), 5000\);/s);
+test("fragments worker uses the stable Vite asset URL without early blob revocation", () => {
+  assert.match(viewerSource, /fragments\.init\(options\.workerUrl\);/);
+  assert.doesNotMatch(viewerSource, /URL\.createObjectURL|URL\.revokeObjectURL|createFragmentsWorkerUrl/);
 });

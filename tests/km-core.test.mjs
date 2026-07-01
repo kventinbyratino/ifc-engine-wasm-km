@@ -13,7 +13,9 @@ const configModule = await import(pathToFileURL(new URL("../src/km/config/index.
 test("KM entrypoint is thin and delegates to KM app module", () => {
   assert.match(mainSource, /startKmApp/);
   assert.doesNotMatch(mainSource, /\.\/bim\/app/);
-  assert.match(appSource, /startBimApp/);
+  assert.match(appSource, /startKmApp/);
+  assert.match(appSource, /import\("\.\/bootstrap\.ts"\)/);
+  assert.doesNotMatch(appSource, /startBimApp/);
 });
 
 test("KM viewer core exposes testable viewer and loader seams", () => {

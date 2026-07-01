@@ -91,9 +91,7 @@ export async function createBimViewer(options: {
   components.get(OBC.Raycasters).get(world);
 
   const fragments = components.get(OBC.FragmentsManager);
-  const fragmentsWorkerUrl = await createFragmentsWorkerUrl(options.workerUrl);
-  fragments.init(fragmentsWorkerUrl);
-  setTimeout(() => URL.revokeObjectURL(fragmentsWorkerUrl), 5000);
+  fragments.init(options.workerUrl);
 
   const ifcLoader = components.get(OBC.IfcLoader);
   await ifcLoader.setup({
@@ -120,12 +118,4 @@ export async function createBimViewer(options: {
   const lodChunkCache = createChunkCache({ maxChunks: 24, maxBytes: 128 * 1024 * 1024 });
 
   return { components, world, fragments, ifcLoader, highlighter, hider, lodChunkCache };
-}
-
-async function createFragmentsWorkerUrl(url: string) {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Не удалось загрузить worker fragments");
-  const workerBlob = await response.blob();
-  const workerFile = new File([workerBlob], "worker.mjs", { type: "text/javascript" });
-  return URL.createObjectURL(workerFile);
 }

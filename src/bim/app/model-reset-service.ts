@@ -45,6 +45,12 @@ export function createModelResetService({
     renderClash();
     clearBBoxIndex();
     resetDataIndex();
+    workspace.viewer.lastConvertedModelId = "";
+    workspace.viewer.lastSourceIfcName = "";
+    workspace.viewer.visibleChunkIds = [];
+    workspace.viewer.lastVisibilityUpdateAt = "";
+    workspace.data.progressiveLoadPlan = null;
+    workspace.data.lodManifest = null;
     resetChecks();
     fileName.textContent = "-";
     if (!options.keepStatus) ctx.setStatus("Загрузите IFC");

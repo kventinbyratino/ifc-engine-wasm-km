@@ -11,6 +11,7 @@ export function getViewerDom() {
     bimStub: requiredElement<HTMLElement>("bimStub"),
     statusText: requiredElement<HTMLSpanElement>("statusText"),
     loadingOverlay: requiredElement<HTMLDivElement>("loadingOverlay"),
+    loadingTitle: requiredElement<HTMLElement>("loadingTitle"),
     loadingStatus: requiredElement<HTMLSpanElement>("loadingStatus"),
     loadingCancelBtn: requiredElement<HTMLButtonElement>("loadingCancelBtn"),
     fileName: requiredElement<HTMLElement>("fileName"),

@@ -8,6 +8,7 @@ export function createAppStatusController(dom: BimDomElements, telemetry: Teleme
   const {
     statusText,
     loadingOverlay,
+    loadingTitle,
     loadingStatus,
     loadingCancelBtn,
     loadIfcBtn,
@@ -18,9 +19,15 @@ export function createAppStatusController(dom: BimDomElements, telemetry: Teleme
   } = dom;
 
   let activeOperation: AbortController | null = null;
+  let activeOperationMessage = "";
 
   function setStatus(message: string) {
     statusText.textContent = message;
+    if (activeOperation) {
+      activeOperationMessage = message;
+      loadingTitle.textContent = message;
+      loadingStatus.textContent = message;
+    }
     telemetry.track("app.status", { message });
   }
 
@@ -29,13 +36,18 @@ export function createAppStatusController(dom: BimDomElements, telemetry: Teleme
     loadFragBtn.loading = isBusy;
     loadingOverlay.hidden = !isBusy;
     progress.hidden = !isBusy;
-    if (!isBusy) loadingCancelBtn.hidden = true;
-    if (isBusy) setProgress(0);
-    if (message) {
-      statusText.textContent = message;
-      loadingStatus.textContent = message;
+    if (!isBusy) {
+      loadingCancelBtn.hidden = true;
+      activeOperationMessage = "";
+      return;
     }
-    telemetry.track("app.busy", { isBusy, message: message ?? null });
+
+    activeOperationMessage = message ?? "Обработка модели";
+    statusText.textContent = activeOperationMessage;
+    loadingTitle.textContent = activeOperationMessage;
+    loadingStatus.textContent = activeOperationMessage;
+    setProgress(0);
+    telemetry.track("app.busy", { isBusy, message: activeOperationMessage });
   }
 
   function startOperation(message: string) {
@@ -56,6 +68,7 @@ export function createAppStatusController(dom: BimDomElements, telemetry: Teleme
     if (!activeOperation) return;
     activeOperation.abort();
     statusText.textContent = "Операция отменяется...";
+    loadingTitle.textContent = "Операция отменяется...";
     loadingStatus.textContent = "Операция отменяется...";
     showToast("Операция отменяется...", "info");
     telemetry.track("app.operation.cancel", {}, "warning");
@@ -64,7 +77,11 @@ export function createAppStatusController(dom: BimDomElements, telemetry: Teleme
   function setProgress(value: number) {
     const percentage = Math.max(0, Math.min(100, value * 100));
     progressBar.style.width = `${percentage}%`;
-    loadingStatus.textContent = `${statusText.textContent || "Обработка модели"} · ${Math.round(percentage)}%`;
+    const message = activeOperationMessage || statusText.textContent || "Обработка модели";
+    const progressMessage = `${message} · ${Math.round(percentage)}%`;
+    statusText.textContent = progressMessage;
+    loadingTitle.textContent = progressMessage;
+    loadingStatus.textContent = progressMessage;
   }
 
   function showError(error: unknown) {

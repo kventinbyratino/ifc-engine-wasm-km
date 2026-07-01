@@ -8,7 +8,7 @@
 - `https://dev.lab-tim.ru/blue/km/` открывается.
 - Профиль страницы: `IFC Engine KM`.
 - GitHub-ссылка ведёт в репозиторий `kventinbyratino/ifc-engine-wasm-km`.
-- `ifc-engine-wasm-km.service` поднят и держит `/blue/km/` как systemd-managed runtime на `127.0.0.1:5173`.
+- `ifc-engine-wasm-km.service` поднят и держит `/blue/km/` как systemd-managed runtime на `127.0.0.1:5181`.
 - Vite-модули на dev-URL отдаются с корректным MIME:
   - `/blue/km/src/main.ts` → `text/javascript`;
   - `/blue/km/@vite/client` → `text/javascript`;
@@ -102,7 +102,7 @@
 
 **What landed:**
 
-- `ifc-engine-wasm-km.service` now keeps the KM runtime up on `127.0.0.1:5173`.
+- `ifc-engine-wasm-km.service` now keeps the KM runtime up on `127.0.0.1:5181`.
 - nginx still serves `/blue/km/` through the same public route.
 - `vite build` now passes, so the runtime can be restarted and verified through the systemd unit.
 

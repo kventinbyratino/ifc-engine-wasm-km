@@ -5,6 +5,22 @@ import { createSyntheticLodManifest, type LodManifest } from "../performance/lod
 import type { ChunkCacheSeed } from "../performance/chunk-cache.ts";
 import { logControllerError } from "../ui/controller-errors.ts";
 
+function assertNotAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw new DOMException("Operation aborted", "AbortError");
+}
+
+async function yieldToMainThread(signal?: AbortSignal) {
+  assertNotAborted(signal);
+  await new Promise<void>((resolve) => {
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => resolve());
+      return;
+    }
+    setTimeout(resolve, 0);
+  });
+  assertNotAborted(signal);
+}
+
 export function createModelId(name: string) {
   const clean = name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_-]+/g, "_");
   const suffix = Math.random().toString(36).slice(2, 8);
@@ -18,11 +34,14 @@ export async function loadIfcModel(options: {
   source?: Partial<FederationLoadSource> & { kind?: FederationLoadKind };
   onPerformance?: (summary: LoadPerformanceSummary, plan: ProgressiveLoadPlan) => void;
   lodCache?: { seed: (entries: ChunkCacheSeed[]) => void };
+  signal?: AbortSignal;
 }) {
-  const { file, ifcLoader, onProgress } = options;
+  const { file, ifcLoader, onProgress, signal } = options;
   const metrics = createPerformanceMetricCollector();
   metrics.mark("load-start");
+
   const sourceBuffer = await file.arrayBuffer();
+  assertNotAborted(signal);
   const buffer = new Uint8Array(sourceBuffer);
   const modelId = createModelId(file.name);
   const source = normalizeLoadSource({
@@ -49,6 +68,7 @@ export async function loadIfcModel(options: {
     },
     processData: {
       progressCallback: (value: number, data: { process: string }) => {
+        if (signal?.aborted) return;
         if (value > 0 && data.process === "geometries") metrics.mark("first-visible");
         onProgress(value, data.process);
       },
@@ -56,7 +76,10 @@ export async function loadIfcModel(options: {
   });
   loadingModel.catch((error: unknown) => logControllerError(error));
   await loadingModel;
+  assertNotAborted(signal);
   metrics.mark("load-complete");
+  await yieldToMainThread(signal);
+
   const lodManifest = createSyntheticLodManifest({ modelId, elementCount: buffer.byteLength, chunkSize: 1_000_000 });
   const progressivePlan = createProgressiveLoadPlan({
     modelId,
@@ -85,7 +108,7 @@ export async function loadIfcModel(options: {
     sourceIfc: {
       modelId,
       fileName: file.name,
-      buffer: sourceBuffer.slice(0),
+      buffer: sourceBuffer,
     },
     performance: summarizeLoadPerformance(metrics.snapshot()),
     progressivePlan,
@@ -102,8 +125,9 @@ export async function loadFragBuffer(options: {
   source?: Partial<FederationLoadSource> & { kind?: FederationLoadKind };
   onPerformance?: (summary: LoadPerformanceSummary, plan: ProgressiveLoadPlan) => void;
   lodCache?: { seed: (entries: ChunkCacheSeed[]) => void };
+  signal?: AbortSignal;
 }) {
-  const { buffer, name, fragments, camera, onProgress } = options;
+  const { buffer, name, fragments, camera, onProgress, signal } = options;
   const metrics = createPerformanceMetricCollector();
   metrics.mark("load-start");
   const modelId = createModelId(name);
@@ -128,6 +152,7 @@ export async function loadFragBuffer(options: {
       sourceModelId: modelId,
     },
     onProgress: (event: { stage: string; progress: number }) => {
+      if (signal?.aborted) return;
       const value = event.stage === "done" ? 1 : event.progress;
       if (value > 0 && event.stage !== "done") metrics.mark("first-visible");
       onProgress(value, event.stage);
@@ -135,8 +160,12 @@ export async function loadFragBuffer(options: {
   });
   loadingModel.catch((error: unknown) => logControllerError(error));
   await loadingModel;
+  assertNotAborted(signal);
   await fragments.core.update(true);
+  assertNotAborted(signal);
   metrics.mark("load-complete");
+  await yieldToMainThread(signal);
+
   const lodManifest = createSyntheticLodManifest({ modelId, elementCount: buffer.byteLength, chunkSize: 1_000_000 });
   const progressivePlan = createProgressiveLoadPlan({
     modelId,

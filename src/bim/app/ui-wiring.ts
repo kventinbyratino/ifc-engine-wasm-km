@@ -133,6 +133,7 @@ export function bindBimUiEvents(
     closeDataPanelBtn,
     dataSearchInput,
     searchToggleBtn,
+    homeViewBtn,
     dataCategoryFilter,
     dataStoreyFilter,
     highlightFilteredBtn,
@@ -227,6 +228,13 @@ export function bindBimUiEvents(
     };
   }
 
+  async function openCurrentModelShare() {
+    if (!ctx.workspace.viewer.activeShareRecord) {
+      await library.saveCurrentFragment();
+    }
+    share.openShareModal();
+  }
+
   loadIfcBtn.onclick = () => openIfcUploadModeModal();
   emptyLoadIfcBtn.onclick = () => {
     pendingIfcUploadMode = "single";
@@ -256,6 +264,7 @@ export function bindBimUiEvents(
   isolateSelectedBtn.onclick = () => void model.isolateSelected();
   showAllBtn.onclick = () => void ctx.viewer.hider.set(true);
   searchToggleBtn.onclick = () => search.toggleSearchPanel();
+  homeViewBtn.onclick = () => void model.resetHomeView();
   searchBtn.onclick = () => void search.searchItems();
   searchInput.onfocus = () => search.expandSearchPanel();
   searchPanel.onclick = () => {
@@ -326,7 +335,7 @@ export function bindBimUiEvents(
   addIfcBtn.onclick = () => openIfcUploadModeModal();
   libraryBackBtn.onclick = () => library.showLibraryStart();
   saveFragmentBtn.onclick = () => void library.saveCurrentFragment();
-  shareModelBtn.onclick = () => share.openShareModal();
+  shareModelBtn.onclick = () => void openCurrentModelShare();
   closeShareBtn.onclick = () => share.closeShareModal();
   copyShareBtn.onclick = () => void share.copyShareLink();
   loadingCancelBtn.onclick = () => utilities.cancelActiveOperation();

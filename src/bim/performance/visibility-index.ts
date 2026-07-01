@@ -31,15 +31,43 @@ export type VisibilityQueryResult = {
   visibleElementCount: number;
 };
 
+type NormalizedVisibilityChunk = VisibilityChunk & {
+  localIds: number[];
+  stableElementIds: LodStableElementId[];
+  categoryIds?: string[];
+};
+
+type VisibilityIndex = {
+  queryVisible(query: VisibilityCameraQuery): VisibilityQueryResult;
+  readonly chunks: readonly NormalizedVisibilityChunk[];
+};
+
+const visibilityIndexCache = new WeakMap<VisibilityChunk[], VisibilityIndex>();
+
 export function createVisibilityIndex(chunks: VisibilityChunk[]) {
+  const cached = visibilityIndexCache.get(chunks);
+  if (cached) return cached;
+
   const normalized = chunks.map((chunk) => normalizeChunk(chunk));
   const byChunkId = new Map(normalized.map((chunk) => [chunk.chunkId, chunk] as const));
   const byFloorId = groupChunks(normalized, (chunk) => chunk.floorId);
   const byZoneId = groupChunks(normalized, (chunk) => chunk.zoneId);
   const byCategoryId = groupChunks(normalized, (chunk) => chunk.categoryIds ?? []);
+  const chunkSnapshot: readonly NormalizedVisibilityChunk[] = normalized.map((chunk) => ({
+    ...chunk,
+    localIds: [...chunk.localIds],
+    categoryIds: chunk.categoryIds ? [...chunk.categoryIds] : undefined,
+    stableElementIds: chunk.stableElementIds.map((item) => ({ ...item })),
+  }));
 
-  return {
+  let lastQueryKey = "";
+  let lastResult: VisibilityQueryResult | null = null;
+
+  const index: VisibilityIndex = {
     queryVisible(query: VisibilityCameraQuery): VisibilityQueryResult {
+      const queryKey = buildQueryKey(query);
+      if (queryKey === lastQueryKey && lastResult) return lastResult;
+
       const selectedKeys = new Set((query.selectedElements ?? []).map(getStableKey));
       const candidates = resolveCandidates({
         normalized,
@@ -57,21 +85,22 @@ export function createVisibilityIndex(chunks: VisibilityChunk[]) {
         for (const id of chunk.localIds) set.add(id);
         modelIdMap[chunk.modelId] = set;
       }
-      return {
+
+      lastQueryKey = queryKey;
+      lastResult = {
         chunkIds: visible.map((chunk) => chunk.chunkId),
         modelIdMap,
         visibleElementCount: Object.values(modelIdMap).reduce((sum, ids) => sum + ids.size, 0),
       };
+      return lastResult;
     },
     get chunks() {
-      return normalized.map((chunk) => ({
-        ...chunk,
-        localIds: [...chunk.localIds],
-        categoryIds: chunk.categoryIds ? [...chunk.categoryIds] : undefined,
-        stableElementIds: chunk.stableElementIds ? chunk.stableElementIds.map((item) => ({ ...item })) : undefined,
-      }));
+      return chunkSnapshot;
     },
   };
+
+  visibilityIndexCache.set(chunks, index);
+  return index;
 }
 
 export function isChunkVisible(chunk: VisibilityChunk, query: VisibilityCameraQuery) {
@@ -99,13 +128,23 @@ function resolveCandidates(options: {
   query: VisibilityCameraQuery;
   selectedKeys: Set<string>;
 }) {
-  let candidateMap = new Map(options.normalized.map((chunk) => [chunk.chunkId, chunk] as const));
+  const hasFilters = Boolean(
+    options.query.floorIds?.length ||
+      options.query.zoneIds?.length ||
+      options.query.categoryIds?.length ||
+      options.query.chunkIds?.length,
+  );
+  if (!hasFilters && options.selectedKeys.size === 0) {
+    return options.normalized;
+  }
 
+  let candidateMap = new Map(options.normalized.map((chunk) => [chunk.chunkId, chunk] as const));
   candidateMap = intersectCandidateMap(candidateMap, resolveFilteredBucket(options.byFloorId, options.query.floorIds));
   candidateMap = intersectCandidateMap(candidateMap, resolveFilteredBucket(options.byZoneId, options.query.zoneIds));
   candidateMap = intersectCandidateMap(candidateMap, resolveFilteredBucket(options.byCategoryId, options.query.categoryIds));
   candidateMap = intersectCandidateMap(candidateMap, resolveFilteredChunkIds(options.byChunkId, options.query.chunkIds));
 
+  if (options.selectedKeys.size === 0) return [...candidateMap.values()];
   const selected = options.normalized.filter((chunk) => isSelectedChunk(chunk, options.selectedKeys) && !candidateMap.has(chunk.chunkId));
   return dedupeChunks([...candidateMap.values(), ...selected]);
 }
@@ -171,12 +210,6 @@ function normalizeChunk(chunk: VisibilityChunk): NormalizedVisibilityChunk {
     categoryIds,
   };
 }
-
-type NormalizedVisibilityChunk = VisibilityChunk & {
-  localIds: number[];
-  stableElementIds: LodStableElementId[];
-  categoryIds?: string[];
-};
 
 function groupChunks(chunks: NormalizedVisibilityChunk[], selector: (chunk: NormalizedVisibilityChunk) => string | string[] | undefined) {
   const groups = new Map<string, NormalizedVisibilityChunk[]>();
@@ -246,6 +279,24 @@ function distance(a: Vec3, b: Vec3) {
 
 function getStableKey(item: LodStableElementId) {
   return `${normalizeText(item.modelId, "model")}:${Math.max(0, Math.floor(item.localId))}`;
+}
+
+function buildQueryKey(query: VisibilityCameraQuery) {
+  return [
+    query.position.join(","),
+    query.target.join(","),
+    String(Math.max(0, query.maxDistance)),
+    query.frustum ? query.frustum.min.join(",") + "|" + query.frustum.max.join(",") : "",
+    normalizeList(query.floorIds).join("|"),
+    normalizeList(query.zoneIds).join("|"),
+    normalizeList(query.categoryIds).join("|"),
+    normalizeList(query.chunkIds).join("|"),
+    normalizeList((query.selectedElements ?? []).map(getStableKey)).join("|"),
+  ].join(";");
+}
+
+function normalizeList(items?: string[]) {
+  return items && items.length ? [...new Set(items.map((item) => normalizeText(item, "")).filter(Boolean))].sort() : [];
 }
 
 function normalizeText(value: string | undefined, fallback: string) {

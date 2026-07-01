@@ -1,6 +1,6 @@
 # KM runtime runbook
 
-`/blue/km/` is served on `dev.lab-tim.ru` by nginx and proxied to the local KM Vite server on `127.0.0.1:5173`.
+`/blue/km/` is served on `dev.lab-tim.ru` by nginx and proxied to the local KM Vite preview server on `127.0.0.1:5181`.
 
 ## Service
 

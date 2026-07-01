@@ -23,10 +23,10 @@ type LoadFragBufferOptions = {
       source?: "backend" | "generated" | "fallback";
     }[]) => void;
   };
+  signal?: AbortSignal;
 };
 
 type LoadFragBufferResult = Awaited<ReturnType<typeof loadFragmentsBuffer>>;
-type LoadIfcModelResult = Awaited<ReturnType<typeof loadIfcModel>>;
 
 export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadControllerHooks) {
   const { workspace } = ctx;
@@ -37,19 +37,25 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
   async function loadIfc(file: File, source?: FederationLoadSource): Promise<void> {
     hooks.setActiveShareRecord(null);
     const strategy = resolveIfcLoadStrategy({ sizeBytes: file.size, maxBrowserBytes: MAX_IFC_BYTES });
-    if (strategy.kind === "backend-required") {
-      await loadQueue.enqueue(async () => {
-        ctx.setBusy(true, "Серверная конвертация IFC");
-        fileName.textContent = file.name;
-        propertiesOutput.textContent = `${strategy.message}. IFC > лимита браузера отправляется на backend conversion.`;
 
-        try {
+    await loadQueue.enqueue(async () => {
+      const signal = ctx.startOperation(strategy.kind === "backend-required" ? "Серверная конвертация IFC" : "Конвертация IFC в браузере");
+      fileName.textContent = file.name;
+      await yieldToUiFrame(signal);
+
+      try {
+        if (strategy.kind === "backend-required") {
+          propertiesOutput.textContent = `${strategy.message}. IFC > лимита браузера отправляется на backend conversion.`;
           const conversion = await convertLargeIfc(file, {
+            signal,
             onStatus: (status) => ctx.setStatus(status),
             onProgress: (value) => ctx.setProgress(value),
           });
+          if (signal.aborted) return;
 
           const result = await runLoadFragBuffer(conversion.artifactBuffer, conversion.artifactName, {
+            signal,
+            lodCache: ctx.viewer.lodChunkCache,
             source: {
               kind: "frag",
               origin: "url",
@@ -57,8 +63,8 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
               reference: conversion.sourceDownloadUrl,
               restorable: false,
             },
-            lodCache: ctx.viewer.lodChunkCache,
           });
+          if (signal.aborted) return;
 
           workspace.viewer.lastConvertedModelId = result.modelId;
           workspace.viewer.lastSourceIfcName = conversion.sourceFileName;
@@ -75,105 +81,107 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
           ctx.setStatus(`IFC загружен через backend conversion${result.source.restorable ? " · федерация сохранена" : ""}`);
           ctx.showToast("IFC загружен через backend conversion", "success");
           ctx.setProgress(1);
-        } catch (error) {
+        } else {
+          propertiesOutput.textContent = "IFC читается через web-ifc WASM. Серверная обработка не используется.";
+          const result = await loadIfcModel({
+            file,
+            ifcLoader,
+            lodCache: ctx.viewer.lodChunkCache,
+            signal,
+            source: source ?? {
+              kind: "ifc",
+              origin: "upload",
+              label: file.name,
+              reference: file.name,
+              restorable: false,
+            },
+            onProgress: (value, process) => {
+              ctx.setStatus(`${formatProcess(process)}: ${Math.round(value * 100)}%`);
+              ctx.setProgress(value);
+            },
+          });
+          if (signal.aborted) return;
+
+          workspace.viewer.lastConvertedModelId = result.modelId;
+          workspace.viewer.lastSourceIfcName = result.sourceName;
+          workspace.data.sourceIfcFiles[result.modelId] = result.sourceIfc;
+          workspace.data.progressiveLoadPlan = result.progressivePlan;
+          workspace.data.lodManifest = result.lodManifest;
+          saveFragmentBtn.hidden = workspace.viewer.activeProfile === "km";
+          hooks.closeLibraryModal();
           hooks.refreshFederationState();
-          ctx.showError(error);
-        } finally {
-          ctx.setBusy(false);
+          const sectionSuffix = result.source.discipline ? ` · раздел: ${result.source.discipline}` : "";
+          ctx.setStatus(`IFC загружен и преобразован${sectionSuffix}${result.source.restorable ? " · федерация сохранена" : ""}`);
+          ctx.showToast("IFC загружен и преобразован", "success");
+          ctx.setProgress(1);
         }
-      });
-      return;
-    }
-
-    await loadQueue.enqueue(async () => {
-      ctx.setBusy(true, "Конвертация IFC в браузере");
-      fileName.textContent = file.name;
-      propertiesOutput.textContent = "IFC читается через web-ifc WASM. Серверная обработка не используется.";
-
-      try {
-        const result = await loadIfcModel({
-          file,
-          ifcLoader,
-          lodCache: ctx.viewer.lodChunkCache,
-          source: source ?? {
-            kind: "ifc",
-            origin: "upload",
-            label: file.name,
-            reference: file.name,
-            restorable: false,
-          },
-          onProgress: (value, process) => {
-            ctx.setStatus(`${formatProcess(process)}: ${Math.round(value * 100)}%`);
-            ctx.setProgress(value);
-          },
-        });
-
-        workspace.viewer.lastConvertedModelId = result.modelId;
-        workspace.viewer.lastSourceIfcName = result.sourceName;
-        workspace.data.sourceIfcFiles[result.modelId] = result.sourceIfc;
-        workspace.data.progressiveLoadPlan = result.progressivePlan;
-        workspace.data.lodManifest = result.lodManifest;
-        saveFragmentBtn.hidden = workspace.viewer.activeProfile === "km";
-        hooks.closeLibraryModal();
-        hooks.refreshFederationState();
-        const sectionSuffix = result.source.discipline ? ` · раздел: ${result.source.discipline}` : "";
-        ctx.setStatus(`IFC загружен и преобразован${sectionSuffix}${result.source.restorable ? " · федерация сохранена" : ""}`);
-        ctx.showToast("IFC загружен и преобразован", "success");
-        ctx.setProgress(1);
       } catch (error) {
         hooks.refreshFederationState();
-        ctx.showError(error);
+        if (!isAbortError(error)) ctx.showError(error);
       } finally {
-        ctx.setBusy(false);
+        ctx.finishOperation(signal);
       }
     });
   }
 
   async function loadFrag(file: File) {
     hooks.setActiveShareRecord(null);
-    ctx.setBusy(true, "Загрузка Fragments");
-    fileName.textContent = file.name;
+    await loadQueue.enqueue(async () => {
+      const signal = ctx.startOperation("Загрузка Fragments");
+      fileName.textContent = file.name;
+      await yieldToUiFrame(signal);
 
-    try {
-      await loadFragBuffer(await file.arrayBuffer(), file.name, {
-        source: {
-          kind: "frag",
-          origin: "upload",
-          label: file.name,
-          reference: file.name,
-          restorable: false,
-        },
-        lodCache: ctx.viewer.lodChunkCache,
-      });
-      ctx.setStatus("FRAG загружен");
-      ctx.showToast("FRAG загружен", "success");
-      ctx.setProgress(1);
-    } catch (error) {
-      ctx.showError(error);
-    } finally {
-      ctx.setBusy(false);
-    }
+      try {
+        await runLoadFragBuffer(await file.arrayBuffer(), file.name, {
+          signal,
+          source: {
+            kind: "frag",
+            origin: "upload",
+            label: file.name,
+            reference: file.name,
+            restorable: false,
+          },
+          lodCache: ctx.viewer.lodChunkCache,
+        });
+        if (signal.aborted) return;
+        ctx.setStatus("FRAG загружен");
+        ctx.showToast("FRAG загружен", "success");
+        ctx.setProgress(1);
+      } catch (error) {
+        if (!isAbortError(error)) ctx.showError(error);
+      } finally {
+        ctx.finishOperation(signal);
+      }
+    });
   }
 
   async function loadFragBuffer(buffer: ArrayBuffer, name: string, source?: FederationLoadSource): Promise<void>;
   async function loadFragBuffer(buffer: ArrayBuffer, name: string, options?: LoadFragBufferOptions): Promise<void>;
   async function loadFragBuffer(buffer: ArrayBuffer, name: string, optionsOrSource?: FederationLoadSource | LoadFragBufferOptions): Promise<void> {
     await loadQueue.enqueue(async () => {
-      ctx.setBusy(true, "Загрузка Fragments");
+      const signal = ctx.startOperation("Загрузка Fragments");
+      await yieldToUiFrame(signal);
       try {
-        const result = await runLoadFragBuffer(buffer, name, typeof optionsOrSource === "object" && optionsOrSource && ("source" in optionsOrSource || "lodCache" in optionsOrSource)
-          ? optionsOrSource
-          : { source: optionsOrSource as FederationLoadSource | undefined });
+        const result = await runLoadFragBuffer(
+          buffer,
+          name,
+          typeof optionsOrSource === "object" && optionsOrSource && ("source" in optionsOrSource || "lodCache" in optionsOrSource || "signal" in optionsOrSource)
+            ? optionsOrSource
+            : { source: optionsOrSource as FederationLoadSource | undefined, signal },
+        );
+        if (signal.aborted) return;
         workspace.data.progressiveLoadPlan = result.progressivePlan;
         workspace.data.lodManifest = result.lodManifest;
         ctx.setStatus(`FRAG загружен${result.source.restorable ? " · федерация сохранена" : ""}`);
         ctx.showToast("FRAG загружен", "success");
         ctx.setProgress(1);
       } catch (error) {
-        ctx.showError(error);
-        throw error;
+        if (!isAbortError(error)) {
+          ctx.showError(error);
+          throw error;
+        }
       } finally {
-        ctx.setBusy(false);
+        ctx.finishOperation(signal);
       }
     });
   }
@@ -193,8 +201,10 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
       fragments,
       camera: world.camera.three,
       source,
+      signal: options?.signal,
       lodCache: options?.lodCache,
       onProgress: (value, stage) => {
+        if (options?.signal?.aborted) return;
         ctx.setStatus(`${formatFragmentStage(stage)}: ${Math.round(value * 100)}%`);
         ctx.setProgress(value);
       },
@@ -225,4 +235,20 @@ function formatFragmentStage(stage: string) {
     done: "Fragment загружен",
   };
   return labels[stage] ?? "Загрузка fragment";
+}
+
+async function yieldToUiFrame(signal?: AbortSignal) {
+  if (signal?.aborted) throw new DOMException("Operation aborted", "AbortError");
+  await new Promise<void>((resolve) => {
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => resolve());
+      return;
+    }
+    setTimeout(resolve, 0);
+  });
+  if (signal?.aborted) throw new DOMException("Operation aborted", "AbortError");
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === "AbortError";
 }

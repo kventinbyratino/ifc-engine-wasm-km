@@ -1,5 +1,5 @@
 [Unit]
-Description=IFC Engine WASM KM Vite dev server
+Description=IFC Engine WASM KM Vite preview server
 After=network.target
 
 [Service]
@@ -7,9 +7,9 @@ Type=simple
 User=maks
 WorkingDirectory=/home/maks/projects/ifc-engine-wasm-km
 Environment=NODE_ENV=development
-Environment=PORT=5173
+Environment=PORT=5181
 Environment=KM_ALLOWED_HOSTS=dev.lab-tim.ru,127.0.0.1,localhost
-ExecStart=/home/maks/.hermes/node/bin/node scripts/dev-server.mjs
+ExecStart=/home/maks/.hermes/node/bin/node ./node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 5181 --strictPort
 Restart=always
 RestartSec=3
 

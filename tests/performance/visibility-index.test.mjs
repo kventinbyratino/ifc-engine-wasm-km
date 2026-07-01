@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { createVisibilityIndex } from "../../src/bim/performance/visibility-index.ts";
 
 test("visibility index filters by floor and keeps selected chunks visible", () => {
-  const index = createVisibilityIndex([
+  const chunks = [
     {
       chunkId: "base",
       modelId: "tower",
@@ -23,16 +23,22 @@ test("visibility index filters by floor and keeps selected chunks visible", () =
       categoryIds: ["IFCROOF"],
       box: { min: [200, 0, 0], max: [202, 2, 2] },
     },
-  ]);
+  ];
+  const index = createVisibilityIndex(chunks);
 
-  const result = index.queryVisible({
+  const query = {
     position: [0, 0, 8],
     target: [0, 0, 0],
     maxDistance: 20,
     floorIds: ["L1"],
     selectedElements: [{ modelId: "tower", localId: 9 }],
-  });
+  };
+  const result = index.queryVisible(query);
+  const cachedIndex = createVisibilityIndex(chunks);
+  const cachedResult = cachedIndex.queryVisible(query);
 
+  assert.strictEqual(index, cachedIndex);
+  assert.strictEqual(result, cachedResult);
   assert.deepEqual(result.chunkIds, ["base", "penthouse"]);
   assert.deepEqual(result.modelIdMap, { tower: new Set([1, 2, 9]) });
   assert.equal(result.visibleElementCount, 3);

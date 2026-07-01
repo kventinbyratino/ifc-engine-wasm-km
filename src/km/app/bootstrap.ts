@@ -1,15 +1,17 @@
 import workerUrl from "@thatopen/fragments/worker?url";
 import "../../styles.css";
-import { APP_BASE, API_BASE, MAX_FRAGMENT_BYTES } from "../config/index.ts";
+import * as THREE from "three";
+import { API_BASE, APP_BASE, MAX_FRAGMENT_BYTES } from "../config/index.ts";
 import { getDomElements } from "../../bim/dom.ts";
 import { createAppStatusController } from "../../bim/app/app-status.ts";
-import { createModelController } from "../../bim/app/model-controller.ts";
 import { createSearchController } from "../../bim/app/search-controller.ts";
 import { createShareController } from "../../bim/app/share-controller.ts";
 import { createWorkspaceState } from "../../bim/state/workspace-state.ts";
-import { createKmViewerCore } from "../viewer/core.ts";
 import { stripKmProfileChrome } from "../../bim/app/km-shell-chrome.ts";
 import type { BimAppContext } from "../../bim/app/app-context.ts";
+import { createKmViewerCore } from "../viewer/core.ts";
+import { loadIfcModel as loadKmIfcModel } from "../../bim/models/model-loader.ts";
+import { createMessage } from "../../bim/ui/dom-utils.ts";
 
 const emptyCapabilities = () => ({
   coordination: false,
@@ -25,11 +27,13 @@ export async function startKmApp() {
     profileScreen: dom.profileScreen,
     bimStub: dom.bimStub,
   });
-  const { viewer, loadIfcModel, loadFragBuffer } = await createKmViewerCore({
+
+  const { viewer, loadFragBuffer } = await createKmViewerCore({
     viewport: dom.viewport,
     workerUrl,
     appBase: APP_BASE,
   });
+
   const workspace = createWorkspaceState();
   const appStatus = createAppStatusController(dom);
 
@@ -53,42 +57,141 @@ export async function startKmApp() {
 
   const search = createSearchController(ctx);
   const share = createShareController(ctx);
-  const model = createModelController({
-    ctx,
-    clearSearch: search.clearSearch,
-    clearDrawings: () => {},
-    renderIssues: () => {},
-    renderClash: () => {},
-    applyDataFilters: () => {},
-    refreshClashSelectors: () => {},
-    resetDataIndex: () => {},
-    resetChecks: () => {},
-    clearBBoxIndex: () => {},
-    setActiveShareRecord: share.setActiveShareRecord,
-    closeLibraryModal: () => {},
-    refreshFederationRegistry: () => {},
-    persistFederationRegistry: () => {},
-  });
-  async function saveCurrentFragment() {
-    if (!workspace.viewer.lastConvertedModelId || !workspace.viewer.lastSourceIfcName) return;
 
-    const modelRecord = viewer.fragments.list.get(workspace.viewer.lastConvertedModelId);
+  function setActiveShareRecord(record: { id: string; name: string; filename: string; size_bytes: number; created_at: string } | null) {
+    workspace.viewer.activeShareRecord = record as any;
+    dom.shareModelBtn.hidden = !record;
+    if (!record) share.closeShareModal();
+  }
+
+  function refreshMinimalViewState() {
+    const hasModels = viewer.fragments.list.size > 0;
+    dom.modelCount.textContent = String(viewer.fragments.list.size);
+    dom.emptyBimState.hidden = hasModels;
+    dom.saveFragmentBtn.hidden = true;
+    dom.searchToggleBtn.hidden = !hasModels;
+    dom.homeViewBtn.hidden = !hasModels;
+    dom.shareModelBtn.hidden = !hasModels || !workspace.viewer.activeShareRecord;
+  }
+
+  async function loadFragFromBuffer(
+    buffer: ArrayBuffer,
+    name: string,
+    source?: { kind: "frag"; origin: "upload" | "url"; label: string; reference: string; restorable: boolean },
+  ) {
+    const result = await loadFragBuffer({
+      buffer,
+      name,
+      source: source ?? {
+        kind: "frag",
+        origin: "upload",
+        label: name,
+        reference: name,
+        restorable: false,
+      },
+      lodCache: viewer.lodChunkCache,
+      onProgress: (value, stage) => {
+        const label = stage === "done" ? "FRAG загружен" : `Загрузка FRAG: ${stage}`;
+        appStatus.setStatus(`${label} · ${Math.round(value * 100)}%`);
+        appStatus.setProgress(value);
+      },
+    });
+
+    workspace.viewer.lastConvertedModelId = result.modelId;
+    workspace.viewer.lastSourceIfcName = result.sourceName;
+    workspace.data.progressiveLoadPlan = result.progressivePlan;
+    workspace.data.lodManifest = result.lodManifest;
+    refreshMinimalViewState();
+    return result;
+  }
+
+  async function loadIfc(file: File) {
+    setActiveShareRecord(null);
+    const signal = appStatus.startOperation("Конвертация IFC в FRAG");
+    dom.statusText.textContent = file.name;
+    dom.fileName.textContent = file.name;
+
+    try {
+      const result = await loadKmIfcModel({
+        file,
+        ifcLoader: viewer.ifcLoader,
+        lodCache: viewer.lodChunkCache,
+        signal,
+        source: {
+          kind: "ifc",
+          origin: "upload",
+          label: file.name,
+          reference: file.name,
+          restorable: false,
+        },
+        onProgress: (value, stage) => {
+          const label = stage === "done" ? "FRAG загружен" : `Загрузка FRAG: ${stage}`;
+          appStatus.setStatus(`${label} · ${Math.round(value * 100)}%`);
+          appStatus.setProgress(value);
+        },
+      });
+      if (signal.aborted) return;
+
+      workspace.viewer.lastConvertedModelId = result.modelId;
+      workspace.viewer.lastSourceIfcName = result.sourceName;
+      workspace.data.sourceIfcFiles[result.modelId] = result.sourceIfc;
+      workspace.data.progressiveLoadPlan = result.progressivePlan;
+      workspace.data.lodManifest = result.lodManifest;
+      setActiveShareRecord({
+        id: result.modelId,
+        name: result.sourceName,
+        filename: `${result.sourceName}.frag`,
+        size_bytes: result.sourceIfc.buffer.byteLength,
+        created_at: new Date().toISOString(),
+      });
+      refreshMinimalViewState();
+      appStatus.setStatus("IFC загружен и преобразован");
+      appStatus.showToast("IFC загружен и преобразован", "success");
+      appStatus.setProgress(1);
+    } catch (error) {
+      appStatus.showError(error);
+    } finally {
+      appStatus.finishOperation(signal);
+    }
+  }
+
+  async function loadFrag(file: File) {
+    setActiveShareRecord(null);
+    const signal = appStatus.startOperation("Загрузка FRAG");
+    dom.fileName.textContent = file.name;
+    try {
+      await loadFragFromBuffer(await file.arrayBuffer(), file.name);
+      if (signal.aborted) return;
+      appStatus.setStatus("FRAG загружен");
+      appStatus.showToast("FRAG загружен", "success");
+      appStatus.setProgress(1);
+    } catch (error) {
+      appStatus.showError(error);
+    } finally {
+      appStatus.finishOperation(signal);
+    }
+  }
+
+  async function saveCurrentFragment() {
+    const modelId = workspace.viewer.lastConvertedModelId;
+    const sourceName = workspace.viewer.lastSourceIfcName;
+    if (!modelId || !sourceName) return;
+
+    const modelRecord = viewer.fragments.list.get(modelId);
     if (!modelRecord) {
-      appStatus.setStatus("Нет модели для сохранения");
-      appStatus.showToast("Нет модели для сохранения", "error");
+      appStatus.showError(new Error("Нет модели для сохранения"));
       return;
     }
 
     const fragsBuffer = await modelRecord.getBuffer(true);
     if (fragsBuffer.byteLength > MAX_FRAGMENT_BYTES) {
-      appStatus.setStatus("Fragment больше 100 МБ");
-      appStatus.showToast("Fragment больше 100 МБ", "error");
+      appStatus.showError(new Error("Fragment больше 100 МБ"));
       return;
     }
 
     const form = new FormData();
-    form.set("name", workspace.viewer.lastSourceIfcName);
-    form.set("file", new File([fragsBuffer], `${workspace.viewer.lastSourceIfcName}.frag`, { type: "application/octet-stream" }));
+    form.set("name", sourceName);
+    form.set("file", new File([fragsBuffer], `${sourceName}.frag`, { type: "application/octet-stream" }));
 
     const response = await fetch(`${API_BASE}/fragments`, { method: "POST", body: form });
     if (!response.ok) throw new Error(await response.text());
@@ -99,7 +202,7 @@ export async function startKmApp() {
   }
 
   async function openSharedModel() {
-    if (!ctx.workspace.viewer.activeShareRecord) {
+    if (!workspace.viewer.activeShareRecord) {
       await saveCurrentFragment();
     }
     share.openShareModal();
@@ -113,20 +216,26 @@ export async function startKmApp() {
     try {
       const response = await fetch(`${API_BASE}/fragments`);
       if (!response.ok) throw new Error("Не удалось получить список fragments");
-      const records = await response.json() as Array<{ id: string; name: string }>;
+      const records = (await response.json()) as Array<{ id: string; name: string }>;
       const record = records.find((item) => item.id === fragmentId);
       if (!record) throw new Error("Модель по ссылке не найдена");
 
       const download = await fetch(`${API_BASE}/fragments/${record.id}/download`);
       if (!download.ok) throw new Error("Не удалось загрузить fragment");
-      await model.loadFragBuffer(await download.arrayBuffer(), record.name, {
+      await loadFragFromBuffer(await download.arrayBuffer(), record.name, {
         kind: "frag",
-        origin: "library",
+        origin: "url",
         label: record.name,
         reference: record.id,
         restorable: true,
       });
-      share.setActiveShareRecord(record as any);
+      share.setActiveShareRecord({
+        id: record.id,
+        name: record.name,
+        filename: `${record.name}.frag`,
+        size_bytes: 0,
+        created_at: new Date().toISOString(),
+      });
       appStatus.setStatus("FRAG загружен из ссылки");
     } catch (error) {
       appStatus.showError(error);
@@ -136,22 +245,15 @@ export async function startKmApp() {
   }
 
   dom.loadIfcBtn.onclick = () => dom.ifcInput.click();
-  dom.emptyLoadIfcBtn.onclick = () => dom.ifcInput.click();
-  dom.emptyLoadIfcBtn.onkeydown = (event: KeyboardEvent) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      dom.ifcInput.click();
-    }
-  };
   dom.loadFragBtn.onclick = () => dom.fragInput.click();
-  dom.fitBtn.onclick = () => void model.fitToModels();
-  dom.clearBtn.onclick = () => void model.clearModels();
-  dom.downloadFragBtn.onclick = () => void model.downloadFragments();
-  dom.hideSelectedBtn.onclick = () => void model.hideSelected();
-  dom.isolateSelectedBtn.onclick = () => void model.isolateSelected();
-  dom.showAllBtn.onclick = () => void ctx.viewer.hider.set(true);
+  dom.fitBtn.onclick = () => void fitToModels();
+  dom.clearBtn.onclick = () => void clearModels();
+  dom.downloadFragBtn.onclick = () => void downloadFragments();
+  dom.hideSelectedBtn.onclick = () => void viewer.hider.set(false, workspace.viewer.activeSelection);
+  dom.isolateSelectedBtn.onclick = () => void viewer.hider.isolate(workspace.viewer.activeSelection);
+  dom.showAllBtn.onclick = () => void viewer.hider.set(true);
   dom.searchToggleBtn.onclick = () => search.toggleSearchPanel();
-  dom.homeViewBtn.onclick = () => void model.resetHomeView();
+  dom.homeViewBtn.onclick = () => void resetHomeView();
   dom.searchBtn.onclick = () => void search.searchItems();
   dom.searchInput.onfocus = () => search.expandSearchPanel();
   dom.searchPanel.onclick = () => {
@@ -166,19 +268,14 @@ export async function startKmApp() {
     const [file] = Array.from(dom.ifcInput.files ?? []) as File[];
     dom.ifcInput.value = "";
     if (!file) return;
-    await model.loadIfc(file, {
-      kind: "ifc",
-      origin: "upload",
-      label: file.name,
-      reference: file.name,
-      restorable: false,
-    });
+    await loadIfc(file);
   };
 
-  dom.fragInput.onchange = () => {
+  dom.fragInput.onchange = async () => {
     const [file] = Array.from(dom.fragInput.files ?? []) as File[];
-    if (file) void model.loadFrag(file);
     dom.fragInput.value = "";
+    if (!file) return;
+    await loadFrag(file);
   };
 
   window.addEventListener("keydown", (event) => {
@@ -192,7 +289,62 @@ export async function startKmApp() {
     }
   });
 
-  model.refreshModelState();
+  async function fitToModels() {
+    const objects = [...viewer.fragments.list.values()].map((model) => model.object);
+    if (objects.length === 0) return;
+
+    const box = new THREE.Box3();
+    for (const object of objects) {
+      object.updateWorldMatrix(true, true);
+      box.expandByObject(object);
+    }
+
+    if (!box.isEmpty()) {
+      await viewer.world.camera.controls.fitToBox(box, true, {
+        paddingLeft: 1,
+        paddingRight: 1,
+        paddingTop: 1,
+        paddingBottom: 1,
+      });
+    }
+  }
+
+  async function resetHomeView() {
+    await viewer.world.camera.controls.setLookAt(24, 18, 24, 0, 0, 0, true);
+    await fitToModels();
+  }
+
+  async function clearModels() {
+    for (const [modelId] of viewer.fragments.list) {
+      await viewer.fragments.core.disposeModel(modelId);
+    }
+    await viewer.highlighter.clear("select");
+    await search.clearSearch();
+    workspace.viewer.lastConvertedModelId = "";
+    workspace.viewer.lastSourceIfcName = "";
+    workspace.data.sourceIfcFiles = {};
+    workspace.data.progressiveLoadPlan = null;
+    workspace.data.lodManifest = null;
+    setActiveShareRecord(null);
+    dom.searchPanel.hidden = true;
+    dom.searchOutput.replaceChildren(createMessage("Введите текст поиска."));
+    dom.fileName.textContent = "-";
+    refreshMinimalViewState();
+  }
+
+  async function downloadFragments() {
+    for (const [, model] of viewer.fragments.list) {
+      const fragsBuffer = await model.getBuffer(true);
+      const file = new File([fragsBuffer], `${model.modelId}.frag`);
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(file);
+      link.download = file.name;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+  }
+
+  refreshMinimalViewState();
   appStatus.setStatus("Загрузите IFC");
   void openFragmentFromUrl();
 }

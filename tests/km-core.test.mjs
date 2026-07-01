@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 
 const mainSource = await readFile(new URL("../src/main.ts", import.meta.url), "utf8");
 const appSource = await readFile(new URL("../src/km/app/start-km-app.ts", import.meta.url), "utf8");
+const bootstrapSource = await readFile(new URL("../src/km/app/bootstrap.ts", import.meta.url), "utf8");
 const coreSource = await readFile(new URL("../src/km/viewer/core.ts", import.meta.url), "utf8");
 const configSource = await readFile(new URL("../src/km/config/index.ts", import.meta.url), "utf8");
 const bimConfigSource = await readFile(new URL("../src/bim/config.ts", import.meta.url), "utf8");
@@ -16,6 +17,15 @@ test("KM entrypoint is thin and delegates to KM app module", () => {
   assert.match(appSource, /startKmApp/);
   assert.match(appSource, /import\("\.\/bootstrap\.ts"\)/);
   assert.doesNotMatch(appSource, /startBimApp/);
+  assert.doesNotMatch(appSource, /convertLargeIfc/);
+  assert.doesNotMatch(appSource, /loadKmIfcModel/);
+});
+
+test("KM bootstrap loads IFC directly in browser and keeps native file picker single-shot", () => {
+  assert.match(bootstrapSource, /loadKmIfcModel/);
+  assert.doesNotMatch(bootstrapSource, /convertLargeIfc/);
+  assert.doesNotMatch(bootstrapSource, /emptyLoadIfcBtn\.onclick = \(\) => dom\.ifcInput\.click\(\);/);
+  assert.doesNotMatch(bootstrapSource, /emptyLoadIfcBtn\.onkeydown/);
 });
 
 test("KM viewer core exposes testable viewer and loader seams", () => {

@@ -69,10 +69,10 @@ export async function startKmApp() {
     if (!record) share.closeShareModal();
   }
 
-  function refreshMinimalViewState() {
+  function refreshMinimalViewState(isLoading = false) {
     const hasModels = viewer.fragments.list.size > 0;
     dom.modelCount.textContent = String(viewer.fragments.list.size);
-    dom.emptyBimState.hidden = hasModels;
+    dom.emptyBimState.hidden = isLoading || hasModels;
     dom.saveFragmentBtn.hidden = true;
     dom.searchToggleBtn.hidden = !hasModels;
     dom.homeViewBtn.hidden = !hasModels;
@@ -96,7 +96,7 @@ export async function startKmApp() {
       },
       lodCache: viewer.lodChunkCache,
       onProgress: (value, stage) => {
-        const label = stage === "done" ? "FRAG загружен" : `Загрузка FRAG: ${stage}`;
+        const label = stage === "done" ? "Модель загружена" : `Загрузка модели: ${stage}`;
         appStatus.setStatus(`${label} · ${Math.round(value * 100)}%`);
         appStatus.setProgress(value);
       },
@@ -112,7 +112,8 @@ export async function startKmApp() {
 
   async function loadIfc(file: File) {
     setActiveShareRecord(null);
-    const signal = appStatus.startOperation("Конвертация IFC в FRAG");
+    const signal = appStatus.startOperation("Конвертация IFC");
+    refreshMinimalViewState(true);
     dom.statusText.textContent = file.name;
     dom.fileName.textContent = file.name;
 
@@ -130,7 +131,7 @@ export async function startKmApp() {
           restorable: false,
         },
         onProgress: (value, stage) => {
-          const label = stage === "done" ? "FRAG загружен" : `Загрузка FRAG: ${stage}`;
+          const label = stage === "done" ? "Модель загружена" : `Загрузка модели: ${stage}`;
           appStatus.setStatus(`${label} · ${Math.round(value * 100)}%`);
           appStatus.setProgress(value);
         },
@@ -158,24 +159,27 @@ export async function startKmApp() {
       appStatus.showError(error);
     } finally {
       appStatus.finishOperation(signal);
+      refreshMinimalViewState();
     }
   }
 
   async function loadFrag(file: File) {
     setActiveShareRecord(null);
-    const signal = appStatus.startOperation("Загрузка FRAG");
+    const signal = appStatus.startOperation("Загрузка модели");
+    refreshMinimalViewState(true);
     dom.fileName.textContent = file.name;
     try {
       await loadFragFromBuffer(await file.arrayBuffer(), file.name);
       if (signal.aborted) return;
       await fitToModels();
-      appStatus.setStatus("FRAG загружен");
-      appStatus.showToast("FRAG загружен", "success");
+      appStatus.setStatus("Модель загружена");
+      appStatus.showToast("Модель загружена", "success");
       appStatus.setProgress(1);
     } catch (error) {
       appStatus.showError(error);
     } finally {
       appStatus.finishOperation(signal);
+      refreshMinimalViewState();
     }
   }
 
@@ -204,8 +208,8 @@ export async function startKmApp() {
     if (!response.ok) throw new Error(await response.text());
     const savedRecord = await response.json();
     share.setActiveShareRecord(savedRecord);
-    appStatus.setStatus("Fragment сохранён");
-    appStatus.showToast("Fragment сохранён", "success");
+    appStatus.setStatus("Модель сохранена");
+    appStatus.showToast("Модель сохранена", "success");
   }
 
   async function openSharedModel() {
@@ -243,7 +247,7 @@ export async function startKmApp() {
         size_bytes: 0,
         created_at: new Date().toISOString(),
       });
-      appStatus.setStatus("FRAG загружен из ссылки");
+      appStatus.setStatus("Модель загружена из ссылки");
     } catch (error) {
       appStatus.showError(error);
     } finally {

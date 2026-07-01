@@ -55,7 +55,7 @@ async function assertNonEmptyAssets(assetFiles) {
 async function assertDrawingRuntimeMarkers(assetFiles) {
   const jsFiles = assetFiles.filter((file) => file.endsWith(".js") || file.endsWith(".mjs"));
   const combined = (await Promise.all(jsFiles.map((file) => readFile(file, "utf8")))).join("\n");
-  const markers = ["Чертёж", "Размер", "Выноска", "АР, КР"];
+  const markers = ["drawingsPanel", "generateDrawingBtn", "Чертёж", "Размер", "Выноска", "АР, КР"];
   if (!markers.some((marker) => combined.includes(marker))) {
     throw new Error("missing drawing runtime marker in built JS assets");
   }

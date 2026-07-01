@@ -15,6 +15,8 @@ import { bindBimUiEvents } from "./ui-wiring.ts";
 import { createIssueStore } from "../issues/issues-store.ts";
 import { createMessage } from "../ui/dom-utils.ts";
 import type { ModelIdMap } from "../types.ts";
+import type { ModelLoadReportDraft } from "../performance/load-report.ts";
+import { createModelLoadReport } from "../performance/load-report.ts";
 import { createBimViewer } from "../viewer/viewer.ts";
 import { mountSpatialTree } from "../tree/spatial-tree.ts";
 import type { BimAppContext } from "./app-context.ts";
@@ -27,6 +29,7 @@ import { createProfileRouter } from "./profile-router.ts";
 import { stripKmProfileChrome } from "./km-shell-chrome.ts";
 import { createModelController } from "./model-controller.ts";
 import { createShareController } from "./share-controller.ts";
+import { createLoadReportController } from "./load-report-controller.ts";
 import { createLibraryController } from "./library-controller.ts";
 import { createSearchController } from "./search-controller.ts";
 import { createDataController } from "./data-controller.ts";
@@ -185,6 +188,7 @@ export async function startBimApp() {
   const { storedFederationWorkspace } = restoreStoredFederationState(workspace);
   const issueStore = createIssueStore();
   const appStatus = createAppStatusController(getDomElements());
+  let pendingLoadReportDraft: ModelLoadReportDraft | null = null;
   const {
     ifcOverrideStore,
     syncIfcOverrideState,
@@ -267,6 +271,11 @@ export async function startBimApp() {
     setActiveShareRecord,
   } = createShareController(ctx);
 
+  const {
+    openLoadReportModal,
+    closeLoadReportModal,
+  } = createLoadReportController(ctx);
+  ctx.dom.closeLoadReportBtn.onclick = closeLoadReportModal;
   let canUseDataBrowser = () => false;
   let canUseDrawings = () => false;
   let canUseChecks = () => false;
@@ -441,6 +450,9 @@ export async function startBimApp() {
     closeLibraryModal: () => closeLibraryModal(),
     refreshFederationRegistry,
     persistFederationRegistry,
+    setLoadReportDraft: (draft) => {
+      pendingLoadReportDraft = draft;
+    },
   });
   const {
     loadIfc,
@@ -678,10 +690,25 @@ export async function startBimApp() {
     world.scene.three.add(model.object);
     refreshModelState();
     void (async () => {
+      const loadReportDraft = pendingLoadReportDraft;
+      const fragmentBufferPromise = loadReportDraft ? model.getBuffer(true).catch(() => null) : Promise.resolve(null);
+      const sceneBuildStartedAt = performance.now();
       await fragments.core.update(true);
       await fitToModels();
       // Data indexing is triggered on demand by Data/Checks/Clash panels.
       // Avoid blocking the first visible model load when ThatOpen item-data reads stall on some IFCs/mobile browsers.
+      if (!loadReportDraft) return;
+
+      const fragmentBuffer = await fragmentBufferPromise;
+      const report = createModelLoadReport({
+        sourceName: loadReportDraft.sourceName,
+        ifcSizeBytes: loadReportDraft.ifcSizeBytes,
+        fragmentSizeBytes: loadReportDraft.fragmentSizeBytes ?? fragmentBuffer?.byteLength ?? 0,
+        conversionTimeMs: loadReportDraft.conversionTimeMs,
+        sceneBuildTimeMs: performance.now() - sceneBuildStartedAt,
+      });
+      pendingLoadReportDraft = null;
+      openLoadReportModal(report);
     })();
   });
 

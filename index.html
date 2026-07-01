@@ -137,7 +137,7 @@
         </section>
 
         <section id="shareModal" class="share-modal" aria-label="Внешняя ссылка на модель" hidden>
-          <div class="share-sheet">
+          <div class="share-sheet" role="dialog" aria-modal="true">
             <div class="library-header">
               <strong>Ссылка на модель</strong>
               <button id="closeShareBtn" class="plain-button" type="button" aria-label="Закрыть">×</button>
@@ -148,6 +148,17 @@
               <button id="copyShareBtn" class="icon-button copy-share" type="button">Копировать</button>
             </div>
             <span id="shareCopyStatus" class="share-copy-status" aria-live="polite"></span>
+          </div>
+        </section>
+
+        <section id="loadReportModal" class="load-report-modal" aria-label="Отчет загрузки модели" hidden>
+          <div class="load-report-sheet" role="dialog" aria-modal="true">
+            <div class="library-header">
+              <strong>Отчет загрузки модели</strong>
+              <button id="closeLoadReportBtn" class="plain-button" type="button" aria-label="Закрыть">×</button>
+            </div>
+            <p id="loadReportName" class="load-report-name">Модель</p>
+            <div id="loadReportRows" class="load-report-rows"></div>
           </div>
         </section>
 

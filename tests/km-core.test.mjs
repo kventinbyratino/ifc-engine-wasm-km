@@ -53,3 +53,10 @@ test("KM share URLs use explicit KM and BIM routes", () => {
   assert.equal(configModule.createShareUrl("bim", "frag-2", "https://dev.lab-tim.ru"),
     "https://dev.lab-tim.ru/ifc-engine-wasm/bim/?fragment=frag-2");
 });
+
+test("KM share button persists a saved fragment before opening the share link", () => {
+  assert.match(bootstrapSource, /if \(!workspace\.viewer\.activeShareRecord \|\| !activeShareRecordPersisted\) \{/);
+  assert.match(bootstrapSource, /activeShareRecordPersisted = true;/);
+  assert.match(bootstrapSource, /if \(!workspace\.viewer\.activeShareRecord\) return;/);
+  assert.match(bootstrapSource, /viewer\.fragments\.list\.get\(modelId\) \?\? viewer\.fragments\.list\.values\(\)\.next\(\)\.value/);
+});

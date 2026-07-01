@@ -24,6 +24,7 @@ export interface BimModelControllerOptions {
   closeLibraryModal: () => void;
   refreshFederationRegistry: () => void;
   persistFederationRegistry: () => void;
+  setLoadReportDraft: (draft: import("../performance/load-report.ts").ModelLoadReportDraft | null) => void;
 }
 
 export function createModelController({
@@ -41,6 +42,7 @@ export function createModelController({
   closeLibraryModal,
   refreshFederationRegistry,
   persistFederationRegistry,
+  setLoadReportDraft,
 }: BimModelControllerOptions) {
   const { workspace, issueStore } = ctx;
   const { world, fragments, highlighter, hider } = ctx.viewer;
@@ -74,6 +76,7 @@ export function createModelController({
     setActiveShareRecord,
     closeLibraryModal,
     refreshFederationState,
+    setLoadReportDraft,
   });
   const modelResetService = createModelResetService({
     ctx,

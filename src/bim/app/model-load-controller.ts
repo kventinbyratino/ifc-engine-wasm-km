@@ -4,12 +4,14 @@ import { createFederationLoadQueue } from "../federation/federation-loader.ts";
 import type { FederationLoadSource } from "../federation/federation-registry.ts";
 import { loadFragBuffer as loadFragmentsBuffer, loadIfcModel } from "../models/model-loader.ts";
 import { resolveIfcLoadStrategy } from "../models/ifc-load-strategy.ts";
+import type { ModelLoadReportDraft } from "../performance/load-report.ts";
 import type { BimAppContext } from "./app-context.ts";
 
 export interface ModelLoadControllerHooks {
   setActiveShareRecord: (record: null) => void;
   closeLibraryModal: () => void;
   refreshFederationState: () => void;
+  setLoadReportDraft: (draft: ModelLoadReportDraft | null) => void;
 }
 
 type LoadFragBufferOptions = {
@@ -42,6 +44,15 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
       const signal = ctx.startOperation(strategy.kind === "backend-required" ? "Серверная конвертация IFC" : "Конвертация IFC в браузере");
       fileName.textContent = file.name;
       await yieldToUiFrame(signal);
+      const conversionStartedAt = performance.now();
+      const sourceOrigin = source?.origin ?? "upload";
+      hooks.setLoadReportDraft({
+        sourceName: file.name,
+        ifcSizeBytes: file.size,
+        conversionTimeMs: 0,
+        sourceKind: "ifc",
+        sourceOrigin,
+      });
 
       try {
         if (strategy.kind === "backend-required") {
@@ -52,6 +63,14 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
             onProgress: (value) => ctx.setProgress(value),
           });
           if (signal.aborted) return;
+          hooks.setLoadReportDraft({
+            sourceName: file.name,
+            ifcSizeBytes: file.size,
+            fragmentSizeBytes: conversion.artifactBuffer.byteLength,
+            conversionTimeMs: performance.now() - conversionStartedAt,
+            sourceKind: "ifc",
+            sourceOrigin,
+          });
 
           const result = await runLoadFragBuffer(conversion.artifactBuffer, conversion.artifactName, {
             signal,
@@ -102,6 +121,14 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
           });
           if (signal.aborted) return;
 
+          hooks.setLoadReportDraft({
+            sourceName: file.name,
+            ifcSizeBytes: file.size,
+            conversionTimeMs: result.performance.totalLoadMs,
+            sourceKind: "ifc",
+            sourceOrigin,
+          });
+
           workspace.viewer.lastConvertedModelId = result.modelId;
           workspace.viewer.lastSourceIfcName = result.sourceName;
           workspace.data.sourceIfcFiles[result.modelId] = result.sourceIfc;
@@ -116,6 +143,7 @@ export function createModelLoadController(ctx: BimAppContext, hooks: ModelLoadCo
           ctx.setProgress(1);
         }
       } catch (error) {
+        hooks.setLoadReportDraft(null);
         hooks.refreshFederationState();
         if (!isAbortError(error)) ctx.showError(error);
       } finally {

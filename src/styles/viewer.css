@@ -20,6 +20,74 @@
   backdrop-filter: blur(8px);
 }
 
+.load-report-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 33;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+.load-report-sheet {
+  display: grid;
+  gap: 14px;
+  width: min(540px, calc(100vw - 32px));
+  padding: 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.24);
+}
+
+.load-report-name {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  color: #687782;
+  font-size: 13px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.load-report-rows {
+  display: grid;
+  gap: 10px;
+}
+
+.load-report-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid rgba(23, 32, 38, 0.08);
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.load-report-label {
+  color: #687782;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.load-report-value {
+  color: #172026;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.load-report-row strong,
+.load-report-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .upload-mode-modal {
   position: fixed;
   inset: 0;

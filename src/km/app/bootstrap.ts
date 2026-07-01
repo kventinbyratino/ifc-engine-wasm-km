@@ -63,8 +63,11 @@ export async function startKmApp() {
     viewer.world.scene.three.add(model.object);
   });
 
+  let activeShareRecordPersisted = false;
+
   function setActiveShareRecord(record: { id: string; name: string; filename: string; size_bytes: number; created_at: string } | null) {
     workspace.viewer.activeShareRecord = record as any;
+    activeShareRecordPersisted = false;
     dom.shareModelBtn.hidden = !record;
     if (!record) share.closeShareModal();
   }
@@ -188,7 +191,7 @@ export async function startKmApp() {
     const sourceName = workspace.viewer.lastSourceIfcName;
     if (!modelId || !sourceName) return;
 
-    const modelRecord = viewer.fragments.list.get(modelId);
+    const modelRecord = viewer.fragments.list.get(modelId) ?? viewer.fragments.list.values().next().value;
     if (!modelRecord) {
       appStatus.showError(new Error("Нет модели для сохранения"));
       return;
@@ -208,14 +211,16 @@ export async function startKmApp() {
     if (!response.ok) throw new Error(await response.text());
     const savedRecord = await response.json();
     share.setActiveShareRecord(savedRecord);
+    activeShareRecordPersisted = true;
     appStatus.setStatus("Модель сохранена");
     appStatus.showToast("Модель сохранена", "success");
   }
 
   async function openSharedModel() {
-    if (!workspace.viewer.activeShareRecord) {
+    if (!workspace.viewer.activeShareRecord || !activeShareRecordPersisted) {
       await saveCurrentFragment();
     }
+    if (!workspace.viewer.activeShareRecord) return;
     share.openShareModal();
   }
 
@@ -247,6 +252,7 @@ export async function startKmApp() {
         size_bytes: 0,
         created_at: new Date().toISOString(),
       });
+      activeShareRecordPersisted = true;
       appStatus.setStatus("Модель загружена из ссылки");
     } catch (error) {
       appStatus.showError(error);

@@ -58,6 +58,11 @@ export async function startKmApp() {
   const search = createSearchController(ctx);
   const share = createShareController(ctx);
 
+  viewer.fragments.core.onModelLoaded.add((model) => {
+    model.useCamera(viewer.world.camera.three);
+    viewer.world.scene.three.add(model.object);
+  });
+
   function setActiveShareRecord(record: { id: string; name: string; filename: string; size_bytes: number; created_at: string } | null) {
     workspace.viewer.activeShareRecord = record as any;
     dom.shareModelBtn.hidden = !record;
@@ -145,6 +150,7 @@ export async function startKmApp() {
         created_at: new Date().toISOString(),
       });
       refreshMinimalViewState();
+      await fitToModels();
       appStatus.setStatus("IFC загружен и преобразован");
       appStatus.showToast("IFC загружен и преобразован", "success");
       appStatus.setProgress(1);
@@ -162,6 +168,7 @@ export async function startKmApp() {
     try {
       await loadFragFromBuffer(await file.arrayBuffer(), file.name);
       if (signal.aborted) return;
+      await fitToModels();
       appStatus.setStatus("FRAG загружен");
       appStatus.showToast("FRAG загружен", "success");
       appStatus.setProgress(1);
@@ -288,8 +295,8 @@ export async function startKmApp() {
       void search.searchItems();
     }
   });
-
   async function fitToModels() {
+    await viewer.fragments.core.update(true);
     const objects = [...viewer.fragments.list.values()].map((model) => model.object);
     if (objects.length === 0) return;
 

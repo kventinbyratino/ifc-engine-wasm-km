@@ -15,5 +15,5 @@ test("clearModels resets viewer/data references after disposing models", () => {
 });
 
 test("fragments worker blob URL is revoked after worker init", () => {
-  assert.match(viewerSource, /fragments\.init\(fragmentsWorkerUrl\);\s*URL\.revokeObjectURL\(fragmentsWorkerUrl\);/s);
+  assert.match(viewerSource, /fragments\.init\(fragmentsWorkerUrl\);\s*setTimeout\(\(\) => URL\.revokeObjectURL\(fragmentsWorkerUrl\), 5000\);/s);
 });

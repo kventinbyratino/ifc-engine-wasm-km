@@ -93,7 +93,7 @@ export async function createBimViewer(options: {
   const fragments = components.get(OBC.FragmentsManager);
   const fragmentsWorkerUrl = await createFragmentsWorkerUrl(options.workerUrl);
   fragments.init(fragmentsWorkerUrl);
-  URL.revokeObjectURL(fragmentsWorkerUrl);
+  setTimeout(() => URL.revokeObjectURL(fragmentsWorkerUrl), 5000);
 
   const ifcLoader = components.get(OBC.IfcLoader);
   await ifcLoader.setup({
